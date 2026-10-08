@@ -16,7 +16,11 @@ import {
   ACP_SHARE_REGISTRY_ABI,
   toChainShare,
   computeShareId,
-  shareIdOfChainShare,
+  readSharesFor,
+  readShare,
+  encodeShareMetadata,
+  type PostedShare,
+  type ShareLabel,
   getAclServedAddresses,
   clearAclServedAddresses,
 } from '@/acps';
@@ -98,13 +102,28 @@ export type ImportActivationOptions = {
   activate?: boolean;
 };
 
+/** Options for importing a shared acp: activation, and the recipient's own name for it. */
+export type ImportSharedOptions = ImportActivationOptions & {
+  /**
+   * The name of the imported acp. Defaults to "Shared by 0x1234…abcd" (its issuer); the issuer's
+   * own name for the share is not exported and is ignored if present.
+   */
+  name?: string;
+};
+
 const importShared = async (
   options: ImportSharedACPOptions | string,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  { activate = true }: ImportActivationOptions = {}
+  { activate = true, name }: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
-  return createACPWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign, activate);
+  return createACPWithSign(
+    options,
+    publicClient,
+    walletClient,
+    (o, pc, wc) => ACPUtils.importSharedAndSign(o, pc, wc, { name }),
+    activate
+  );
 };
 
 // ACP UTILS
@@ -391,13 +410,32 @@ const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boole
 };
 
 /**
+ * What `shareOnChain` posts with a share: the labels of its handles (one per handle, in order;
+ * encoded with `encodeShareMetadata`), or an already encoded metadata blob. Written once, with the
+ * share. Omitted, the labels the acp was created with are posted (`createSharing({ labels })`),
+ * or none.
+ */
+export type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex };
+
+const metadataOf = (acp: ACP, { labels, metadata }: ShareOnChainOptions): Hex => {
+  if (labels != null && metadata != null) throw new Error('Pass either labels or metadata, not both');
+  if (labels == null) return metadata ?? acp.metadata ?? '0x';
+  if (labels.length !== acp.handles.length) {
+    throw new Error(`Cannot label a share of ${acp.handles.length} handles with ${labels.length} labels`);
+  }
+  return encodeShareMetadata(labels);
+};
+
+/**
  * Post a signed sharing ACP to the on-chain share registry for its recipient
- * to discover and import — the on-chain alternative to `export()`.
+ * to discover and import — the on-chain alternative to `export()` — optionally
+ * with the labels of its handles.
  */
 const shareOnChain = async (
   acp: ACP,
   walletClient: WalletClient,
-  registry: Hex
+  registry: Hex,
+  options: ShareOnChainOptions = {}
 ): Promise<{ txHash: Hex; shareId: Hex }> => {
   if (acp.type !== 'sharing') {
     throw new Error(`Cannot share a '${acp.type}' ACP on-chain — only 'sharing' ACPs are shareable.`);
@@ -409,12 +447,13 @@ const shareOnChain = async (
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the ACP issuer can share it on-chain');
   }
+  const metadata = metadataOf(acp, options);
 
   const txHash = await walletClient.writeContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
     functionName: 'share',
-    args: [toChainShare(acp)],
+    args: [toChainShare(acp), metadata],
     account: walletClient.account,
     chain: walletClient.chain ?? null,
   });
@@ -422,44 +461,50 @@ const shareOnChain = async (
   return { txHash, shareId: computeShareId(acp) };
 };
 
-/** All importable shares addressed to `recipient` (unexpired, not revoked). */
-const getIncomingShares = async (
+const toIncomingShare = ({ shareId, share: s, metadata }: PostedShare): IncomingShare => ({
+  shareId,
+  issuer: s.issuer,
+  expiration: Number(s.expiration),
+  recipient: s.recipient,
+  revokerData: Number(s.revokerData),
+  revokerContract: s.revokerContract,
+  scope: Number(s.scope),
+  contracts: [...s.contracts],
+  handles: [...s.handles],
+  issuerSignature: s.issuerSignature,
+  metadata,
+});
+
+/**
+ * All importable shares addressed to `recipient` (unexpired, not revoked): the headers from
+ * `sharesFor`, then each share's `Shared` event from the block its header names (one
+ * single-block `getLogs` per block).
+ */
+const getIncomingShares = async (publicClient: PublicClient, registry: Hex, recipient: Hex): Promise<IncomingShare[]> =>
+  (await readSharesFor(publicClient, registry, recipient)).map(toIncomingShare);
+
+/** One share by id, as posted; null when unknown or removed. Expired or revoked shares are returned as is. */
+const getShareFromChain = async (
   publicClient: PublicClient,
   registry: Hex,
-  recipient: Hex
-): Promise<IncomingShare[]> => {
-  const raw = await publicClient.readContract({
-    address: registry,
-    abi: ACP_SHARE_REGISTRY_ABI,
-    functionName: 'sharesFor',
-    args: [recipient],
-  });
-
-  return raw.map((s) => ({
-    shareId: shareIdOfChainShare(s),
-    issuer: s.issuer,
-    expiration: Number(s.expiration),
-    recipient: s.recipient,
-    revokerData: Number(s.revokerData),
-    revokerContract: s.revokerContract,
-    scope: Number(s.scope),
-    contracts: [...s.contracts],
-    handles: [...s.handles],
-    issuerSignature: s.issuerSignature,
-  }));
+  shareId: Hex
+): Promise<IncomingShare | null> => {
+  const posted = await readShare(publicClient, registry, shareId);
+  return posted && toIncomingShare(posted);
 };
 
 /**
  * Import a share read from the registry: fills the recipient's sealing key,
  * signs, stores and (unless `activate: false`) activates — the on-chain
- * counterpart of importing an exported JSON blob. The share stays on-chain
+ * counterpart of importing an exported JSON blob. Its metadata is kept on the
+ * recipient acp, as with an import of exported JSON. The share stays on-chain
  * until dismissed.
  */
 const importFromChain = async (
   share: IncomingShare,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  importOptions: ImportActivationOptions = {}
+  importOptions: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
   const { shareId: _shareId, ...options } = share;
   return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
@@ -519,6 +564,7 @@ export const acps = {
 
   shareOnChain,
   getIncomingShares,
+  getShareFromChain,
   importFromChain,
   removeShareOnChain,
   computeShareId,

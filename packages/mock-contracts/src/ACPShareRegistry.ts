@@ -6,6 +6,69 @@ export const ACPShareRegistryArtifact = {
   isFixed: false,
   abi: [
     {
+      type: 'constructor',
+      inputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'DEFAULT_ADMIN_ROLE',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'UPGRADER_ROLE',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'UPGRADE_INTERFACE_VERSION',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'string',
+          internalType: 'string',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'getRoleAdmin',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
       type: 'function',
       name: 'getShare',
       inputs: [
@@ -19,7 +82,7 @@ export const ACPShareRegistryArtifact = {
         {
           name: '',
           type: 'tuple',
-          internalType: 'struct ACP',
+          internalType: 'struct ACPShareRegistry.ShareHeader',
           components: [
             {
               name: 'issuer',
@@ -37,9 +100,9 @@ export const ACPShareRegistryArtifact = {
               internalType: 'address',
             },
             {
-              name: 'revokerData',
-              type: 'uint256',
-              internalType: 'uint256',
+              name: 'blockNumber',
+              type: 'uint64',
+              internalType: 'uint64',
             },
             {
               name: 'revokerContract',
@@ -47,39 +110,69 @@ export const ACPShareRegistryArtifact = {
               internalType: 'address',
             },
             {
-              name: 'scope',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'contracts',
-              type: 'address[]',
-              internalType: 'address[]',
-            },
-            {
-              name: 'handles',
-              type: 'bytes32[]',
-              internalType: 'bytes32[]',
-            },
-            {
-              name: 'sealingKey',
-              type: 'bytes32',
-              internalType: 'bytes32',
-            },
-            {
-              name: 'issuerSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-            {
-              name: 'recipientSignature',
-              type: 'bytes',
-              internalType: 'bytes',
+              name: 'revokerData',
+              type: 'uint256',
+              internalType: 'uint256',
             },
           ],
         },
       ],
       stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'grantRole',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'hasRole',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'initialize',
+      inputs: [
+        {
+          name: 'initialAdmin',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',
@@ -102,12 +195,61 @@ export const ACPShareRegistryArtifact = {
     },
     {
       type: 'function',
+      name: 'proxiableUUID',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'removeShare',
       inputs: [
         {
           name: 'shareId',
           type: 'bytes32',
           internalType: 'bytes32',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'renounceRole',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+        {
+          name: 'callerConfirmation',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'revokeRole',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
         },
       ],
       outputs: [],
@@ -179,6 +321,11 @@ export const ACPShareRegistryArtifact = {
             },
           ],
         },
+        {
+          name: 'metadata',
+          type: 'bytes',
+          internalType: 'bytes',
+        },
       ],
       outputs: [
         {
@@ -201,9 +348,227 @@ export const ACPShareRegistryArtifact = {
       ],
       outputs: [
         {
-          name: 'acps',
+          name: 'shareIds',
+          type: 'bytes32[]',
+          internalType: 'bytes32[]',
+        },
+        {
+          name: 'headers',
           type: 'tuple[]',
-          internalType: 'struct ACP[]',
+          internalType: 'struct ACPShareRegistry.ShareHeader[]',
+          components: [
+            {
+              name: 'issuer',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'expiration',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'recipient',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'blockNumber',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'revokerContract',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'revokerData',
+              type: 'uint256',
+              internalType: 'uint256',
+            },
+          ],
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'supportsInterface',
+      inputs: [
+        {
+          name: 'interfaceId',
+          type: 'bytes4',
+          internalType: 'bytes4',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'upgradeToAndCall',
+      inputs: [
+        {
+          name: 'newImplementation',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'data',
+          type: 'bytes',
+          internalType: 'bytes',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'payable',
+    },
+    {
+      type: 'event',
+      name: 'Initialized',
+      inputs: [
+        {
+          name: 'version',
+          type: 'uint64',
+          indexed: false,
+          internalType: 'uint64',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'RoleAdminChanged',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'previousAdminRole',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'newAdminRole',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'RoleGranted',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'account',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'sender',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'RoleRevoked',
+      inputs: [
+        {
+          name: 'role',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'account',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'sender',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'ShareRemoved',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'issuer',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'shareId',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'Shared',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'issuer',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'shareId',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'acp',
+          type: 'tuple',
+          indexed: false,
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -262,58 +627,59 @@ export const ACPShareRegistryArtifact = {
             },
           ],
         },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'event',
-      name: 'ShareRemoved',
-      inputs: [
         {
-          name: 'recipient',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'issuer',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'shareId',
-          type: 'bytes32',
+          name: 'metadata',
+          type: 'bytes',
           indexed: false,
-          internalType: 'bytes32',
+          internalType: 'bytes',
         },
       ],
       anonymous: false,
     },
     {
       type: 'event',
-      name: 'Shared',
+      name: 'Upgraded',
       inputs: [
         {
-          name: 'recipient',
+          name: 'implementation',
           type: 'address',
           indexed: true,
           internalType: 'address',
-        },
-        {
-          name: 'issuer',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'shareId',
-          type: 'bytes32',
-          indexed: false,
-          internalType: 'bytes32',
         },
       ],
       anonymous: false,
+    },
+    {
+      type: 'error',
+      name: 'AccessControlBadConfirmation',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'AccessControlUnauthorizedAccount',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'neededRole',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'AddressEmptyCode',
+      inputs: [
+        {
+          name: 'target',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
     },
     {
       type: 'error',
@@ -322,7 +688,38 @@ export const ACPShareRegistryArtifact = {
     },
     {
       type: 'error',
+      name: 'ERC1967InvalidImplementation',
+      inputs: [
+        {
+          name: 'implementation',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'ERC1967NonPayable',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'FailedCall',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'InvalidInitialization',
+      inputs: [],
+    },
+    {
+      type: 'error',
       name: 'IssuerSignatureMissing',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotInitializing',
       inputs: [],
     },
     {
@@ -349,6 +746,22 @@ export const ACPShareRegistryArtifact = {
       type: 'error',
       name: 'ShareExpired',
       inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'UUPSUnauthorizedCallContext',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'UUPSUnsupportedProxiableUUID',
+      inputs: [
+        {
+          name: 'slot',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
     },
     {
       type: 'error',

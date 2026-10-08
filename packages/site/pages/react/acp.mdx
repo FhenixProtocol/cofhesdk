@@ -165,6 +165,32 @@ function GrantedShare({ acp }: { acp: ACP }) {
 
 The write hooks resolve once the transaction is mined, so a read that follows sees the result.
 
+### Share labels
+
+A SNAPSHOT share can carry the labels of its handles ([Labelling a SNAPSHOT share](/sdk/acp#labelling-a-snapshot-share)). The issuer posts them with the share; the recipient reads them described at once and checked against the chain:
+
+```tsx
+import { useCofheShareLabels, useCofheShareOnChain } from '@cofhe/react';
+import { confidentialBalanceLabel } from '@cofhe/sdk/acps';
+
+// issuer: one label per handle, in order
+post.mutate({ acp, labels: [confidentialBalanceLabel(token, block)] });
+
+// recipient
+function ShareLabels({ share }: { share: IncomingShare }) {
+  const { labels } = useCofheShareLabels(share, { abis: { [token]: tokenAbi } }); // verify: 'all' by default
+  return labels?.map((label) => (
+    <div key={label.index}>
+      {label.kind === 'stored' ? label.function?.name : label.kind === 'event' ? label.event?.name : 'unlabelled'}
+      {' — '}
+      {label.check /* pending, verified, mismatch, unverifiable, skipped */}
+    </div>
+  ));
+}
+```
+
+Labels render from the blob immediately with `check: 'pending'`; each check fills in when the chain answers, once per share. `labels` is `null` for a share posted without labels.
+
 ### One value without a scope
 
 Pass `acp` to the hook itself; it wins over any enclosing scope. Here the user own balance and a shared one sit side by side:

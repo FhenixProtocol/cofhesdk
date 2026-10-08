@@ -1,11 +1,69 @@
+import { useMemo } from 'react';
 import { ArrowBackIcon } from '@/components/Icons';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer.js';
 import { Button } from '@/components/CofheFloatingButton/components/Button.js';
-import { useIncomingShares, useImportFromChain, useRemoveShare } from '@/hooks/acps/index.js';
+import { useCofheShareLabels, useIncomingShares, useImportFromChain, useRemoveShare } from '@/hooks/acps/index.js';
+import type { CofheShareLabel } from '@/hooks/acps/index.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils';
-import type { IncomingShare } from '@cofhe/sdk/acps';
+import { decodeShareMetadata, type IncomingShare, type ShareLabelAbis } from '@cofhe/sdk/acps';
+import { parseAbi } from 'viem';
+
+/** Names for the confidential-token reads and events a label most often points at (ERC-7984). */
+const CONFIDENTIAL_TOKEN_ABI = parseAbi([
+  'function confidentialBalanceOf(address account) view returns (bytes32)',
+  'event ConfidentialTransfer(address indexed from, address indexed to, bytes32 indexed amount)',
+]);
+
+/** The token ABI for every contract a share's labels name; null when it has no (readable) labels. */
+const tokenAbisFor = (share: IncomingShare): ShareLabelAbis | undefined => {
+  if (share.metadata === '0x') return undefined;
+  try {
+    const contracts = decodeShareMetadata(share.metadata, share.handles).flatMap((l) =>
+      l.kind === 'unlabelled' ? [] : [l.contract]
+    );
+    return Object.fromEntries(contracts.map((c) => [c, CONFIDENTIAL_TOKEN_ABI]));
+  } catch {
+    return undefined;
+  }
+};
+
+const CHECK_MARK: Record<CofheShareLabel['check'], string> = {
+  verified: '✓',
+  mismatch: '✗',
+  unverifiable: '?',
+  skipped: '·',
+  pending: '…',
+};
+
+const labelText = (label: CofheShareLabel): string => {
+  switch (label.kind) {
+    case 'stored':
+      return `${label.function?.name ?? label.selector} @ ${label.block}`;
+    case 'event':
+      return `${label.event?.name ?? label.selector} @ ${label.block}, log ${label.logIndex}`;
+    case 'unlabelled':
+      return 'unlabelled';
+  }
+};
+
+/** What each shared value is, as the issuer labelled it, and whether the chain confirms it. */
+const ShareLabels: React.FC<{ share: IncomingShare }> = ({ share }) => {
+  const abis = useMemo(() => tokenAbisFor(share), [share]);
+  const { labels, error } = useCofheShareLabels(share, { abis });
+  if (error) return <div className="italic">Labels unreadable: {error.message}</div>;
+  if (labels == null) return null;
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {labels.map((label) => (
+        <li key={label.index} title={label.check}>
+          {CHECK_MARK[label.check]} {labelText(label)}
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
   const { navigateTo } = usePortalNavigation();
@@ -45,6 +103,7 @@ const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
       <div>
         Expires in: <b>{expirationInfo.label}</b>
       </div>
+      <ShareLabels share={share} />
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Button
           variant="primary"

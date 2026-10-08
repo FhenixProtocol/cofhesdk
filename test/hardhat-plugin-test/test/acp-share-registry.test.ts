@@ -11,11 +11,13 @@ import {
   signedSharingPermission,
   type ACP,
 } from './helpers/acp';
+import { deployShareRegistry } from './helpers/shareRegistry';
 
 /**
  * ACPShareRegistry — the on-chain hand-off for sharing ACPs.
  *
- * The registry is a dumb store with three guarantees:
+ * The registry is a dumb, pointer-based store — the payload and its metadata travel in the
+ * `Shared` event; storage keeps the header — with three guarantees:
  *  - a listed share was posted by its claimed issuer (msg.sender check),
  *  - `sharesFor` returns only importable shares (unexpired, not revoked),
  *  - `isShareValid` is the same check exposed as a hook for contracts.
@@ -56,7 +58,7 @@ describe('ACPShareRegistry', () => {
     [bob, alice, carol] = await hre.ethers.getSigners();
     acl = await (await hre.ethers.getContractFactory('MockACL')).deploy();
     await acl.waitForDeployment();
-    registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    registry = await deployShareRegistry();
     await registry.waitForDeployment();
     revoker = await (await hre.ethers.getContractFactory('ACPTimestampRevoker')).deploy();
     await revoker.waitForDeployment();
@@ -66,86 +68,117 @@ describe('ACPShareRegistry', () => {
 
   it('posts a share and lists it for the recipient', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await expect(registry.connect(bob).share(p)).to.emit(registry, 'Shared');
+    const id = await shareIdOf(p);
+    await expect(registry.connect(bob).share(p, '0x')).to.emit(registry, 'Shared');
 
-    const shares = await registry.sharesFor(alice.address);
-    expect(shares.length).to.equal(1);
-    expect(shares[0].issuer).to.equal(bob.address);
-    expect(shares[0].recipient).to.equal(alice.address);
-    expect(shares[0].issuerSignature).to.equal(p.issuerSignature);
+    // storage lists the header; the payload is in the event
+    const { shareIds, headers } = await registry.sharesFor(alice.address);
+    expect(shareIds).to.deep.equal([id]);
+    expect(headers[0].issuer).to.equal(bob.address);
+    expect(headers[0].recipient).to.equal(alice.address);
+    expect(headers[0].blockNumber).to.equal(BigInt(await hre.ethers.provider.getBlockNumber()));
 
     // and by id
-    const id = await shareIdOf(p);
     expect((await registry.getShare(id)).issuer).to.equal(bob.address);
     expect(await registry.isShareValid(id)).to.equal(true);
+  });
+
+  it('carries the full payload and the metadata in the Shared event of the block the header names', async () => {
+    const p = await signedSharingPermission(acl, bob, alice.address);
+    const id = await shareIdOf(p);
+    const metadata = '0x03' + 'ab'.repeat(40);
+    await registry.connect(bob).share(p, metadata);
+
+    const { blockNumber } = await registry.getShare(id);
+    const logs = await registry.queryFilter(
+      registry.filters.Shared(undefined, undefined, id),
+      blockNumber,
+      blockNumber
+    );
+    expect(logs).to.have.length(1);
+    const { args } = logs[0] as any;
+    expect(args.recipient).to.equal(alice.address);
+    expect(args.issuer).to.equal(bob.address);
+    expect(args.acp.issuerSignature).to.equal(p.issuerSignature);
+    expect([...args.acp.handles]).to.deep.equal([...p.handles]);
+    expect(args.metadata).to.equal(metadata);
+  });
+
+  it('rejects the same share again even with other metadata (labels are written once)', async () => {
+    const p = await signedSharingPermission(acl, bob, alice.address);
+    await registry.connect(bob).share(p, '0x0301');
+    await expect(registry.connect(bob).share(p, '0x0302')).to.be.revertedWithCustomError(registry, 'AlreadyShared');
   });
 
   it('lists shares from multiple issuers for one recipient', async () => {
     const p1 = await signedSharingPermission(acl, bob, alice.address);
     const p2 = await signedSharingPermission(acl, carol, alice.address);
-    await registry.connect(bob).share(p1);
-    await registry.connect(carol).share(p2);
+    await registry.connect(bob).share(p1, '0x');
+    await registry.connect(carol).share(p2, '0x');
 
-    const shares = await registry.sharesFor(alice.address);
-    expect(shares.length).to.equal(2);
+    const { headers } = await registry.sharesFor(alice.address);
+    expect([...headers].map((h: any) => h.issuer)).to.have.members([bob.address, carol.address]);
   });
 
   it('rejects posting someone else’s share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await expect(registry.connect(carol).share(p)).to.be.revertedWithCustomError(registry, 'NotIssuer');
+    await expect(registry.connect(carol).share(p, '0x')).to.be.revertedWithCustomError(registry, 'NotIssuer');
   });
 
   it('rejects a share without a recipient', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address, { recipient: ZERO_ADDRESS });
-    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'RecipientMissing');
+    await expect(registry.connect(bob).share(p, '0x')).to.be.revertedWithCustomError(registry, 'RecipientMissing');
   });
 
   it('rejects a share carrying a sealing key', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address, { sealingKey: DEFAULT_SEALING_KEY });
-    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'SealingKeyMustBeEmpty');
+    await expect(registry.connect(bob).share(p, '0x')).to.be.revertedWithCustomError(registry, 'SealingKeyMustBeEmpty');
   });
 
   it('rejects an unsigned share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
     p.issuerSignature = '0x';
-    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'IssuerSignatureMissing');
+    await expect(registry.connect(bob).share(p, '0x')).to.be.revertedWithCustomError(
+      registry,
+      'IssuerSignatureMissing'
+    );
   });
 
   it('rejects an already-expired share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address, {
       expiration: (await latestTimestamp()) - 1000n,
     });
-    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'ShareExpired');
+    await expect(registry.connect(bob).share(p, '0x')).to.be.revertedWithCustomError(registry, 'ShareExpired');
   });
 
   it('rejects a duplicate share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await registry.connect(bob).share(p);
-    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'AlreadyShared');
+    await registry.connect(bob).share(p, '0x');
+    await expect(registry.connect(bob).share(p, '0x')).to.be.revertedWithCustomError(registry, 'AlreadyShared');
   });
 
   // ----------------------------------------------------------------- remove
 
   it('issuer can retract a share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await registry.connect(bob).share(p);
+    await registry.connect(bob).share(p, '0x');
     const id = await shareIdOf(p);
 
     await expect(registry.connect(bob).removeShare(id)).to.emit(registry, 'ShareRemoved');
-    expect((await registry.sharesFor(alice.address)).length).to.equal(0);
+    expect((await registry.sharesFor(alice.address)).shareIds.length).to.equal(0);
     expect(await registry.isShareValid(id)).to.equal(false);
   });
 
   it('recipient can dismiss a share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await registry.connect(bob).share(p);
+    await registry.connect(bob).share(p, '0x');
     await registry.connect(alice).removeShare(await shareIdOf(p));
-    expect((await registry.sharesFor(alice.address)).length).to.equal(0);
+    expect((await registry.sharesFor(alice.address)).shareIds.length).to.equal(0);
   });
 
   it('a bystander cannot remove a share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
-    await registry.connect(bob).share(p);
+    await registry.connect(bob).share(p, '0x');
     await expect(registry.connect(carol).removeShare(await shareIdOf(p))).to.be.revertedWithCustomError(
       registry,
       'NotIssuerOrRecipient'
@@ -163,16 +196,13 @@ describe('ACPShareRegistry', () => {
     const p1 = await signedSharingPermission(acl, bob, alice.address);
     const p2 = await signedSharingPermission(acl, bob, alice.address, { revokerData: 1n }); // distinct id
     const p3 = await signedSharingPermission(acl, bob, alice.address, { revokerData: 2n });
-    await registry.connect(bob).share(p1);
-    await registry.connect(bob).share(p2);
-    await registry.connect(bob).share(p3);
+    await registry.connect(bob).share(p1, '0x');
+    await registry.connect(bob).share(p2, '0x');
+    await registry.connect(bob).share(p3, '0x');
 
     await registry.connect(bob).removeShare(await shareIdOf(p1));
-    const shares = await registry.sharesFor(alice.address);
-    expect(shares.length).to.equal(2);
-    const sigs = shares.map((s: any) => s.issuerSignature);
-    expect(sigs).to.include(p2.issuerSignature);
-    expect(sigs).to.include(p3.issuerSignature);
+    const { shareIds } = await registry.sharesFor(alice.address);
+    expect([...shareIds]).to.have.members([await shareIdOf(p2), await shareIdOf(p3)]);
   });
 
   // ----------------------------------------------------- validity filtering
@@ -181,11 +211,11 @@ describe('ACPShareRegistry', () => {
     const p = await signedSharingPermission(acl, bob, alice.address, {
       expiration: (await latestTimestamp()) + 100n,
     });
-    await registry.connect(bob).share(p);
-    expect((await registry.sharesFor(alice.address)).length).to.equal(1);
+    await registry.connect(bob).share(p, '0x');
+    expect((await registry.sharesFor(alice.address)).shareIds.length).to.equal(1);
 
     await advanceTime(200);
-    expect((await registry.sharesFor(alice.address)).length).to.equal(0);
+    expect((await registry.sharesFor(alice.address)).shareIds.length).to.equal(0);
     expect(await registry.isShareValid(await shareIdOf(p))).to.equal(false);
   });
 
@@ -195,13 +225,13 @@ describe('ACPShareRegistry', () => {
       revokerData: createdAt,
       revokerContract: await revoker.getAddress(),
     });
-    await registry.connect(bob).share(p);
+    await registry.connect(bob).share(p, '0x');
     const id = await shareIdOf(p);
     expect(await registry.isShareValid(id)).to.equal(true);
 
     await revoker.connect(bob).revokeSingle(createdAt);
     expect(await registry.isShareValid(id)).to.equal(false);
-    expect((await registry.sharesFor(alice.address)).length).to.equal(0);
+    expect((await registry.sharesFor(alice.address)).shareIds.length).to.equal(0);
   });
 
   it('a reverting revoker fails closed (share invalid)', async () => {
@@ -211,7 +241,7 @@ describe('ACPShareRegistry', () => {
       revokerData: 1n,
       revokerContract: await broken.getAddress(),
     });
-    await registry.connect(bob).share(p);
+    await registry.connect(bob).share(p, '0x');
     expect(await registry.isShareValid(await shareIdOf(p))).to.equal(false);
   });
 });

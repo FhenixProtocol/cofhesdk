@@ -85,6 +85,7 @@ const zACPWithDefaults = z.object({
   handles: handlesSchema,
   issuerSignature: bytesSchema.optional().default('0x'),
   recipientSignature: bytesSchema.optional().default('0x'),
+  metadata: bytesSchema.optional(),
 });
 
 const zACPWithSealingKeys = zACPWithDefaults.extend({
@@ -228,7 +229,6 @@ export const ImportACPOptionsValidator = z
     type: z.literal('recipient').optional().default('recipient'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int(),
     revokerData: z.int().optional().default(0),
     revokerContract: addressSchema.optional().default(zeroAddress),
@@ -237,6 +237,8 @@ export const ImportACPOptionsValidator = z
     handles: handlesSchema,
     issuerSignature: bytesNotEmptySchema,
     recipientSignature: bytesSchema.optional().default('0x'),
+    /** The share metadata (labels blob); `0x` means none and is dropped */
+    metadata: bytesSchema.optional().transform((val) => (val === '0x' ? undefined : val)),
   })
   .refine(...ExternalValidatorRefinement)
   .transform(withDerivedScope)

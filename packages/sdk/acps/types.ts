@@ -1,5 +1,6 @@
 import { type EthEncryptedData } from './sealing.js';
 import { type Hex } from 'viem';
+import type { ShareLabel } from './share-metadata/schema.js';
 
 /**
  * EIP712 related types
@@ -46,6 +47,12 @@ export interface ACPPrivate {
    * Never leaves the client.
    */
   sealingPrivateKey: Hex;
+  /**
+   * (sharing / recipient) The share metadata: the labels of its handles, a v3 blob
+   * (`decodeShareMetadata` / `describeShareMetadata`). Not signed; travels with the share, in the
+   * exported JSON or in the registry's `Shared` event. Absent when the share has none.
+   */
+  metadata?: Hex;
   /**
    * EIP712 domain used to sign this acp.
    * Should not be set manually, included in metadata as part of serialization flows.
@@ -191,17 +198,24 @@ export type CreateSharingACPOptions = ACPScopeOptions & {
   expiration?: number;
   revokerData?: number;
   revokerContract?: string;
+  /**
+   * The labels of the handles, one per handle in order. Kept on the acp as `metadata`, then
+   * written into `export()` and posted by `shareOnChain`.
+   */
+  labels?: readonly ShareLabel[];
 };
 
+/** A share as exported (`SharedACP`) or read from the registry. A `name` in it is ignored. */
 export type ImportSharedACPOptions = ACPScopeOptions & {
   type?: 'sharing';
   issuer: string;
   recipient: string;
   issuerSignature: string;
-  name?: string;
   expiration: number;
   revokerData?: number;
   revokerContract?: string;
+  /** The share metadata (labels blob), kept on the recipient acp; `0x` or absent for none. */
+  metadata?: string;
 };
 
 /** An ACP is plain JSON-serializable data — the serialized form is the ACP itself. */
@@ -210,14 +224,16 @@ export type SerializedACP = ACP;
 /**
  * The share payload produced by `ACPUtils.export()` — the full public component
  * with `sealingKey`/`recipientSignature` left for the recipient to fill, plus
- * the display name and acp type. Fixed shape: every field is always present
+ * the acp type. The issuer's `name` is not exported: it is their own note, and the
+ * recipient names the share themselves. Fixed shape: every field is always present
  * (zero-values instead of omissions), so importers can parse a single schema.
- * Mirrors the on-chain sharing payload struct field-for-field.
+ * Mirrors the on-chain sharing payload struct field-for-field. The one optional
+ * field is `metadata`, the labels of the handles, present only when the share has them.
  */
 export type SharedACP = Expand<
   Omit<ACPPublic, 'sealingKey' | 'recipientSignature'> & {
-    name: string;
     type: 'sharing';
+    metadata?: Hex;
   }
 >;
 
@@ -239,9 +255,17 @@ export type ACPAccessStatus =
 
 /**
  * A share read back from the on-chain ACPShareRegistry: the posted payload
- * (SharedACP minus the client-side name/type) plus its registry id.
+ * (SharedACP minus its type), its registry id, and the
+ * metadata blob posted with it (`0x` when none) — for a SNAPSHOT share, the
+ * labels of its handles (`decodeShareMetadata` / `describeShareMetadata`).
  */
-export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type'> & { shareId: Hex }>;
+export type IncomingShare = Expand<Omit<SharedACP, 'type' | 'metadata'> & { shareId: Hex; metadata: Hex }>;
+
+/**
+ * What the share label helpers read: the handles, their issuer and the metadata blob. An
+ * `IncomingShare` (on-chain route) and a sharing or recipient `ACP` (exported JSON route) both fit.
+ */
+export type LabelledShare = { issuer: Hex; handles: readonly Hex[]; metadata?: Hex };
 
 /**
  * A type representing the acp fields that are used to generate the hash

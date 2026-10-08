@@ -16,6 +16,9 @@ function run(cmd, args) {
 
 const hasForge = hasCommand('forge');
 
+// The contracts copied from cofhe-contracts must match the pinned commit.
+run('node', ['scripts/cofhe-contracts.mjs', '--check']);
+
 if (hasForge) {
   rmSync('src/typechain-types', { recursive: true, force: true });
   run('forge', ['build', '-q']);
