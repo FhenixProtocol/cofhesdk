@@ -6,7 +6,7 @@ import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js'
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
-import { acps, type ImportActivationOptions, type ShareOnChainOptions } from './acps.js';
+import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
@@ -79,9 +79,10 @@ export type CofheClientACPsClients = {
 
 /**
  * Options for `importShared`. `activate: false` stores the imported acp without making it the active
- * one (default `true`). Clients default to the connected ones; pass both to override.
+ * one (default `true`). `name` names it (default "Shared by 0x1234…abcd"). Clients default to the
+ * connected ones; pass both to override.
  */
-export type CofheClientImportSharedOptions = ImportActivationOptions &
+export type CofheClientImportSharedOptions = ImportSharedOptions &
   (CofheClientACPsClients | { publicClient?: undefined; walletClient?: undefined });
 
 export type CofheClientACPs = {
@@ -143,7 +144,7 @@ export type CofheClientACPs = {
     options?: { verify?: ShareLabelVerifyMode }
   ) => Promise<ShareLabelCheck[] | null>;
   /** Import a share read from the registry: sign as recipient, store and (unless `activate: false`) activate. */
-  importFromChain: (share: IncomingShare, options?: ImportActivationOptions) => Promise<RecipientACP>;
+  importFromChain: (share: IncomingShare, options?: ImportSharedOptions) => Promise<RecipientACP>;
   /** Recipient-side: remove a share from the registry (after import, or to decline). */
   dismissShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
   /** Issuer-side: retract a pending share from the registry. */

@@ -29,6 +29,9 @@ import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain } from './onchain-utils.js';
 import { encodeShareMetadata } from './share-metadata/encode.js';
 
+/** The name of an imported acp unless the recipient gives one: who it came from. */
+const sharedByName = (issuer: Hex): string => `Shared by ${issuer.slice(0, 6)}…${issuer.slice(-4)}`;
+
 /**
  * Main ACP utilities - functional approach for React compatibility
  */
@@ -79,9 +82,10 @@ export const ACPUtils = {
   },
 
   /**
-   * Import a shared acp from various input formats
+   * Import a shared acp from various input formats. The acp is named `name`, or after its issuer
+   * ("Shared by 0x1234…abcd"); a `name` in the share itself is ignored.
    */
-  importShared: (options: ImportSharedACPOptions | string): RecipientACP => {
+  importShared: (options: ImportSharedACPOptions | string, { name }: { name?: string } = {}): RecipientACP => {
     let parsedOptions: ImportSharedACPOptions;
 
     // Handle different input types
@@ -112,6 +116,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
+      name: name?.trim() || sharedByName(validation.issuer),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
@@ -190,9 +195,10 @@ export const ACPUtils = {
   importSharedAndSign: async (
     options: ImportSharedACPOptions | string,
     publicClient: PublicClient,
-    walletClient: WalletClient
+    walletClient: WalletClient,
+    importOptions: { name?: string } = {}
   ): Promise<RecipientACP> => {
-    const acp = ACPUtils.importShared(options);
+    const acp = ACPUtils.importShared(options, importOptions);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
@@ -319,7 +325,6 @@ export const ACPUtils = {
     }
 
     const shared: SharedACP = {
-      name: acp.name,
       type: acp.type,
       issuer: acp.issuer,
       expiration: acp.expiration,

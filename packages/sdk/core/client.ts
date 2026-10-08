@@ -263,9 +263,9 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     importShared: async (options: ImportSharedACPOptions | string, importOptions = {}) => {
       _requireConnected();
-      const { activate, ...clients } = importOptions;
+      const { activate, name, ...clients } = importOptions;
       const { publicClient, walletClient } = clients.publicClient ? clients : connectStore.getState();
-      return acps.importShared(options, publicClient!, walletClient!, { activate });
+      return acps.importShared(options, publicClient!, walletClient!, { activate, name });
     },
 
     // Get or create methods (require connection)

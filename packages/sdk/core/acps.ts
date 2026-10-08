@@ -102,13 +102,28 @@ export type ImportActivationOptions = {
   activate?: boolean;
 };
 
+/** Options for importing a shared acp: activation, and the recipient's own name for it. */
+export type ImportSharedOptions = ImportActivationOptions & {
+  /**
+   * The name of the imported acp. Defaults to "Shared by 0x1234…abcd" (its issuer); the issuer's
+   * own name for the share is not exported and is ignored if present.
+   */
+  name?: string;
+};
+
 const importShared = async (
   options: ImportSharedACPOptions | string,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  { activate = true }: ImportActivationOptions = {}
+  { activate = true, name }: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
-  return createACPWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign, activate);
+  return createACPWithSign(
+    options,
+    publicClient,
+    walletClient,
+    (o, pc, wc) => ACPUtils.importSharedAndSign(o, pc, wc, { name }),
+    activate
+  );
 };
 
 // ACP UTILS
@@ -489,7 +504,7 @@ const importFromChain = async (
   share: IncomingShare,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  importOptions: ImportActivationOptions = {}
+  importOptions: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
   const { shareId: _shareId, ...options } = share;
   return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);

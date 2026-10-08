@@ -91,7 +91,6 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x1234567890abcdef',
-        name: 'Import ACP',
       };
 
       expect(() => validateImportACPOptions(options)).not.toThrow();
@@ -102,7 +101,6 @@ describe('Validation Tests', () => {
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x1234567890abcdef',
-        name: 'Import ACP',
       };
       expect(() => validateImportACPOptions(options)).toThrow();
     });
@@ -113,7 +111,6 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x',
-        name: 'Import ACP',
       };
 
       expect(() => validateImportACPOptions(options)).toThrow();
@@ -125,7 +122,6 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x',
-        name: 'Import ACP',
       };
 
       expect(() => validateImportACPOptions(options)).toThrow();

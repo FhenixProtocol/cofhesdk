@@ -143,7 +143,8 @@ describe('Core ACPs Tests', () => {
       // Import the acp as Alice (recipient)
       const acp = await acps.importShared(acpJson, publicClient, aliceWalletClient);
 
-      expect(acp.name).toBe('Original Sharing ACP');
+      // the issuer's name is not taken over: the acp is named after its issuer
+      expect(acp.name).toBe(`Shared by ${bobAddress.slice(0, 6)}…${bobAddress.slice(-4)}`);
       expect(acp.type).toBe('recipient');
       expect(acp.issuer).toBe(bobAddress);
       expect(acp.recipient).toBe(aliceAddress);
@@ -241,6 +242,21 @@ describe('Core ACPs Tests', () => {
 
       expect(imported.metadata).toBe('0x03aa');
       expect(acps.getACPs(chainId, aliceAddress)?.[imported.hash]?.metadata).toBe('0x03aa');
+    });
+
+    it('importShared and importFromChain take the recipient name as an option', async () => {
+      const { sharing } = await setUp();
+      const fromJson = await acps.importShared(ACPUtils.export(sharing), publicClient, aliceWalletClient, {
+        name: 'From Bob (JSON)',
+      });
+      const fromChain = await acps.importFromChain(toIncomingShare(sharing), publicClient, aliceWalletClient, {
+        name: 'From Bob (chain)',
+      });
+
+      expect(fromJson.name).toBe('From Bob (JSON)');
+      expect(fromChain.name).toBe('From Bob (chain)');
+      // the same share, so the second import replaced the first in the store
+      expect(acps.getACPs(chainId, aliceAddress)?.[fromChain.hash]?.name).toBe('From Bob (chain)');
     });
 
     it('importFromChain of a share without metadata leaves none on the acp', async () => {
@@ -637,7 +653,7 @@ describe('Core ACPs Tests', () => {
       const exported = acps.export(acp);
       const parsed = JSON.parse(exported);
 
-      expect(parsed.name).toBe('Test Sharing ACP');
+      expect(parsed).not.toHaveProperty('name');
       expect(parsed.type).toBe('sharing');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed.recipient).toBe(aliceAddress);

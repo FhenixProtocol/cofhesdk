@@ -131,14 +131,13 @@ describe('ACPUtils Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
-        name: 'Test Import ACP',
       };
 
       const acp = ACPUtils.importShared(options);
 
       expect(acp.hash).toBe(ACPUtils.getHash(acp));
       expect(acp.type).toBe('recipient');
-      expect(acp.name).toBe('Test Import ACP');
+      expect(acp.name).toBe(`Shared by ${bobAddress.slice(0, 6)}…${bobAddress.slice(-4)}`);
       expect(acp.issuer).toBe(bobAddress);
       expect(acp.recipient).toBe(aliceAddress);
       expect(acp.issuerSignature).toBe('0x1234567890abcdef');
@@ -147,6 +146,19 @@ describe('ACPUtils Tests', () => {
 
       // Should not be signed yet
       expect(acp.recipientSignature).toBe('0x');
+    });
+
+    it("ignores the issuer's name in the share; the recipient may give their own", async () => {
+      const share = JSON.stringify({
+        issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600,
+        recipient: aliceAddress,
+        issuerSignature: '0x1234567890abcdef',
+        name: "Bob's note",
+      });
+
+      expect(ACPUtils.importShared(share).name).toBe(`Shared by ${bobAddress.slice(0, 6)}…${bobAddress.slice(-4)}`);
+      expect(ACPUtils.importShared(share, { name: ' Payroll from Bob ' }).name).toBe('Payroll from Bob');
     });
 
     it('should import a shared acp with valid options as string', async () => {
@@ -190,7 +202,6 @@ describe('ACPUtils Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x', // Invalid empty signature
-        name: 'Test Import ACP',
       };
 
       expect(() => ACPUtils.importShared(options)).toThrow();
@@ -248,7 +259,6 @@ describe('ACPUtils Tests', () => {
         recipient: aliceAddress,
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
-        name: 'Test Import ACP',
       };
 
       const acp = await ACPUtils.importSharedAndSign(options, publicClient, aliceWalletClient);
@@ -317,7 +327,6 @@ describe('ACPUtils Tests', () => {
         recipient: aliceAddress,
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1111111111111111111111111111111111111111111111111111111111111111',
-        name: 'Test ACP',
       });
 
       const signedACP = await ACPUtils.sign(acp, publicClient, aliceWalletClient);
@@ -433,7 +442,7 @@ describe('ACPUtils Tests', () => {
       const exported = ACPUtils.export(acp);
       const parsed = JSON.parse(exported);
 
-      expect(parsed.name).toBe('Test Sharing ACP');
+      expect(parsed).not.toHaveProperty('name'); // the issuer's own note stays with them
       expect(parsed.type).toBe('sharing');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed.recipient).toBe(aliceAddress);
@@ -458,7 +467,6 @@ describe('ACPUtils Tests', () => {
 
       expect(Object.keys(parsed).sort()).toEqual(
         [
-          'name',
           'type',
           'issuer',
           'expiration',
@@ -477,6 +485,7 @@ describe('ACPUtils Tests', () => {
       expect(parsed.handles).toEqual([]);
       expect(parsed.revokerData).toBe(0);
       // private component never leaves the client
+      expect(parsed).not.toHaveProperty('name');
       expect(parsed).not.toHaveProperty('sealingPrivateKey');
       expect(parsed).not.toHaveProperty('sealingKey');
       expect(parsed).not.toHaveProperty('hash');

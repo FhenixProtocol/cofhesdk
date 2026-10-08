@@ -205,12 +205,12 @@ export type CreateSharingACPOptions = ACPScopeOptions & {
   labels?: readonly ShareLabel[];
 };
 
+/** A share as exported (`SharedACP`) or read from the registry. A `name` in it is ignored. */
 export type ImportSharedACPOptions = ACPScopeOptions & {
   type?: 'sharing';
   issuer: string;
   recipient: string;
   issuerSignature: string;
-  name?: string;
   expiration: number;
   revokerData?: number;
   revokerContract?: string;
@@ -224,14 +224,14 @@ export type SerializedACP = ACP;
 /**
  * The share payload produced by `ACPUtils.export()` — the full public component
  * with `sealingKey`/`recipientSignature` left for the recipient to fill, plus
- * the display name and acp type. Fixed shape: every field is always present
+ * the acp type. The issuer's `name` is not exported: it is their own note, and the
+ * recipient names the share themselves. Fixed shape: every field is always present
  * (zero-values instead of omissions), so importers can parse a single schema.
  * Mirrors the on-chain sharing payload struct field-for-field. The one optional
  * field is `metadata`, the labels of the handles, present only when the share has them.
  */
 export type SharedACP = Expand<
   Omit<ACPPublic, 'sealingKey' | 'recipientSignature'> & {
-    name: string;
     type: 'sharing';
     metadata?: Hex;
   }
@@ -255,11 +255,11 @@ export type ACPAccessStatus =
 
 /**
  * A share read back from the on-chain ACPShareRegistry: the posted payload
- * (SharedACP minus the client-side name/type), its registry id, and the
+ * (SharedACP minus its type), its registry id, and the
  * metadata blob posted with it (`0x` when none) — for a SNAPSHOT share, the
  * labels of its handles (`decodeShareMetadata` / `describeShareMetadata`).
  */
-export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type' | 'metadata'> & { shareId: Hex; metadata: Hex }>;
+export type IncomingShare = Expand<Omit<SharedACP, 'type' | 'metadata'> & { shareId: Hex; metadata: Hex }>;
 
 /**
  * What the share label helpers read: the handles, their issuer and the metadata blob. An

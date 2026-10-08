@@ -229,7 +229,6 @@ export const ImportACPOptionsValidator = z
     type: z.literal('recipient').optional().default('recipient'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int(),
     revokerData: z.int().optional().default(0),
     revokerContract: addressSchema.optional().default(zeroAddress),

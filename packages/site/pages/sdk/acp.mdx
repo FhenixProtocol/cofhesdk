@@ -243,7 +243,7 @@ const exported = ACPUtils.export(sharingACP);
 ```
 
 :::info
-The exported JSON does not contain any sensitive data and can be shared via any channel.
+The exported JSON does not contain any sensitive data and can be shared via any channel. It does not contain the ACP `name` either: that is the issuer's own note, and the recipient names the share themselves.
 :::
 :::warning
 Do not share `serialize(acp)` output -- serialization is meant for _local persistence_ and includes the sealing private key.
@@ -302,6 +302,8 @@ setActiveACPHash(chainId, account, recipientACP.hash);
 
 ::::
 
+The imported ACP is named after its issuer ("Shared by 0x1234…abcd"); pass `name` to give it your own, e.g. `importShared(exported, { name: 'Payroll from Bob' })`. A `name` in the JSON is ignored.
+
 To store the imported ACP without making it active, pass `activate: false`. Decrypts that use the active ACP keep using the current one, and the imported ACP is used only where you pass it, for example `.withACP(recipientACP)`. This fits an app that shows someone else's shared data in one view while the rest of the app keeps using the user's own ACP.
 
 ```ts twoslash
@@ -349,6 +351,8 @@ const { txHash, shareId } = await client.acp.shareOnChain(sharingAcp);
 
 Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. The issuer can retract a pending share with `client.acp.cancelShare(shareId)`.
 
+The ACP `name` is never posted, by design: it is the only free-text field of a share and usually says who and why, and on-chain it would be public forever.
+
 ### Recipient discovers and imports
 
 ```ts twoslash [client.acp]
@@ -359,7 +363,7 @@ declare const client: import('@cofhe/sdk').CofheClient;
 const incoming = await client.acp.getIncomingShares();
 
 // fills in the recipient's sealing key, signs, stores and activates
-// (pass { activate: false } to only store it)
+// (pass { activate: false } to only store it, { name } to name it)
 const acp = await client.acp.importFromChain(incoming[0]);
 
 // optionally clean up the on-chain entry afterwards (or decline a share)
