@@ -52,7 +52,7 @@ export async function verifyDecryptResult(
     args: [],
   });
 
-  if (isAddressEqual(expectedSigner, zeroAddress)) return true;
+  if (isAddressEqual(expectedSigner, zeroAddress)) return false;
 
   const ctHash = BigInt(handle);
   const messageHash = buildDecryptResultHash(ctHash, cleartext, chainId);
