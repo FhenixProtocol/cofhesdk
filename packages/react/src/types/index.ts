@@ -29,15 +29,19 @@ export interface CofheContextValue {
   };
 }
 
+type CofheProviderSourceProps =
+  | {
+      cofheClient: CofheClient<CofheConfigWithReact>;
+      config?: never;
+    }
+  | {
+      cofheClient?: never;
+      config?: CofheConfigWithReact;
+    };
+
 export type CofheProviderProps = {
   children: React.ReactNode;
   queryClient?: QueryClient;
-
-  // TODO: i still think the below must be mutually exclusive on a type level. If both are passed - that's an indication of potential error (two sources of truth for config)
-  // can provide either pre-created client together with the config it was created with
-  cofheClient?: CofheClient<CofheConfigWithReact>;
-  // ... or just provide config to create the client internally
-  config?: CofheConfigWithReact;
 
   // @TODO: define our own pair of classes, with only the methods we need
   walletClient?: WalletClientLike;
@@ -52,7 +56,7 @@ export type CofheProviderProps = {
    * created outside React UI setup or shared with non-rendering SDK setup.
    */
   transactionRenderers?: TransactionRenderers;
-};
+} & CofheProviderSourceProps;
 
 export interface CofheClientConfig {
   // Add configuration options as needed
