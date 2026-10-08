@@ -1,5 +1,14 @@
 import { type EncryptableItem, FheTypes } from '../types.js';
-import { type VerifyBatchResult } from './zkPackProveVerify.js';
+import {
+  type VerifyBatchResult,
+  MAX_UINT8,
+  MAX_UINT16,
+  MAX_UINT32,
+  MAX_UINT64,
+  MAX_UINT128,
+  MAX_UINT160,
+} from './zkPackProveVerify.js';
+import { toBigIntOrThrow, validateBigIntInRange } from '../utils.js';
 import { createWalletClient, http, encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
@@ -19,7 +28,9 @@ function createMockZkVerifierSigner() {
   });
 }
 /**
- * The mocks don't use a tfhe builder, so we check the encryptable bits here to preserve parity
+ * The mocks don't use a tfhe builder, so we check the encryptable bits and value ranges here to
+ * preserve parity with `zkPack`. Without the range check, MockCoFHE masks an out-of-range value
+ * with the utype mask (e.g. uint8(256) -> 0) instead of rejecting it like the production path.
  */
 export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): Promise<void> {
   let totalBits = 0;
@@ -30,22 +41,27 @@ export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): 
         break;
       }
       case FheTypes.Uint8: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT8);
         totalBits += 8;
         break;
       }
       case FheTypes.Uint16: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT16);
         totalBits += 16;
         break;
       }
       case FheTypes.Uint32: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT32);
         totalBits += 32;
         break;
       }
       case FheTypes.Uint64: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT64);
         totalBits += 64;
         break;
       }
       case FheTypes.Uint128: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT128);
         totalBits += 128;
         break;
       }
@@ -55,6 +71,7 @@ export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): 
       //   break;
       // }
       case FheTypes.Uint160: {
+        validateBigIntInRange(toBigIntOrThrow(item.data), MAX_UINT160);
         totalBits += 160;
         break;
       }
