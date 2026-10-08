@@ -30,7 +30,7 @@ export type CofheACPScopeValue = {
 
 /** How often a chosen ACP is re-checked on chain for revocation, besides on window focus. */
 const ACP_STATUS_RECHECK_MS = 60_000;
-/** Query key prefix of an ACP on-chain status; `[prefix, acp.hash]`. Invalidate it to force a re-check. */
+/** Query key prefix of an ACP on-chain status; `[prefix, acp.hash, chainId]`. Invalidate it to force a re-check. */
 export const ACP_STATUS_QUERY_KEY = 'cofheACPStatus';
 
 const ON_CHAIN_STATUS: Record<ACPAccessStatus, CofheACPStatus> = {
@@ -81,9 +81,10 @@ function useChosenACPStatus(acp: ACP | undefined, chainId?: number): CofheACPSta
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const locallyValid = useMemo(() => !!acp && ACPUtils.isValid(acp).valid, [acp, expiryTick]);
   const onConnectedChain = chainId === undefined || chainId === connection.chainId;
+  const effectiveChainId = chainId ?? connection.chainId;
 
   const onChain = useInternalQuery({
-    queryKey: [ACP_STATUS_QUERY_KEY, acp?.hash],
+    queryKey: [ACP_STATUS_QUERY_KEY, acp?.hash, effectiveChainId],
     queryFn: () => client.acp.checkAccess(acp as ACP),
     enabled: locallyValid && connection.connected && onConnectedChain,
     refetchInterval: ACP_STATUS_RECHECK_MS,
