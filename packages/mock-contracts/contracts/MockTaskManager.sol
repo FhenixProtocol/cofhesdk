@@ -249,6 +249,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Signer address for decrypt result verification (threshold network's signing key)
   address public decryptResultSigner;
 
+  // Counter mixed into generated random seeds, as in the real task manager
+  uint256 private randomCounter;
+
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
 
@@ -813,8 +816,42 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
-    // Mock implementation: just return a pseudo-random hash based on seed
-    return uint256(keccak256(abi.encode(returnType, seed, securityZone, block.timestamp)));
+    if (!isValidSecurityZone(securityZone)) {
+      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
+    }
+
+    if (seed == 0) {
+      seed = uint256(
+        keccak256(
+          abi.encodePacked(blockhash(block.number - 1), block.timestamp, randomCounter, block.chainid, securityZone)
+        )
+      );
+      unchecked {
+        randomCounter++;
+      }
+    }
+
+    // Same handle derivation as the real task manager: msg.sender is part of the preimage.
+    uint256[] memory inputs = new uint256[](2);
+    inputs[0] = seed;
+    inputs[1] = uint256(uint160(msg.sender));
+
+    uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, FunctionId.random);
+    acl.allowTransient(ctHash, msg.sender, address(this));
+    emit TaskCreated(
+      ctHash,
+      Utils.functionIdToString(FunctionId.random),
+      seed,
+      uint256(uint32(securityZone)),
+      inputs[1]
+    );
+
+    // NOTE: MOCK - the real task manager leaves the value to the coprocessor; store one here.
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
+    _set(ctHash, uint256(keccak256(abi.encode(ctHash))));
+    _mockGasTrackEnd(mode, startGas);
+
+    return ctHash;
   }
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
