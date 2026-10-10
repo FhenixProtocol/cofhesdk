@@ -481,6 +481,32 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     validateFunctionInputTypes(funcId, functionName, encryptedHashes);
   }
 
+  /// @dev Same checks as the real task manager: the plaintext must fit the target type and the
+  ///      security zone must be in range. Without them `FHE.asEuint8(256)` would be stored masked
+  ///      to 0 here while the real task manager reverts.
+  function validateTrivialEncryptInputs(uint256[] memory extraInputs) internal view {
+    uint256 securityZone = extraInputs[2];
+    if (securityZone > uint256(int256(type(int32).max)) || !isValidSecurityZone(int32(int256(securityZone)))) {
+      revert InvalidSecurityZone(int32(int256(securityZone)), securityZoneMin, securityZoneMax);
+    }
+
+    uint256 value = extraInputs[0];
+    uint256 toType = extraInputs[1];
+    uint256 max;
+    if (toType == Utils.EUINT8_TFHE) max = type(uint8).max;
+    else if (toType == Utils.EUINT16_TFHE) max = type(uint16).max;
+    else if (toType == Utils.EUINT32_TFHE) max = type(uint32).max;
+    else if (toType == Utils.EUINT64_TFHE) max = type(uint64).max;
+    else if (toType == Utils.EUINT128_TFHE) max = type(uint128).max;
+    else if (toType == Utils.EADDRESS_TFHE) max = type(uint160).max;
+    else if (toType == Utils.EBOOL_TFHE) max = 1;
+    else return;
+
+    if (value > max) {
+      revert InvalidInputForFunction('trivialEncrypt', uint8(toType));
+    }
+  }
+
   function validateSelectInputs(uint256[] memory encryptedHashes) internal pure {
     if (encryptedHashes.length != 3) {
       revert InvalidInputsAmount('select', encryptedHashes.length, 3);
@@ -511,6 +537,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
 
     validateInputs(encryptedHashes, funcId, operation);
+    if (funcId == FunctionId.trivialEncrypt) {
+      validateTrivialEncryptInputs(extraInputs);
+    }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
     int32 securityZone = getSecurityZone(funcId, encryptedHashes, extraInputs);
