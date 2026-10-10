@@ -393,8 +393,14 @@ abstract contract MockCoFHE {
       return;
     }
     if (funcId == FunctionId.rem) {
-      unchecked {
-        _set(ctHash, _get(input1) % _get(input2));
+      // Like TFHE-rs, the remainder by zero returns the first input unchanged
+      uint256 cleartext2 = _get(input2);
+      if (cleartext2 == 0) {
+        _set(ctHash, _get(input1));
+      } else {
+        unchecked {
+          _set(ctHash, _get(input1) % cleartext2);
+        }
       }
       if (logOps) logOperation('FHE.rem', string.concat(logCtHash(input1), ' % ', logCtHash(input2)), logCtHash(ctHash));
       return;
