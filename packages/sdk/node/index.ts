@@ -8,6 +8,7 @@ import {
   type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
+  fromHexString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 
@@ -29,16 +30,6 @@ async function initTfhe(): Promise<boolean> {
   tfheInitialized = true;
   return true;
 }
-
-/**
- * Utility to convert the hex string key to a Uint8Array for use with tfhe
- */
-const fromHexString = (hexString: string): Uint8Array => {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
-  if (!arr) return new Uint8Array();
-  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
-};
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
   return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);

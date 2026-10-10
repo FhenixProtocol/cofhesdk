@@ -125,4 +125,4 @@ export { getTaskManagerAddress } from './taskManager.js';
 export { verifyDecryptResult } from './decrypt/verifyDecryptResult.js';
 
 // Utils
-export { fheTypeToString } from './utils.js';
+export { fheTypeToString, fromHexString, toHexString, hexToBytes } from './utils.js';

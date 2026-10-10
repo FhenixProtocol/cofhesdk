@@ -10,6 +10,7 @@ import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../../core/consts';
 import { STAGING_TESTS } from '../../core/test/stagingRedirect';
 import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { initTfheThreadPool, type TfheThreadPoolResult } from '../tfheThreadPool.js';
+import { fromHexString } from '../../core/utils.js';
 
 // Same backend as the rest of the web suite: Arbitrum Sepolia, or staging when
 // TEST_STAGING_ENABLED=true.
@@ -30,12 +31,6 @@ declare const __THREADPOOL_TESTS__: boolean | undefined;
  */
 export const THREADPOOL_TESTS = typeof __THREADPOOL_TESTS__ !== 'undefined' ? __THREADPOOL_TESTS__ : false;
 
-function fromHexString(hexString: string): Uint8Array {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
-  if (!arr) return new Uint8Array();
-  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
-}
 
 /** Fetch the network's real FHE public key + CRS. Proving itself is fully local. */
 export async function fetchNetworkKeys(securityZone = 0): Promise<{ fheKey: string; crs: string }> {

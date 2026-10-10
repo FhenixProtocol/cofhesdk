@@ -10,6 +10,7 @@ import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
 import { initTfheThreadPool, type TfheThreadPoolResult } from './tfheThreadPool.js';
 import type { TfheThreadsSetting } from '../core/types.js';
+import { fromHexString } from '../core/utils.js';
 
 // TFHE module (will be initialized on first use)
 let tfheModule: any = null;
@@ -57,15 +58,6 @@ function initTfhe(tfheThreads: TfheThreadsSetting = 'auto'): Promise<void> {
   return initPromise;
 }
 
-/**
- * Convert hex string to Uint8Array
- */
-function fromHexString(hexString: string): Uint8Array {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
-  if (!arr) return new Uint8Array();
-  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
-}
 
 // Guard the top-level `self` references so this file is safe to evaluate in
 // non-worker contexts (e.g. when bundlers like webpack pull the worker chunk
