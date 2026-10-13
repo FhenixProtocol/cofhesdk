@@ -7,14 +7,7 @@ import type { CofheShareLabel } from '@/hooks/acps/index.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils';
-import { decodeShareMetadata, type IncomingShare, type ShareLabelAbis } from '@cofhe/sdk/acps';
-import { parseAbi } from 'viem';
-
-/** Names for the confidential-token reads and events a label most often points at (ERC-7984). */
-const CONFIDENTIAL_TOKEN_ABI = parseAbi([
-  'function confidentialBalanceOf(address account) view returns (bytes32)',
-  'event ConfidentialTransfer(address indexed from, address indexed to, bytes32 indexed amount)',
-]);
+import { ERC7984_ABI, decodeShareMetadata, type IncomingShare, type ShareLabelAbis } from '@cofhe/sdk/acps';
 
 /** The token ABI for every contract a share's labels name; null when it has no (readable) labels. */
 const tokenAbisFor = (share: IncomingShare): ShareLabelAbis | undefined => {
@@ -23,7 +16,7 @@ const tokenAbisFor = (share: IncomingShare): ShareLabelAbis | undefined => {
     const contracts = decodeShareMetadata(share.metadata, share.handles).flatMap((l) =>
       l.kind === 'unlabelled' ? [] : [l.contract]
     );
-    return Object.fromEntries(contracts.map((c) => [c, CONFIDENTIAL_TOKEN_ABI]));
+    return Object.fromEntries(contracts.map((c) => [c, ERC7984_ABI]));
   } catch {
     return undefined;
   }

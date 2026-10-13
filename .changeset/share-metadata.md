@@ -32,7 +32,8 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 - `@cofhe/sdk/acps` also exports:
   - `encodeShareMetadata`, `decodeShareMetadata`;
   - `verifyShareLabel(s)`, `describeShareLabels`;
-  - `eventLabelOfLog`, `confidentialBalanceLabel`;
+  - `viewFunctionLabel` (any view function, from its ABI; `ACP_ISSUER` stands for the issuer), `eventLogLabel`, `UNLABELLED`;
+  - `ERC7984_ABI`: the `confidentialBalanceOf` read and `ConfidentialTransfer` event, one definition for the presets and for apps;
   - `readSharesFor`, `readShare`, `readPostedShares`;
   - the `LabelledShare` type.
 
@@ -41,6 +42,7 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 - `useCofheShareLabels(share, { verify, abis })` describes a share's labels right away and fills in each label's check as the chain answers.
 - `useCofheShareOnChain` takes `{ acp, labels }` or `{ acp, metadata }` as well as a bare ACP.
 - The floating button's inbox shows each share's labels and their checks. Its import form passes the name through `importShared`'s `name` option.
+- The inbox and the token configs take `confidentialBalanceOf` from the SDK's `ERC7984_ABI` instead of keeping their own copies.
 
 **Mocks and plugins**
 
