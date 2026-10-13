@@ -3,7 +3,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getACP, setACP, removeACP, getActiveACPHash, setActiveACPHash, ACPUtils, acpStore } from '../index.js';
+import {
+  getACP,
+  setACP,
+  removeACP,
+  getActiveACPHash,
+  setActiveACPHash,
+  ACPUtils,
+  acpStore,
+  ACP_STORE_DEFAULTS,
+} from '../index.js';
 import { createMockACP } from '../test-utils.js';
 
 // Type declarations for happy-dom environment
@@ -101,5 +110,23 @@ describe('ACPs localStorage Tests', () => {
     const parsedData = JSON.parse(storedData!);
     expect(parsedData.state.acps[chainId][account][acp.hash]).toBeUndefined();
     expect(parsedData.state.activeACPHash[chainId][account]).toBeUndefined();
+  });
+
+  it('should recover from a corrupt store persisted at the current version', async () => {
+    // `migrate` only runs for older versions, so a corrupt state saved at the current
+    // version reaches the store unless it is cleaned on rehydrate.
+    localStorage.setItem(
+      'cofhesdk-acps',
+      JSON.stringify({ state: { acps: null, activeACPHash: {} }, version: acpStore.store.persist.getOptions().version })
+    );
+    await acpStore.store.persist.rehydrate();
+
+    // Fixed on load, so consumers that read the raw snapshot (the React hooks) are covered too.
+    expect(acpStore.store.getState()).toEqual(ACP_STORE_DEFAULTS);
+    const snapshot = acpStore.store.getState();
+    expect(() => snapshot.acps[chainId]?.[account]).not.toThrow();
+
+    expect(() => getACP(chainId, account, '0xdeadbeef')).not.toThrow();
+    expect(getACP(chainId, account, '0xdeadbeef')).toBeUndefined();
   });
 });

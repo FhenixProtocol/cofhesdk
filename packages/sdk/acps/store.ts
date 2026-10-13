@@ -28,6 +28,12 @@ export const ACP_STORE_DEFAULTS: ACPsStore = {
  */
 const ACP_STORE_VERSION = 3;
 
+// `typeof null` and `typeof []` are both 'object', so a bare typeof check lets a broken
+// persisted store through. A `null` record then throws on the first `acps[chainId]` lookup.
+// Defined above the store: localStorage rehydrates synchronously inside `createStore`.
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value != null && typeof value === 'object' && !Array.isArray(value);
+
 export const _acpStore = createStore<ACPsStore>()(
   persist(() => ACP_STORE_DEFAULTS, {
     name: 'cofhesdk-acps',
@@ -35,6 +41,17 @@ export const _acpStore = createStore<ACPsStore>()(
     migrate: (persistedState, version) => {
       if (version < ACP_STORE_VERSION) return ACP_STORE_DEFAULTS;
       return persistedState as ACPsStore;
+    },
+    // Runs on every rehydrate, including a corrupt state saved at the current version that
+    // `migrate` passes through unchanged. Consumers that read the raw snapshot (e.g. the React
+    // hooks) never go through `clearStaleStore`, so the shape has to be fixed here.
+    merge: (persistedState, currentState) => {
+      const persisted = (isRecord(persistedState) ? persistedState : {}) as Partial<ACPsStore>;
+      return {
+        ...currentState,
+        acps: isRecord(persisted.acps) ? persisted.acps : currentState.acps,
+        activeACPHash: isRecord(persisted.activeACPHash) ? persisted.activeACPHash : currentState.activeACPHash,
+      };
     },
   })
 );
@@ -44,13 +61,7 @@ export const clearStaleStore = () => {
   const state = _acpStore.getState() as any;
 
   // Check if the store has the expected structure
-  const hasExpectedStructure =
-    state &&
-    typeof state === 'object' &&
-    'acps' in state &&
-    'activeACPHash' in state &&
-    typeof state.acps === 'object' &&
-    typeof state.activeACPHash === 'object';
+  const hasExpectedStructure = isRecord(state) && isRecord(state.acps) && isRecord(state.activeACPHash);
 
   if (hasExpectedStructure) return;
   // Invalid structure detected - clear the store
