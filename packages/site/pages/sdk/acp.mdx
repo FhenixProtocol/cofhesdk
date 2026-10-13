@@ -393,6 +393,7 @@ Pass `labels` to `createSharing`, one per handle and in the same order. `viewFun
 ```ts twoslash [client.acp]
 // @noErrors
 declare const client: import('@cofhe/sdk').CofheClient;
+declare const issuer: `0x${string}`; // the connected account
 declare const token: `0x${string}`;
 declare const balanceHandle: `0x${string}`;
 declare const publicClient: import('viem').PublicClient;
@@ -401,7 +402,7 @@ declare const transferHandle: `0x${string}`;
 declare const otherHandle: `0x${string}`;
 declare const block: bigint;
 // ---cut---
-import { ACP_ISSUER, ERC7984_ABI, eventLogLabel, viewFunctionLabel } from '@cofhe/sdk/acps';
+import { ERC7984_ABI, eventLogLabel, viewFunctionLabel } from '@cofhe/sdk/acps';
 import { parseEventLogs } from 'viem';
 
 // the transfer whose amount is shared: its log, from the receipt
@@ -409,7 +410,7 @@ const { logs } = await publicClient.waitForTransactionReceipt({ hash: transferTx
 const [transferLog] = parseEventLogs({ abi: ERC7984_ABI, eventName: 'ConfidentialTransfer', logs });
 
 const sharingAcp = await client.acp.createSharing({
-  issuer: '0x…',
+  issuer,
   recipient: '0x…',
   handles: [balanceHandle, transferHandle, otherHandle],
   labels: [
@@ -417,7 +418,7 @@ const sharingAcp = await client.acp.createSharing({
       contract: token,
       abi: ERC7984_ABI,
       functionName: 'confidentialBalanceOf',
-      args: [ACP_ISSUER], // the issuer of the sharing ACP: whoever shares it
+      args: [issuer], // your own balance: stored as "the issuer", not as an address
       block,
     }),
     eventLogLabel(transferLog), // the amount of that transfer
@@ -439,7 +440,7 @@ const exported = client.acp.export(sharingAcp); // or in the JSON
 
 To post different labels than the ones on the ACP, pass them to `shareOnChain(acp, { labels })`.
 
-In `viewFunctionLabel`, `ACP_ISSUER` among the `args` stands for the issuer of the sharing ACP (whoever shares it), so the label does not carry their address; any other argument is given as its value. Arguments must be static ABI types (one 32-byte word each), and the ctHash is the first return word unless you pass `returnWord`. `ERC7984_ABI` holds the `confidentialBalanceOf` read and the `ConfidentialTransfer` event of a confidential token; any other contract's ABI works the same way.
+In `viewFunctionLabel`, an argument equal to the issuer's address (your own, when you share your balance) is stored as "the issuer" rather than as an address: the SDK compresses it when it encodes the labels, and the recipient fills it in from the share. Arguments must be static ABI types (one 32-byte word each), and the ctHash is the first return word unless you pass `returnWord`. `ERC7984_ABI` holds the `confidentialBalanceOf` read and the `ConfidentialTransfer` event of a confidential token; any other contract's ABI works the same way.
 
 :::info
 A label names one specific log or view call, and the recipient learns everything else in that log too — its other parameters. Label only what you are willing to show.

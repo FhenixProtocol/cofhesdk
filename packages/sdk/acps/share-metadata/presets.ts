@@ -17,16 +17,6 @@ import type { EventValueLabel, ShareLabel, ShareLabelReadArg, StoredValueLabel }
  * function returned, a transfer amount the value of one event.
  */
 
-/**
- * Stands for the issuer of the sharing ACP (whoever shares it, `acp.issuer`) among the arguments
- * of `viewFunctionLabel`. The label then says "the issuer" instead of carrying their address, and
- * the recipient fills it in from the share.
- */
-export const ACP_ISSUER: unique symbol = Symbol.for('cofhe.share-metadata.issuer');
-
-/** The call's arguments, each either its ABI value or `ACP_ISSUER`. */
-type ReadArgs<args> = { readonly [K in keyof args]: args[K] | typeof ACP_ISSUER };
-
 export type ViewFunctionLabelOptions<
   abi extends Abi,
   functionName extends ContractFunctionName<abi, 'pure' | 'view'>,
@@ -34,8 +24,11 @@ export type ViewFunctionLabelOptions<
   contract: Address;
   abi: abi;
   functionName: functionName;
-  /** The arguments of the call; `ACP_ISSUER` stands for the share issuer. Static ABI types only. */
-  args?: ReadArgs<ContractFunctionArgs<abi, 'pure' | 'view', functionName>>;
+  /**
+   * The arguments of the call, static ABI types only. One equal to the share issuer's address
+   * (your own, when you share your balance) is stored as "the issuer" when the labels are encoded.
+   */
+  args?: ContractFunctionArgs<abi, 'pure' | 'view', functionName>;
   /** Block the value was read at (on Arbitrum: the L2 block number). */
   block: bigint;
   /** Which 32-byte word of the return data is the ctHash; 0 (the default) for a single return value. */
@@ -63,7 +56,6 @@ const findViewFunction = (abi: Abi, name: string, arity: number): AbiFunction =>
 };
 
 const encodeReadArg = (fn: AbiFunction, index: number, value: unknown): ShareLabelReadArg => {
-  if (value === ACP_ISSUER) return { type: 'issuer' };
   const input = fn.inputs[index];
   const word = encodeAbiParameters([input], [value]);
   if (size(word) !== WORD_BYTES) {
@@ -76,8 +68,8 @@ const encodeReadArg = (fn: AbiFunction, index: number, value: unknown): ShareLab
 
 /**
  * The label of a value a view function returned at a block, built from the contract's ABI: the
- * function's selector, and each argument ABI-encoded to its word (or `ACP_ISSUER`). Throws when
- * the ABI has no such function, the arity is off, or an argument is not one static word.
+ * function's selector, and each argument ABI-encoded to its word. Throws when the ABI has no such
+ * function, the arity is off, or an argument is not one static word.
  */
 export const viewFunctionLabel = <
   const abi extends Abi,

@@ -423,7 +423,7 @@ const metadataOf = (acp: ACP, { labels, metadata }: ShareOnChainOptions): Hex =>
   if (labels.length !== acp.handles.length) {
     throw new Error(`Cannot label a share of ${acp.handles.length} handles with ${labels.length} labels`);
   }
-  return encodeShareMetadata(labels);
+  return encodeShareMetadata(labels, { issuer: acp.issuer });
 };
 
 /**

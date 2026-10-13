@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseAbi, toEventSelector, toFunctionSelector, type Log } from 'viem';
+import { padHex, parseAbi, toEventSelector, toFunctionSelector, type Log } from 'viem';
+import { encodeShareMetadata } from '../encode';
 import { ERC7984_ABI } from '../erc7984';
-import { ACP_ISSUER, eventLogLabel, viewFunctionLabel } from '../presets';
+import { eventLogLabel, viewFunctionLabel } from '../presets';
 import {
   BALANCE_OF,
   CONFIDENTIAL_TRANSFER,
@@ -12,6 +13,8 @@ import {
   SAMPLE,
   WORD,
 } from './fixtures';
+
+const ISSUER_WORD = padHex(ISSUER, { size: 32 }).toLowerCase();
 
 describe('label presets', () => {
   it('labels a log with its position and event selector', () => {
@@ -38,19 +41,24 @@ describe('label presets', () => {
     expect(() => eventLogLabel({ ...base, topics: [] } as unknown as Log)).toThrow('anonymous');
   });
 
-  it('labels the ERC-7984 balance read from its ABI, as the real share has it', () => {
+  it('labels the ERC-7984 balance read from its ABI; the issuer argument compresses to the real share', () => {
     const [balanceOf, transfer] = ERC7984_ABI;
     expect(toFunctionSelector(balanceOf)).toBe(BALANCE_OF);
     expect(toEventSelector(transfer)).toBe(CONFIDENTIAL_TRANSFER_TOPIC0);
-    expect(
-      viewFunctionLabel({
-        contract: FUSD,
-        abi: ERC7984_ABI,
-        functionName: 'confidentialBalanceOf',
-        args: [ACP_ISSUER],
-        block: 314285327n,
-      })
-    ).toEqual(SAMPLE.labels[0]);
+
+    const label = viewFunctionLabel({
+      contract: FUSD,
+      abi: ERC7984_ABI,
+      functionName: 'confidentialBalanceOf',
+      args: [ISSUER],
+      block: 314285327n,
+    });
+    expect(label).toEqual({ ...SAMPLE.labels[0], args: [{ type: 'word', value: ISSUER_WORD }] });
+    // encoded for a share by ISSUER, the address becomes "the issuer": the sample's own bytes
+    expect(encodeShareMetadata([label], { issuer: ISSUER })).toBe(encodeShareMetadata([SAMPLE.labels[0]]));
+    // for anyone else's share it stays a literal address
+    expect(encodeShareMetadata([label], { issuer: FUSDY })).toBe(encodeShareMetadata([label]));
+    expect(encodeShareMetadata([label])).not.toBe(encodeShareMetadata([SAMPLE.labels[0]]));
   });
 
   it('labels any view function from its ABI, encoding literal arguments to words', () => {
@@ -63,7 +71,7 @@ describe('label presets', () => {
         contract: FUSDY,
         abi,
         functionName: 'balanceOfAt',
-        args: [ACP_ISSUER, 0xaan],
+        args: [ISSUER, 0xaan],
         returnWord: 1,
         block: 0x12ba88b2n,
       })
@@ -71,14 +79,13 @@ describe('label presets', () => {
       kind: 'stored',
       contract: FUSDY,
       selector: toFunctionSelector(abi[0]),
-      args: [{ type: 'issuer' }, { type: 'word', value: WORD }],
+      args: [
+        { type: 'word', value: ISSUER_WORD },
+        { type: 'word', value: WORD },
+      ],
       returnWord: 1,
       block: 0x12ba88b2n,
     });
-    // an address given literally is a word too, not the issuer marker
-    expect(
-      viewFunctionLabel({ contract: FUSDY, abi, functionName: 'balanceOfAt', args: [ISSUER, 1n], block: 1n }).args[0]
-    ).toEqual({ type: 'word', value: `0x${'00'.repeat(12)}${ISSUER.slice(2).toLowerCase()}` });
     expect(viewFunctionLabel({ contract: FUSD, abi, functionName: 'totalSupply', block: 1n })).toEqual({
       kind: 'stored',
       contract: FUSD,

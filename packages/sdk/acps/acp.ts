@@ -72,7 +72,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      ...(labels != null && { metadata: encodeShareMetadata(labels) }),
+      ...(labels != null && { metadata: encodeShareMetadata(labels, { issuer: validation.issuer }) }),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,

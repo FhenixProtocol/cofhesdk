@@ -32,7 +32,7 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 - `@cofhe/sdk/acps` also exports:
   - `encodeShareMetadata`, `decodeShareMetadata`;
   - `verifyShareLabel(s)`, `describeShareLabels`;
-  - `viewFunctionLabel` (any view function, from its ABI; `ACP_ISSUER` stands for the issuer), `eventLogLabel`, `UNLABELLED`;
+  - `viewFunctionLabel` (any view function, from its ABI; an argument equal to the share issuer's address is stored as "the issuer", without the address), `eventLogLabel`, `UNLABELLED`;
   - `ERC7984_ABI`: the `confidentialBalanceOf` read and `ConfidentialTransfer` event, one definition for the presets and for apps;
   - `readSharesFor`, `readShare`, `readPostedShares`;
   - the `LabelledShare` type.

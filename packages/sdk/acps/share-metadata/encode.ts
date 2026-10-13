@@ -1,4 +1,4 @@
-import { concatHex, isHex, numberToHex, size, type Address, type Hex } from 'viem';
+import { concatHex, isHex, numberToHex, padHex, size, type Address, type Hex } from 'viem';
 import { ARGS_CODE, ARG_TAG, ENTRY_KIND, LAYOUT_VERSION, WIDTH } from './layout.js';
 import type { ShareLabel, ShareLabelReadArg, StoredValueLabel } from './schema.js';
 
@@ -40,7 +40,16 @@ const encodeArg = (arg: ShareLabelReadArg): Hex => {
  * The two common shapes take one byte: no arguments, or the share issuer alone, both with the
  * ctHash as the first return word. Anything else is spelled out.
  */
-const encodeArgs = ({ args, returnWord }: StoredValueLabel): Hex => {
+/** The issuer's address as a 32-byte word: the value `ARGS_CODE.issuer` and `ARG_TAG.issuer` stand for. */
+const issuerWordOf = (issuer: Address | undefined): Hex | undefined =>
+  issuer == null ? undefined : (padHex(issuer, { size: WIDTH.word }).toLowerCase() as Hex);
+
+/** A literal argument that is the issuer's address becomes "the issuer": one byte, and no address in the blob. */
+const asIssuer = (arg: ShareLabelReadArg, issuerWord: Hex | undefined): ShareLabelReadArg =>
+  arg.type === 'word' && issuerWord != null && arg.value.toLowerCase() === issuerWord ? { type: 'issuer' } : arg;
+
+const encodeArgs = ({ args: given, returnWord }: StoredValueLabel, issuerWord: Hex | undefined): Hex => {
+  const args = given.map((arg) => asIssuer(arg, issuerWord));
   if (returnWord === 0 && args.length === 0) return uint(ARGS_CODE.none, WIDTH.argsCode);
   if (returnWord === 0 && args.length === 1 && args[0].type === 'issuer') {
     return uint(ARGS_CODE.issuer, WIDTH.argsCode);
@@ -57,9 +66,11 @@ const encodeArgs = ({ args, returnWord }: StoredValueLabel): Hex => {
  * Encodes the labels of a share into a version 3 blob: one label per ctHash, in the order of
  * `acp.handles`. The contracts, selectors and transactions the labels name are listed once each,
  * in order of first use; function and event selectors share one list. Throws on a value that does
- * not fit its field (more than 255 contracts, a block past uint32, ...).
+ * not fit its field (more than 255 contracts, a block past uint32, ...). Given the share `issuer`, a
+ * stored-value argument equal to their address is stored as "the issuer" instead of the address.
  */
-export const encodeShareMetadata = (labels: readonly ShareLabel[]): Hex => {
+export const encodeShareMetadata = (labels: readonly ShareLabel[], { issuer }: { issuer?: Address } = {}): Hex => {
+  const issuerWord = issuerWordOf(issuer);
   const contracts = listOf<Address>((contract) => contract.toLowerCase());
   const selectors = listOf<Hex>((selector) => selector.toLowerCase());
   const transactions = listOf<{ block: bigint; txIndex: number }>((tx) => `${tx.block}:${tx.txIndex}`);
@@ -73,7 +84,7 @@ export const encodeShareMetadata = (labels: readonly ShareLabel[]): Hex => {
           position(contracts.positionOf(label.contract)),
           position(selectors.positionOf(label.selector)),
           uint(label.block, WIDTH.block),
-          encodeArgs(label),
+          encodeArgs(label, issuerWord),
         ]);
       case 'event':
         return concatHex([

@@ -171,13 +171,13 @@ A SNAPSHOT share can carry the labels of its handles ([Labelling a SNAPSHOT shar
 
 ```tsx
 import { useCofheShareLabels, useCofheShareOnChain } from '@cofhe/react';
-import { ACP_ISSUER, ERC7984_ABI, viewFunctionLabel } from '@cofhe/sdk/acps';
+import { ERC7984_ABI, viewFunctionLabel } from '@cofhe/sdk/acps';
 
 // issuer: one label per handle, in order
 post.mutate({
   acp,
   labels: [
-    viewFunctionLabel({ contract: token, abi: ERC7984_ABI, functionName: 'confidentialBalanceOf', args: [ACP_ISSUER], block }),
+    viewFunctionLabel({ contract: token, abi: ERC7984_ABI, functionName: 'confidentialBalanceOf', args: [acp.issuer], block }),
   ],
 });
 
