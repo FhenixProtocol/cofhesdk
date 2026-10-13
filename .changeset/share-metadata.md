@@ -17,7 +17,9 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 
 **@cofhe/sdk**
 
-- Labels: each label covers one handle. A stored-value label names a view call at a block. An event-value label names one log by block, transaction, log index and event selector.
+- Each shared handle can have a label that says where its value came from. There are two kinds:
+  - a value read from a contract, e.g. `balanceOf(issuer)` on a token at block N;
+  - a value emitted in an event, e.g. the amount of a `Transfer` in a given transaction.
 - `client.acp.createSharing({ ..., labels })` encodes the labels onto the sharing ACP as `metadata`. Both ways of handing over the share then carry them:
 
   - `shareOnChain(acp)` posts them;
