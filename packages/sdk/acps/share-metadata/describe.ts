@@ -14,6 +14,7 @@ import {
 } from 'viem';
 import { decodeShareMetadata } from './decode.js';
 import type { EventValueLabel, ShareLabel, StoredValueLabel } from './schema.js';
+import type { LabelledShare } from '../types.js';
 
 /** A parameter as the ABI names it. `name` is absent when the ABI leaves it unnamed. */
 export type ShareLabelParam = { name?: string; type: string; indexed?: boolean };
@@ -181,12 +182,17 @@ export const describeShareLabels = (
   });
 
 /**
- * Decodes a metadata blob and describes it: `decodeShareMetadata` then `describeShareLabels`.
- * Throws only when the blob itself is malformed; missing ABIs leave items in raw form.
+ * Decodes a share's metadata blob and describes it: `decodeShareMetadata` then
+ * `describeShareLabels`, with the share's issuer filling in the arguments that stand for it. The
+ * share is one read from the registry or an acp imported from exported JSON. Null for a share
+ * without labels (no metadata, or `0x`). Throws only when the blob itself is malformed; missing
+ * ABIs leave items in raw form.
  */
 export const describeShareMetadata = (
-  blob: Hex,
-  handles: readonly Hex[],
-  abis: ShareLabelAbis = {},
-  options: { issuer?: Address } = {}
-): ShareLabelDescription[] => describeShareLabels(decodeShareMetadata(blob, handles), handles, abis, options);
+  share: LabelledShare,
+  abis: ShareLabelAbis = {}
+): ShareLabelDescription[] | null => {
+  const { issuer, handles, metadata } = share;
+  if (metadata == null || metadata === '0x') return null;
+  return describeShareLabels(decodeShareMetadata(metadata, handles), handles, abis, { issuer });
+};

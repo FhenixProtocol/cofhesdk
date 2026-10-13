@@ -449,7 +449,7 @@ A label names one specific log or view call, and the recipient learns everything
 
 On the recipient side, every `IncomingShare` carries its `metadata` (`0x` when posted without labels), and an imported ACP keeps it whichever way it came in — so both readers below take either one.
 
-1. **Describe** the labels for display with `describeShareMetadata`. Pass the ABIs of the contracts you know; a missing ABI never fails, it leaves `function` / `event` as `null`.
+1. **Describe** the labels for display with `describeShareMetadata(share, abis)`. Pass the ABIs of the contracts you know; a missing ABI never fails, it leaves `function` / `event` as `null`.
 2. **Verify** them with `client.acp.verifyShareLabels`, which checks each label against the chain and returns one result per handle.
 
 ```ts twoslash [client.acp]
@@ -462,13 +462,11 @@ import { describeShareMetadata } from '@cofhe/sdk/acps';
 
 const [share] = await client.acp.getIncomingShares();
 
-if (share.metadata !== '0x') {
-  // one item per handle: kind, and function / event names and params from the ABIs you pass
-  const items = describeShareMetadata(share.metadata, share.handles, { [token]: tokenAbi }, { issuer: share.issuer });
+// one item per handle: kind, and function / event names and params from the ABIs you pass
+const items = describeShareMetadata(share, { [token]: tokenAbi });
 
-  // one result per handle: 'verified' | 'mismatch' | 'unverifiable' | 'skipped'
-  const checks = await client.acp.verifyShareLabels(share, { verify: 'all' });
-}
+// one result per handle: 'verified' | 'mismatch' | 'unverifiable' | 'skipped'
+const checks = await client.acp.verifyShareLabels(share, { verify: 'all' });
 ```
 
 | Result           | Meaning                                                                                   |
@@ -478,7 +476,7 @@ if (share.metadata !== '0x') {
 | `'unverifiable'` | The node could not answer; usually the state of an old block is gone (see below).         |
 | `'skipped'`      | Not checked, because of the `verify` mode.                                                |
 
-`verifyShareLabels` returns `null` for a share without labels. Use `verify` to trade thoroughness for requests:
+Both return `null` for a share without labels. Use `verify` to trade thoroughness for requests:
 
 | `verify`          | Checks                               | Requests                                                              |
 | ----------------- | ------------------------------------ | --------------------------------------------------------------------- |

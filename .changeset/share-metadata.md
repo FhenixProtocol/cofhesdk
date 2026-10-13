@@ -27,7 +27,7 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 
   `importShared` and `importFromChain` keep them on the recipient ACP. To post other labels on-chain, use `shareOnChain(acp, { labels })`.
 
-- `client.acp.verifyShareLabels(share, { verify: 'all' | 'events' | 'none' })` checks the labels against the chain. It takes a share from the registry or an imported ACP. `describeShareMetadata(blob, handles, abis)` turns the labels into function and event names with their params.
+- `client.acp.verifyShareLabels(share, { verify: 'all' | 'events' | 'none' })` checks the labels against the chain, and `describeShareMetadata(share, abis)` turns them into function and event names with their params. Both take a share from the registry or an imported ACP, and return `null` for a share without labels.
 - `getIncomingShares` reads the headers, then the events, with one single-block `getLogs` per block. `IncomingShare` gains `metadata`. New `client.acp.getShareFromChain(shareId)` reads one share.
 - `@cofhe/sdk/acps` also exports:
   - `encodeShareMetadata`, `decodeShareMetadata`;

@@ -43,9 +43,9 @@ export const useCofheShareLabels = (
   const metadata = share?.metadata;
 
   const described = useMemo((): { items: ShareLabelDescription[] | null; error: Error | null } => {
-    if (issuer == null || handles == null || metadata == null || metadata === '0x') return { items: null, error: null };
+    if (issuer == null || handles == null) return { items: null, error: null };
     try {
-      return { items: describeShareMetadata(metadata, handles, abis, { issuer }), error: null };
+      return { items: describeShareMetadata({ issuer, handles, metadata }, abis), error: null };
     } catch (e) {
       return { items: null, error: e instanceof Error ? e : new Error(String(e)) };
     }

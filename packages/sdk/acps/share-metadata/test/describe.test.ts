@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { padHex, parseAbi, toFunctionSelector } from 'viem';
+import { padHex, parseAbi, toFunctionSelector, type Hex } from 'viem';
 import { describeShareMetadata } from '../describe';
 import { encodeShareMetadata } from '../encode';
 import { BALANCE_OF, CONFIDENTIAL_TRANSFER, FUSD, FUSDY, ISSUER, SAMPLE } from './fixtures';
@@ -10,14 +10,16 @@ const TOKEN_ABI = parseAbi([
   'event ConfidentialTransfer(address indexed from, address indexed to, bytes32 indexed amount)',
 ]);
 
+/** A share by the sample issuer carrying that blob. */
+const share = (metadata: Hex | undefined, handles: readonly Hex[] = SAMPLE.handles) => ({
+  issuer: ISSUER,
+  handles,
+  metadata,
+});
+
 describe('describeShareMetadata', () => {
   it('names the functions and events of the real sample from the ABIs', () => {
-    const items = describeShareMetadata(
-      SAMPLE.blob,
-      SAMPLE.handles,
-      { [FUSD]: TOKEN_ABI, [FUSDY]: TOKEN_ABI },
-      { issuer: ISSUER }
-    );
+    const items = describeShareMetadata(share(SAMPLE.blob), { [FUSD]: TOKEN_ABI, [FUSDY]: TOKEN_ABI })!;
     expect(items).toHaveLength(7);
 
     const [balance] = items;
@@ -55,9 +57,9 @@ describe('describeShareMetadata', () => {
   });
 
   it('matches ABI addresses case-insensitively', () => {
-    const [item] = describeShareMetadata(SAMPLE.blob, SAMPLE.handles, {
+    const [item] = describeShareMetadata(share(SAMPLE.blob), {
       [FUSD.toLowerCase() as `0x${string}`]: TOKEN_ABI,
-    });
+    })!;
     expect(item.kind === 'stored' && item.function?.name).toBe('confidentialBalanceOf');
   });
 
@@ -72,7 +74,7 @@ describe('describeShareMetadata', () => {
         block: 1n,
       },
     ]);
-    const [item] = describeShareMetadata(blob, [SAMPLE.handles[0]], { [FUSD]: TOKEN_ABI }, { issuer: ISSUER });
+    const [item] = describeShareMetadata(share(blob, [SAMPLE.handles[0]]), { [FUSD]: TOKEN_ABI })!;
     expect(item).toMatchObject({
       kind: 'stored',
       function: { name: 'allowanceAt' },
@@ -85,20 +87,26 @@ describe('describeShareMetadata', () => {
   });
 
   it('leaves an item raw without an ABI, and never throws for it', () => {
-    const items = describeShareMetadata(SAMPLE.blob, SAMPLE.handles);
+    const items = describeShareMetadata(share(SAMPLE.blob))!;
     expect(items[0]).toMatchObject({ kind: 'stored', function: null, output: null, selector: BALANCE_OF });
+    // the issuer comes from the share, ABI or not
     expect(items[0].kind === 'stored' && items[0].args[0]).toMatchObject({
       isIssuer: true,
-      raw: undefined,
-      value: undefined,
+      raw: padHex(ISSUER, { size: 32 }),
+      value: ISSUER,
     });
     expect(items[2]).toMatchObject({ kind: 'event', event: null, selector: CONFIDENTIAL_TRANSFER, logIndex: 30 });
   });
 
   it('marks an unlabelled value', () => {
     const blob = encodeShareMetadata([{ kind: 'unlabelled' }]);
-    expect(describeShareMetadata(blob, [SAMPLE.handles[0]])).toEqual([
+    expect(describeShareMetadata(share(blob, [SAMPLE.handles[0]]))).toEqual([
       { kind: 'unlabelled', index: 0, handle: SAMPLE.handles[0], label: { kind: 'unlabelled' } },
     ]);
+  });
+
+  it('is null for a share without labels', () => {
+    expect(describeShareMetadata(share('0x'))).toBeNull();
+    expect(describeShareMetadata(share(undefined))).toBeNull();
   });
 });
