@@ -155,6 +155,3 @@ export const SAMPLE = {
     { kind: 'event', contract: FUSDY, block: 314217333n, txIndex: 12, logIndex: 115, selector: CONFIDENTIAL_TRANSFER },
   ] as ShareLabel[],
 };
-
-/** Live tests run only when this names an Arbitrum Sepolia RPC endpoint, e.g. https://sepolia-rollup.arbitrum.io/rpc */
-export const LIVE_RPC = process.env.SHARE_METADATA_LIVE_RPC;

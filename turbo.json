@@ -21,7 +21,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "MATRIX_CHAIN", "CI", "SHARE_METADATA_LIVE_RPC"],
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "MATRIX_CHAIN", "CI"],
       "env": ["TEST_STAGING_ENABLED"]
     },
     "test:live": {

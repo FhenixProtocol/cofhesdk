@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { createPublicClient, http, type PublicClient } from 'viem';
+import { arbitrumSepolia } from 'viem/chains';
+import { TEST_PRIVATE_KEY } from '@cofhe/test-setup';
 import { decodeShareMetadata } from '../decode';
 import { verifyShareLabels } from '../verify';
-import { LIVE_RPC, SAMPLE } from './fixtures';
+import { SAMPLE } from './fixtures';
 
 /**
- * The real sample against Arbitrum Sepolia. Runs only with SHARE_METADATA_LIVE_RPC set, e.g.
- * SHARE_METADATA_LIVE_RPC=https://sepolia-rollup.arbitrum.io/rpc pnpm vitest run acps/share-metadata
+ * The real sample against Arbitrum Sepolia, read from the public RPC. A live-chain suite like
+ * `core/test/decrypt.test.ts`: it runs where TEST_PRIVATE_KEY is set (the key itself is not used),
+ * so `pnpm test` stays offline and `pnpm test:live` covers it.
  */
-describe.skipIf(!LIVE_RPC)('share metadata against Arbitrum Sepolia', () => {
-  // the fallback only keeps a skipped suite constructible
-  const publicClient = createPublicClient({ transport: http(LIVE_RPC ?? 'http://127.0.0.1:8545') }) as PublicClient;
+describe.skipIf(!TEST_PRIVATE_KEY)('share metadata against Arbitrum Sepolia', () => {
+  const publicClient = createPublicClient({
+    chain: arbitrumSepolia,
+    transport: http(arbitrumSepolia.rpcUrls.default.http[0]),
+  }) as PublicClient;
 
   it('confirms every event label of the sample at its log index', async () => {
     const labels = decodeShareMetadata(SAMPLE.blob, SAMPLE.handles);
