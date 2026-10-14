@@ -242,52 +242,12 @@ const getOrCreateSharingACP = async (
 // CONFIG DEFAULTS
 
 /**
- * Applies the config's ACP acp defaults to creation options (pure).
- * Explicit user options always win:
- *  - revoker: injected only when the options carry NO revoker pair —
- *    revokerContract = config default, revokerData = creation timestamp
- *    ("every acp revocable by default")
+ * Applies the config's ACP defaults to creation options. Explicit user options always win:
+ *  - revoker: injected only when the options carry NO revoker pair. The contract is the
+ *    config's `defaultRevoker` for the chain, else the one the ACL serves; the id
+ *    (`revokerData`) is the latest block's timestamp ("every acp revocable by default")
  *  - contracts: injected only when the options carry NO scope fields at all —
  *    injecting scope makes the created acp non-global by default
- */
-const applyACPDefaults = <
-  T extends {
-    revokerData?: number;
-    revokerContract?: string;
-    scope?: number;
-    contracts?: string[];
-    handles?: (bigint | number | string)[];
-  },
->(
-  options: T,
-  acpConfig: { defaultRevoker?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
-  chainId: number,
-  revokerData = Math.round(Date.now() / 1000) - 60
-): T => {
-  const result = { ...options };
-
-  const defaultRevoker = acpConfig?.defaultRevoker?.[chainId];
-  const hasValidatorOptions = options.revokerData != null || options.revokerContract != null;
-  if (defaultRevoker != null && !hasValidatorOptions) {
-    result.revokerContract = defaultRevoker;
-    // The chain-aware caller supplies the latest block timestamp. Keep the
-    // local-clock fallback for the pure helper's backwards-compatible API.
-    result.revokerData = revokerData;
-  }
-
-  const defaultContracts = acpConfig?.defaultContractScopes?.[chainId];
-  const hasScopeOptions = options.scope != null || options.contracts != null || options.handles != null;
-  if (defaultContracts != null && defaultContracts.length > 0 && !hasScopeOptions) {
-    result.contracts = defaultContracts;
-  }
-
-  return result;
-};
-
-/**
- * `applyACPDefaults` with the ACL consulted for the default revoker when
- * `acp.defaultRevoker` config does not name one for this chain — explicit
- * config wins over the ACL-served address.
  */
 const applyACPDefaultsFromChain = async <
   T extends {
@@ -303,26 +263,25 @@ const applyACPDefaultsFromChain = async <
   publicClient: PublicClient,
   chainId: number
 ): Promise<T> => {
-  const hasExplicitRevoker =
-    acpConfig?.defaultRevoker?.[chainId] != null || options.revokerData != null || options.revokerContract != null;
-  if (hasExplicitRevoker) {
-    // Explicit revoker options are never overridden, so there is nothing to
-    // default and no reason to pay for the block read.
-    if (options.revokerData != null || options.revokerContract != null) {
-      return applyACPDefaults(options, acpConfig, chainId);
+  const result = { ...options };
+
+  const hasRevokerOptions = options.revokerData != null || options.revokerContract != null;
+  if (!hasRevokerOptions) {
+    const defaultRevoker =
+      acpConfig?.defaultRevoker?.[chainId] ?? (await getAclServedAddresses(publicClient, chainId)).defaultRevoker;
+    if (defaultRevoker != null) {
+      result.revokerContract = defaultRevoker;
+      result.revokerData = await getBlockRevokerData(publicClient);
     }
-    return applyACPDefaults(options, acpConfig, chainId, await getBlockRevokerData(publicClient));
   }
 
-  const served = await getAclServedAddresses(publicClient, chainId);
-  if (served.defaultRevoker == null) {
-    return applyACPDefaults(options, acpConfig, chainId);
+  const defaultContracts = acpConfig?.defaultContractScopes?.[chainId];
+  const hasScopeOptions = options.scope != null || options.contracts != null || options.handles != null;
+  if (defaultContracts != null && defaultContracts.length > 0 && !hasScopeOptions) {
+    result.contracts = defaultContracts;
   }
-  const effectiveConfig = {
-    ...acpConfig,
-    defaultRevoker: { ...acpConfig?.defaultRevoker, [chainId]: served.defaultRevoker },
-  };
-  return applyACPDefaults(options, effectiveConfig, chainId, await getBlockRevokerData(publicClient));
+
+  return result;
 };
 
 /**
@@ -614,7 +573,6 @@ export const acps = {
   removeShareOnChain,
   computeShareId,
 
-  applyACPDefaults,
   applyACPDefaultsFromChain,
   getAclServedAddresses,
   clearAclServedAddresses,
