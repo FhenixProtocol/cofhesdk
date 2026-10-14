@@ -27,6 +27,7 @@ import {
   type MaybeExtractArrayParameterType,
   type MaybePartialBy,
   type ReadonlyWiden,
+  tupleComponentsAreNamed,
 } from './utils';
 
 export type CofheInputArgs<abi extends Abi | readonly unknown[] = Abi, functionName extends string = string> = GetArgs<
@@ -272,9 +273,20 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
         const components = param.components;
 
         const processTuple = (tupleValue: unknown): void => {
-          const valueObj = tupleValue as Record<string, unknown>;
-          components.forEach((component) => {
-            processParameter(component, valueObj[component.name]);
+          if (tupleComponentsAreNamed(components)) {
+            const valueObj = tupleValue as Record<string, unknown>;
+            components.forEach((component) => {
+              processParameter(component, valueObj[component.name]);
+            });
+            return;
+          }
+
+          if (!Array.isArray(tupleValue)) {
+            throw new Error('Expected an array value for tuple with unnamed components');
+          }
+
+          components.forEach((component, index) => {
+            processParameter(component, tupleValue[index]);
           });
         };
 
@@ -437,20 +449,28 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
         const components = param.components;
 
         const processTuple = (tupleValue: unknown): unknown => {
-          const valueObj = tupleValue as Record<string, unknown>;
-          const result: Record<string, unknown> = {};
+          if (tupleComponentsAreNamed(components)) {
+            const valueObj = tupleValue as Record<string, unknown>;
+            const result: Record<string, unknown> = {};
 
-          components.forEach((component) => {
-            const componentName = component.name;
-            if (componentName) {
-              const componentValue = valueObj[componentName];
-              if (componentValue !== undefined) {
-                result[componentName] = processParameter(component, componentValue);
+            components.forEach((component) => {
+              const componentName = component.name;
+              if (componentName) {
+                const componentValue = valueObj[componentName];
+                if (componentValue !== undefined) {
+                  result[componentName] = processParameter(component, componentValue);
+                }
               }
-            }
-          });
+            });
 
-          return result;
+            return result;
+          }
+
+          if (!Array.isArray(tupleValue)) {
+            throw new Error('Expected an array value for tuple with unnamed components');
+          }
+
+          return components.map((component, index) => processParameter(component, tupleValue[index]));
         };
 
         // `tuple[]` / `tuple[N]`: rebuild each element as its own tuple, in the same order

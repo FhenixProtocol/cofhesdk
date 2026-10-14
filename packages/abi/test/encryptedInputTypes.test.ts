@@ -207,6 +207,46 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
   });
 });
 
+describe('unnamed tuple components', () => {
+  it('should extract and insert a single unnamed tuple positionally', () => {
+    const args = [[1000n, 300n]] as const;
+
+    expect(extractEncryptableValues(TestABI, 'fnUnnamedTupleContainsEncryptedInput', args)).toEqual([
+      Encryptable.uint32(300n),
+    ]);
+    expect(
+      insertEncryptedValues(TestABI, 'fnUnnamedTupleContainsEncryptedInput', args, [createHash(1n), SIGNATURE])
+    ).toEqual([[1000n, createHash(1n)], SIGNATURE]);
+  });
+
+  it('should use positional access for tuple arrays when any component is unnamed', () => {
+    const args = [
+      [
+        [1000n, 300n],
+        [2000n, 400n],
+      ],
+    ] as const;
+
+    expect(extractEncryptableValues(TestABI, 'fnMixedNameTupleArrayContainsEncryptedInput', args)).toEqual([
+      Encryptable.uint32(300n),
+      Encryptable.uint32(400n),
+    ]);
+    expect(
+      insertEncryptedValues(TestABI, 'fnMixedNameTupleArrayContainsEncryptedInput', args, [
+        createHash(1n),
+        createHash(2n),
+        SIGNATURE,
+      ])
+    ).toEqual([
+      [
+        [1000n, createHash(1n)],
+        [2000n, createHash(2n)],
+      ],
+      SIGNATURE,
+    ]);
+  });
+});
+
 describe('error handling', () => {
   it('should throw error for non-existent function', () => {
     const args = [42] as const;
