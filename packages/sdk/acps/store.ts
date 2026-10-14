@@ -34,6 +34,18 @@ const ACP_STORE_VERSION = 3;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value != null && typeof value === 'object' && !Array.isArray(value);
 
+// Accounts are addresses, so their case carries no meaning: the same account may arrive
+// checksummed (from the wallet client) or lowercased (from an indexer, a URL, user input).
+// Resolve to the key the account is already stored under, so a lookup in another case still
+// finds it and a write does not split one account's acps across two buckets. A new account
+// keeps the spelling it was first written with (the connected wallet's address in practice),
+// which is the key the React hooks read from the raw snapshot.
+const resolveAccountKey = (records: Record<string, unknown> | undefined, account: string): string => {
+  if (records == null || account in records) return account;
+  const lower = account.toLowerCase();
+  return Object.keys(records).find((key) => key.toLowerCase() === lower) ?? account;
+};
+
 export const _acpStore = createStore<ACPsStore>()(
   persist(() => ACP_STORE_DEFAULTS, {
     name: 'cofhesdk-acps',
@@ -76,7 +88,8 @@ export const getACP = (
   clearStaleStore();
   if (chainId == null || account == null || hash == null) return;
 
-  const savedACP = _acpStore.getState().acps[chainId]?.[account]?.[hash];
+  const accountACPs = _acpStore.getState().acps[chainId];
+  const savedACP = accountACPs?.[resolveAccountKey(accountACPs, account)]?.[hash];
   if (savedACP == null) return;
 
   return ACPUtils.deserialize(savedACP);
@@ -86,7 +99,8 @@ export const getActiveACP = (chainId: number | undefined, account: string | unde
   clearStaleStore();
   if (chainId == null || account == null) return;
 
-  const activeACPHash = _acpStore.getState().activeACPHash[chainId]?.[account];
+  const activeHashes = _acpStore.getState().activeACPHash[chainId];
+  const activeACPHash = activeHashes?.[resolveAccountKey(activeHashes, account)];
   return getACP(chainId, account, activeACPHash);
 };
 
@@ -94,7 +108,8 @@ export const getACPs = (chainId: number | undefined, account: string | undefined
   clearStaleStore();
   if (chainId == null || account == null) return {};
 
-  return Object.entries(_acpStore.getState().acps[chainId]?.[account] ?? {}).reduce(
+  const accountACPs = _acpStore.getState().acps[chainId];
+  return Object.entries(accountACPs?.[resolveAccountKey(accountACPs, account)] ?? {}).reduce(
     (acc, [hash, acp]) => {
       if (acp == undefined) return acc;
       return { ...acc, [hash]: ACPUtils.deserialize(acp) };
@@ -108,8 +123,9 @@ export const setACP = (chainId: number, account: string, acp: ACP) => {
   _acpStore.setState(
     produce<ACPsStore>((state) => {
       if (state.acps[chainId] == null) state.acps[chainId] = {};
-      if (state.acps[chainId][account] == null) state.acps[chainId][account] = {};
-      state.acps[chainId][account][acp.hash] = ACPUtils.serialize(acp);
+      const key = resolveAccountKey(state.acps[chainId], account);
+      if (state.acps[chainId][key] == null) state.acps[chainId][key] = {};
+      state.acps[chainId][key][acp.hash] = ACPUtils.serialize(acp);
     })
   );
 };
@@ -121,14 +137,15 @@ export const removeACP = (chainId: number, account: string, hash: string) => {
       if (state.acps[chainId] == null) state.acps[chainId] = {};
       if (state.activeACPHash[chainId] == null) state.activeACPHash[chainId] = {};
 
-      const accountACPs = state.acps[chainId][account];
+      const accountACPs = state.acps[chainId][resolveAccountKey(state.acps[chainId], account)];
       if (accountACPs == null) return;
 
       if (accountACPs[hash] == null) return;
 
-      if (state.activeACPHash[chainId][account] === hash) {
+      const activeKey = resolveAccountKey(state.activeACPHash[chainId], account);
+      if (state.activeACPHash[chainId][activeKey] === hash) {
         // if the active acp is the one to be removed - unset it
-        state.activeACPHash[chainId][account] = undefined;
+        state.activeACPHash[chainId][activeKey] = undefined;
       }
       // Remove the acp
       accountACPs[hash] = undefined;
@@ -139,7 +156,8 @@ export const removeACP = (chainId: number, account: string, hash: string) => {
 export const getActiveACPHash = (chainId: number | undefined, account: string | undefined): string | undefined => {
   clearStaleStore();
   if (chainId == null || account == null) return undefined;
-  return _acpStore.getState().activeACPHash[chainId]?.[account];
+  const activeHashes = _acpStore.getState().activeACPHash[chainId];
+  return activeHashes?.[resolveAccountKey(activeHashes, account)];
 };
 
 export const setActiveACPHash = (chainId: number, account: string, hash: string) => {
@@ -147,7 +165,7 @@ export const setActiveACPHash = (chainId: number, account: string, hash: string)
   _acpStore.setState(
     produce<ACPsStore>((state) => {
       if (state.activeACPHash[chainId] == null) state.activeACPHash[chainId] = {};
-      state.activeACPHash[chainId][account] = hash;
+      state.activeACPHash[chainId][resolveAccountKey(state.activeACPHash[chainId], account)] = hash;
     })
   );
 };
@@ -156,7 +174,8 @@ export const removeActiveACPHash = (chainId: number, account: string) => {
   clearStaleStore();
   _acpStore.setState(
     produce<ACPsStore>((state) => {
-      if (state.activeACPHash[chainId]) state.activeACPHash[chainId][account] = undefined;
+      if (state.activeACPHash[chainId])
+        state.activeACPHash[chainId][resolveAccountKey(state.activeACPHash[chainId], account)] = undefined;
     })
   );
 };
