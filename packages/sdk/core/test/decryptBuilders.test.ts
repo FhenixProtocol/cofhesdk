@@ -1,12 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import { type PublicClient, type WalletClient, createPublicClient, createWalletClient, http } from 'viem';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { type PublicClient, type WalletClient, createPublicClient, createWalletClient, http, zeroAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
+import { ACPUtils, acpStore, type ACP } from '@/acps';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
+import { tnDecryptV2 } from '../decrypt/tnDecryptV2';
+import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2';
 import { createCofheConfigBase, type CofheConfig } from '../config.js';
 import { CofheErrorCode } from '../error.js';
 import { FheTypes } from '../types.js';
+
+// Stub the threshold network calls so tests can assert whether a request was dispatched
+vi.mock('../decrypt/tnDecryptV2', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../decrypt/tnDecryptV2')>()),
+  tnDecryptV2: vi.fn(),
+}));
+vi.mock('../decrypt/tnSealOutputV2', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../decrypt/tnSealOutputV2')>()),
+  tnSealOutputV2: vi.fn(),
+}));
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
@@ -413,6 +426,101 @@ describe('DecryptForViewBuilder', () => {
             requireConnected: undefined,
           })
       ).toThrow();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Expired acp (regression, issue #272)
+//
+// The getOrCreate* half of #272 is covered in acps.test.ts. These cover the decrypt path:
+// execute() must reject an expired acp (ACPUtils.validate) before any request is dispatched
+// to the threshold network, however the acp was selected.
+// ---------------------------------------------------------------------------
+
+describe('execute – expired acp (regression, issue #272)', () => {
+  type Selection = 'active acp' | 'acp hash' | 'acp object';
+  const selections: Selection[] = ['active acp', 'acp hash', 'acp object'];
+
+  const now = () => Math.floor(Date.now() / 1000);
+
+  // Built by hand rather than with ACPUtils.sign, which reads the ACL's EIP-712 domain over RPC.
+  // validate() only checks that a signature is present, and the threshold network is stubbed.
+  function createSignedSelfACP(expiration: number): ACP {
+    return {
+      ...ACPUtils.createSelf({ name: 'Test Self ACP', issuer: account.address, expiration }),
+      issuerSignature: `0x${'11'.repeat(65)}`,
+      _signedDomain: { name: 'ACL', version: '1', chainId: TEST_CHAIN_ID, verifyingContract: zeroAddress },
+    };
+  }
+
+  // Stores the acp and makes it the active acp for the test chain + account
+  function seedACP(acp: ACP) {
+    acpStore.setACP(TEST_CHAIN_ID, account.address, acp);
+    acpStore.setActiveACPHash(TEST_CHAIN_ID, account.address, acp.hash);
+  }
+
+  function selectTxACP(selection: Selection, acp: ACP) {
+    const builder = createTxBuilder();
+    if (selection === 'acp hash') return builder.withACP(acp.hash);
+    if (selection === 'acp object') return builder.withACP(acp);
+    return builder.withACP();
+  }
+
+  function selectViewACP(selection: Selection, acp: ACP) {
+    const builder = createViewBuilder(FheTypes.Uint32);
+    if (selection === 'acp hash') return builder.withACP(acp.hash);
+    if (selection === 'acp object') return builder.withACP(acp);
+    return builder.withACP();
+  }
+
+  beforeEach(() => {
+    acpStore.store.setState({ acps: {}, activeACPHash: {} });
+    vi.mocked(tnDecryptV2).mockReset();
+    vi.mocked(tnSealOutputV2).mockReset();
+  });
+
+  afterEach(() => {
+    acpStore.store.setState({ acps: {}, activeACPHash: {} });
+  });
+
+  describe('decryptForTx', () => {
+    it.each(selections)('rejects an expired acp selected via %s without dispatching', async (selection) => {
+      const acp = createSignedSelfACP(now() - 3600);
+      seedACP(acp);
+
+      await expect(selectTxACP(selection, acp).execute()).rejects.toThrow('ACP is expired');
+      expect(tnDecryptV2).not.toHaveBeenCalled();
+    });
+
+    it('dispatches a valid acp (control for the expired cases)', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+
+      const result = await selectTxACP('active acp', acp).execute();
+
+      expect(result.decryptedValue).toBe(7n);
+      expect(tnDecryptV2).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('decryptForView', () => {
+    it.each(selections)('rejects an expired acp selected via %s without dispatching', async (selection) => {
+      const acp = createSignedSelfACP(now() - 3600);
+      seedACP(acp);
+
+      await expect(selectViewACP(selection, acp).execute()).rejects.toThrow('ACP is expired');
+      expect(tnSealOutputV2).not.toHaveBeenCalled();
+    });
+
+    it('dispatches a valid acp (control for the expired cases)', async () => {
+      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+
+      await expect(selectViewACP('active acp', acp).execute()).rejects.toThrow('stubbed threshold network');
+      expect(tnSealOutputV2).toHaveBeenCalledOnce();
     });
   });
 });
