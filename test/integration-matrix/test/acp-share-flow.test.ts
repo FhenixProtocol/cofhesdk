@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
 import { describeShareMetadata, encodeShareMetadata, viewFunctionLabel } from '@cofhe/sdk/acps';
-import { simpleTestAbi } from '@cofhe/test-setup';
+import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
 import { ALL_CHAINS } from '../src/chains/index.js';
 import { getMatrixChains } from '../src/matrix.js';
 import type { ClientFactory, TestContext } from '../src/types.js';
@@ -16,10 +16,13 @@ import type { ClientFactory, TestContext } from '../src/types.js';
  *   3. Alice discovers it (getIncomingShares): the label reads back, checks against the chain
  *      and describes from the ABI; she imports it (importFromChain)
  *   4. Alice decrypts Bob's value with the imported acp
- *   5. Alice dismisses the share
+ *   5. Alice dismisses the share (or Bob cancels it, where Alice holds no gas)
  *
  * Chain-agnostic: runs wherever a registry is configured or served by the chain's ACL
  * (anvil deploys one; the testnets serve theirs; localcofhe via TEST_LOCALCOFHE_ACP_SHARE_REGISTRY).
+ *
+ * On a testnet Alice is TEST_ALICE_PRIVATE_KEY, or a key generated for the run (see
+ * `@cofhe/test-setup`'s env.ts for why never a public one).
  */
 
 const factory: ClientFactory = {
@@ -118,12 +121,19 @@ describe.each(enabledChains)('[ACP SHARE] $label', (chainConfig) => {
     const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
     expect(value).toBe(BigInt(testValue));
 
-    // 5. Alice dismisses the share
-    const dismissTx = await ctx.cofheClient.acp.dismissShare(shareId);
+    // 5. The share is removed. Dismissing is Alice's transaction, so it needs a funded Alice: Anvil's
+    //    is, and on a testnet one given as TEST_ALICE_PRIVATE_KEY is (a generated one holds no gas).
+    //    Otherwise Bob cancels it, which also leaves the registry clean for the next run.
+    const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
+    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    const removeTx = aliceIsFunded
+      ? await ctx.cofheClient.acp.dismissShare(shareId)
+      : await ctx.cofheClient.acp.cancelShare(shareId);
     await ctx.publicClient.waitForTransactionReceipt({
-      hash: dismissTx,
+      hash: removeTx,
       confirmations: chainConfig.txConfirmationsRequired,
     });
+    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
     const after = await ctx.cofheClient.acp.getIncomingShares();
     expect(after.find((s) => s.shareId === shareId)).toBeUndefined();
 

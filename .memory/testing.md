@@ -71,6 +71,7 @@ Env vars loaded from root `.env`:
 | `TEST_PRIVATE_KEY` | Yes | Deployer/test account key |
 | `PRIMARY_TEST_CHAIN` | No (default 421614) | Chain for pre-stored values |
 | `TEST_LOCALCOFHE_PRIVATE_KEY` | No | Deployer key for localcofhe (skipped if unset) |
+| `TEST_ALICE_PRIVATE_KEY` | No | Recipient ("Alice") on testnets and staging; a key is generated per run if unset. Set a funded one to also run her transactions (dismissing a share). Never a public key: on public chains those carry EIP-7702 delegations, and the ACL then verifies her signature through the delegate |
 
 Requires `forge` and `cast` (Foundry) on `$PATH`.
 

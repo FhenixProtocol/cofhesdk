@@ -203,5 +203,6 @@ jobs:
       - name: Run Integration Matrix Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
