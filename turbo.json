@@ -12,7 +12,12 @@
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN"]
+      "passThroughEnv": [
+        "TEST_PRIVATE_KEY",
+        "TEST_LOCALCOFHE_PRIVATE_KEY",
+        "PRIMARY_TEST_CHAIN",
+        "TEST_ALICE_PRIVATE_KEY"
+      ]
     },
     "@cofhe/site#build": {
       "cache": false,
@@ -21,13 +26,18 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "MATRIX_CHAIN", "CI"],
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_ALICE_PRIVATE_KEY", "MATRIX_CHAIN", "CI"],
       "env": ["TEST_STAGING_ENABLED"]
     },
     "test:live": {
       "dependsOn": ["^build"],
       "passThroughEnv": ["TEST_PRIVATE_KEY", "CI"],
       "env": ["TEST_STAGING_ENABLED"]
+    },
+    "test:threadpool": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI"],
+      "env": ["TEST_STAGING_ENABLED", "TEST_THREADPOOL_ENABLED"]
     },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]

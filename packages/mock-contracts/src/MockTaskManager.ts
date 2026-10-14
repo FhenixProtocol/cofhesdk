@@ -4,11 +4,39 @@ import { type MockArtifact } from './types';
 export const MockTaskManagerArtifact = {
   contractName: 'MockTaskManager',
   isFixed: true,
-  fixedAddress: '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9',
+  fixedAddress: '0x0000000000000000000000000000000000005000',
   abi: [
     {
       type: 'constructor',
       inputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'MOCK_dispatchOperation',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'funcId',
+          type: 'uint8',
+          internalType: 'enum FunctionId',
+        },
+        {
+          name: 'inputs',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'arity',
+          type: 'uint8',
+          internalType: 'uint8',
+        },
+      ],
+      outputs: [],
       stateMutability: 'nonpayable',
     },
     {
@@ -566,6 +594,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'mockGasExcluded',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'mockStorage',
       inputs: [
         {
@@ -711,6 +752,19 @@ export const MockTaskManagerArtifact = {
       inputs: [
         {
           name: '_logOps',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setMockGasExcluded',
+      inputs: [
+        {
+          name: '_mockGasExcluded',
           type: 'bool',
           internalType: 'bool',
         },
@@ -959,6 +1013,19 @@ export const MockTaskManagerArtifact = {
           type: 'address',
           indexed: true,
           internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'MockGasConsumed',
+      inputs: [
+        {
+          name: 'gas',
+          type: 'uint256',
+          indexed: false,
+          internalType: 'uint256',
         },
       ],
       anonymous: false,
@@ -1247,11 +1314,6 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'error',
-      name: 'NotImplemented',
-      inputs: [],
-    },
-    {
-      type: 'error',
       name: 'OnlyAggregatorAllowed',
       inputs: [
         {
@@ -1271,6 +1333,11 @@ export const MockTaskManagerArtifact = {
           internalType: 'address',
         },
       ],
+    },
+    {
+      type: 'error',
+      name: 'OnlySelf',
+      inputs: [],
     },
     {
       type: 'error',

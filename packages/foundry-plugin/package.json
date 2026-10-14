@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/foundry-plugin",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Foundry plugin for CoFHE — Write and test FHE enabled contracts",
   "license": "MIT",
   "repository": {
@@ -30,8 +30,9 @@
   },
   "dependencies": {
     "@cofhe/mock-contracts": "workspace:*",
-    "@fhenixprotocol/cofhe-contracts": "0.2.0",
-    "@openzeppelin/contracts": "5.4.0"
+    "@fhenixprotocol/cofhe-contracts": "1.0.0",
+    "@openzeppelin/contracts": "5.4.0",
+    "@openzeppelin/contracts-upgradeable": "5.4.0"
   },
   "devDependencies": {
     "@cofhe/test-setup": "workspace:*",

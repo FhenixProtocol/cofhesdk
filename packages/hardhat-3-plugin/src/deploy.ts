@@ -1,12 +1,20 @@
 import type { ArtifactManager } from 'hardhat/types/artifacts';
 import type { PublicClient, WalletClient } from 'viem';
-import { createTestClient, custom } from 'viem';
+import { createTestClient, custom, encodeFunctionData } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import { MockACLArtifact, MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
 import {
-  TASK_MANAGER_ADDRESS,
+  ACPShareRegistryArtifact,
+  MockACLArtifact,
+  MockCoFHEAddressBookArtifact,
+  MockTaskManagerArtifact,
+  MockThresholdNetworkArtifact,
+} from '@cofhe/mock-contracts';
+import {
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
@@ -24,6 +32,7 @@ export type LogMocksDeploy = '' | 'v' | 'vv';
 
 /** Keyed map of deployed mock contract addresses returned by `deployMocks`. */
 export type DeployedMockContracts = {
+  MockCoFHEAddressBook: `0x${string}`;
   MockTaskManager: `0x${string}`;
   MockACL: `0x${string}`;
   ACPTimestampRevoker: `0x${string}`;
@@ -71,14 +80,18 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
 
   log('vv', chalk.bold('cofhe-hardhat-3-plugin :: deploy mocks'), 0);
 
+  // 0. Deploy CoFHEAddressBook to the address FHE.sol resolves the TaskManager through
+  await deployFixed(ctx.publicClient, 'MockCoFHEAddressBook', COFHE_ADDRESS_BOOK_ADDRESS, ctx.artifacts);
+  logDeployment('MockCoFHEAddressBook', COFHE_ADDRESS_BOOK_ADDRESS);
+
   // 1. Deploy TaskManager to its fixed address
-  await deployFixed(ctx.publicClient, 'MockTaskManager', TASK_MANAGER_ADDRESS, ctx.artifacts);
-  logDeployment('MockTaskManager', TASK_MANAGER_ADDRESS);
+  await deployFixed(ctx.publicClient, 'MockTaskManager', MOCKS_TASK_MANAGER_ADDRESS, ctx.artifacts);
+  logDeployment('MockTaskManager', MOCKS_TASK_MANAGER_ADDRESS);
 
   // 2. Initialize TaskManager — owner = first connected account
   const [account] = await ctx.walletClient.getAddresses();
   await ctx.walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'initialize',
     args: [account],
@@ -86,9 +99,20 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     chain: null,
   });
 
+  // 2b. Register TaskManager in the CoFHEAddressBook
+  await ctx.walletClient.writeContract({
+    address: COFHE_ADDRESS_BOOK_ADDRESS,
+    abi: MockCoFHEAddressBookArtifact.abi,
+    functionName: 'setTm',
+    args: [TASK_MANAGER_ID, MOCKS_TASK_MANAGER_ADDRESS],
+    account,
+    chain: null,
+  });
+  log('vv', 'TaskManager registered in CoFHEAddressBook', 2);
+
   // 3. Configure security zones
   await ctx.walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'setSecurityZones',
     args: [0, 1],
@@ -102,7 +126,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
 
   // 5. Link ACL into TaskManager
   await ctx.walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'setACLContract',
     args: [aclAddress],
@@ -110,6 +134,17 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     chain: null,
   });
   log('vv', 'ACL address set in TaskManager', 2);
+
+  // 5a. Link TaskManager into ACL
+  await ctx.walletClient.writeContract({
+    address: aclAddress,
+    abi: MockACLArtifact.abi,
+    functionName: 'setTaskManager',
+    args: [MOCKS_TASK_MANAGER_ADDRESS],
+    account,
+    chain: null,
+  });
+  log('vv', 'TaskManager address set in ACL', 2);
 
   // 5b. ACP (ACP V3): default revoker (verification is inherited by the ACL)
   const acpRevokerAddress = await deployVariable(ctx, 'ACPTimestampRevoker', []);
@@ -125,7 +160,12 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   log('vv', 'Default revoker contract set in ACL', 2);
 
   // 5c. ACP: on-chain hand-off for sharing ACPs
-  const acpShareRegistryAddress = await deployVariable(ctx, 'ACPShareRegistry', []);
+  // The production contract (upgradeable): behind a proxy, initialized with the deployer as admin
+  const acpShareRegistryImpl = await deployVariable(ctx, 'ACPShareRegistry', []);
+  const acpShareRegistryAddress = await deployVariable(ctx, 'MockERC1967Proxy', [
+    acpShareRegistryImpl,
+    encodeFunctionData({ abi: ACPShareRegistryArtifact.abi, functionName: 'initialize', args: [account] }),
+  ]);
   logDeployment('ACPShareRegistry', acpShareRegistryAddress);
   await ctx.walletClient.writeContract({
     address: aclAddress,
@@ -140,7 +180,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
   await ctx.walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'setVerifierSigner',
     args: [verifierSigner.address],
@@ -152,7 +192,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   // 7. Set decrypt result signer
   const decryptSigner = privateKeyToAccount(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
   await ctx.walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'setDecryptResultSigner',
     args: [decryptSigner.address],
@@ -187,7 +227,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     address: MockThresholdNetworkArtifact.fixedAddress as `0x${string}`,
     abi: MockThresholdNetworkArtifact.abi,
     functionName: 'initialize',
-    args: [TASK_MANAGER_ADDRESS, aclAddress],
+    args: [MOCKS_TASK_MANAGER_ADDRESS, aclAddress],
     account,
     chain: null,
   });
@@ -197,8 +237,8 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   if (gasWarning) {
     logEmpty('v');
     logWarning(
-      'When using mocks, FHE operations report a higher gas price due to on-chain mocking logic. ' +
-        'Deploy your contracts on a testnet to check true gas costs.\n' +
+      'When using mocks, FHE operations consume extra gas replicating off-chain CoFHE work on-chain. ' +
+        "Use conn.cofhe.getAdjustedGasUsed(receipt) or set 'cofhe.gasSummary: true' to see gas numbers with that overhead excluded.\n" +
         "(Disable this warning by setting 'cofhe.gasWarning: false' in your Hardhat config)",
       0
     );
@@ -207,7 +247,8 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   logEmpty('v');
 
   return {
-    MockTaskManager: TASK_MANAGER_ADDRESS,
+    MockCoFHEAddressBook: COFHE_ADDRESS_BOOK_ADDRESS,
+    MockTaskManager: MOCKS_TASK_MANAGER_ADDRESS,
     MockACL: aclAddress,
     ACPTimestampRevoker: acpRevokerAddress,
     ACPShareRegistry: acpShareRegistryAddress,

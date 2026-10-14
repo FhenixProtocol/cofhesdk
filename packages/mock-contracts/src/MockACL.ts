@@ -12,19 +12,6 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'TASK_MANAGER_ADDRESS_',
-      inputs: [],
-      outputs: [
-        {
-          name: '',
-          type: 'address',
-          internalType: 'address',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
       name: 'allow',
       inputs: [
         {
@@ -596,6 +583,19 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
+      name: 'setTaskManager',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'shareCtHash',
       inputs: [
         {
@@ -670,6 +670,19 @@ export const MockACLArtifact = {
     },
     {
       type: 'event',
+      name: 'Initialized',
+      inputs: [
+        {
+          name: 'version',
+          type: 'uint64',
+          indexed: false,
+          internalType: 'uint64',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
       name: 'NewDelegation',
       inputs: [
         {
@@ -713,6 +726,25 @@ export const MockACLArtifact = {
       anonymous: false,
     },
     {
+      type: 'event',
+      name: 'TaskManagerUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
       type: 'error',
       name: 'AlreadyDelegated',
       inputs: [],
@@ -730,7 +762,17 @@ export const MockACLArtifact = {
     },
     {
       type: 'error',
-      name: 'InvalidShortString',
+      name: 'InvalidInitialization',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'InvalidTaskManagerAddress',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotInitializing',
       inputs: [],
     },
     {
@@ -782,17 +824,6 @@ export const MockACLArtifact = {
           name: 'sender',
           type: 'address',
           internalType: 'address',
-        },
-      ],
-    },
-    {
-      type: 'error',
-      name: 'StringTooLong',
-      inputs: [
-        {
-          name: 'str',
-          type: 'string',
-          internalType: 'string',
         },
       ],
     },

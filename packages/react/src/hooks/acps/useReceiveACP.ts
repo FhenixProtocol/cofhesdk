@@ -40,20 +40,8 @@ export function useReceiveACP({ onSuccess, onError }: Input = {}): UseReceiveACP
 
     try {
       setIsSubmitting(true);
-      // If user provided a name, override the incoming acp's name
-      let importArg: any | string = acpData.trim();
-      if (acpName.trim()) {
-        try {
-          const parsed = JSON.parse(acpData.trim());
-          importArg = { ...parsed, name: acpName.trim() };
-        } catch (e) {
-          setErrorMsg('Invalid acp data. Expected JSON.');
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      await client.acp.importShared(importArg);
+      // The user's own name for the acp; without one it is named after its issuer
+      await client.acp.importShared(acpData.trim(), { name: acpName.trim() || undefined });
 
       setSuccessMsg('ACP received and set active.');
       onSuccess?.();

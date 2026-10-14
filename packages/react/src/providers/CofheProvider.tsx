@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
-import { QueryProvider } from './QueryProvider';
+import { QueryProvider, useInternalQueryClient } from './QueryProvider';
+import { useDropDecryptsOfRemovedACPs } from './acpDecryptCache';
+import type { CofheClient } from '@cofhe/sdk';
 import { createCofheClient } from '@cofhe/sdk/web';
 import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 import { createCofheConfig } from '@/config';
@@ -14,7 +16,9 @@ export function CofheProvider(props: CofheProviderProps) {
   const { children, queryClient, publicClient, walletClient } = props;
 
   const config = useMemo(() => {
-    // priority: explicit config prop > config from provided client > create default config
+    assert(!(props.config && props.cofheClient), 'CofheProvider accepts either config or cofheClient, not both');
+
+    // use an explicit config, the provided client's config, or the default config
     if (props.config) return props.config;
     if (props.cofheClient) {
       assert(props.cofheClient.config.environment === 'react', 'Provided cofheClient must have react config');
@@ -45,6 +49,7 @@ export function CofheProvider(props: CofheProviderProps) {
     >
       <QueryProvider queryClient={queryClient}>
         <AutoConnect walletClient={walletClient} publicClient={publicClient} />
+        <DropRemovedACPDecrypts client={cofheClient} />
         {children}
       </QueryProvider>
     </CofheContext.Provider>
@@ -53,6 +58,11 @@ export function CofheProvider(props: CofheProviderProps) {
 
 function AutoConnect({ walletClient, publicClient }: Pick<CofheProviderProps, 'walletClient' | 'publicClient'>) {
   useCofheAutoConnect({ walletClient, publicClient });
+  return null;
+}
+
+function DropRemovedACPDecrypts({ client }: { client: CofheClient }) {
+  useDropDecryptsOfRemovedACPs(client, useInternalQueryClient());
   return null;
 }
 

@@ -1,3 +1,4 @@
+import { ERC7984_ABI } from '@cofhe/sdk/acps';
 import { parseAbi } from 'viem';
 
 import { CONFIDENTIAL_TOKEN_CLAIM_CONTRACTS } from './confidentialTokenClaims';
@@ -17,27 +18,7 @@ const wrappedErc20ApprovalContracts = {
 
 const SHARED_WRAPPED_TOKEN_CONTRACTS = {
   confidentialBalance: {
-    abi: [
-      {
-        inputs: [
-          {
-            internalType: 'address',
-            name: 'account',
-            type: 'address',
-          },
-        ],
-        name: 'confidentialBalanceOf',
-        outputs: [
-          {
-            internalType: 'euint64',
-            name: '',
-            type: 'bytes32',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ] as const,
+    abi: ERC7984_ABI,
     functionName: 'confidentialBalanceOf' as const,
   },
   confidentialTransfer: {

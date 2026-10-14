@@ -1,5 +1,29 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.8.0
+
+### Minor Changes
+
+- 6f7a4c5: Resolve the Task Manager through the `CoFHEAddressBook` (`@fhenixprotocol/cofhe-contracts@1.0.0`). **Breaking:** `TASK_MANAGER_ADDRESS` is removed from `@cofhe/sdk`. Use `getTaskManagerAddress(publicClient)`, which reads `getTm(TASK_MANAGER_ID)` from the book at `COFHE_ADDRESS_BOOK_ADDRESS` (both exported) and caches the result per chain. If the chain has no book, or the id is unset, it throws `TASK_MANAGER_UNRESOLVED`. `verifyDecryptResult`, the ACL/ACP lookups and `useCofheEnabled` / `useCofheReadDecryptionResults` now resolve the Task Manager this way. `@cofhe/react` adds `useCofheTaskManagerAddress()`.
+
+  Mocks: a new `MockCoFHEAddressBook` is deployed at FHE.sol's `COFHE_ADDRESS_BOOK`, and `MockTaskManager` moves to `MOCKS_TASK_MANAGER_ADDRESS` (`0x…5000`) and is registered in the book. `MockACL` now stores its Task Manager (`setTaskManager` / `getTaskManagerAddress`) instead of reading a constant, so its `TASK_MANAGER_ADDRESS_()` getter is gone. All three plugins deploy and wire the book. Hardhat 2 exposes `hre.cofhe.mocks.getMockCoFHEAddressBook()`, Hardhat 3 exposes `conn.cofhe.mocks.MockCoFHEAddressBook`, and Foundry exposes `CofheTest.mockAddressBook`. Contracts must be built against `@fhenixprotocol/cofhe-contracts@1.0.0` or later (the hardhat plugin's peer range is now `>=1.0.0`). Each FHE op now makes one extra `getTm` call on the book, as it does on real networks, so expect slightly higher gas numbers.
+
+### Patch Changes
+
+- 38c34cd: The Hardhat 2 mock deployment now sets the same security zone range (`0..1`) on the mock TaskManager that the Hardhat 3 plugin uses, so inputs for security zone 1 no longer fail in Hardhat 2 mock tests.
+- 9f76f2b: Defining your own `networks.localcofhe` no longer skips the rest of the plugin's config setup. The Sepolia presets and `config.cofhe` are still applied, matching `@cofhe/hardhat-3-plugin`; previously reading `hre.config.cofhe` would crash.
+- b648307: `mock_getPlaintext`, `mock_getPlaintextExists` and `mock_expectPlaintext` now skip on non-mock networks as intended. The check compared `getCode`'s result to an empty string, but `eth_getCode` returns `"0x"` for an empty address, so on a real network these helpers called into the TaskManager and failed with an opaque error. It now matches `@cofhe/hardhat-3-plugin`.
+- ccb7b68: Realistic gas reporting for mocks. Under Foundry, mock-only work is now excluded from gas metering by default (opt out with `mockTaskManager.setMockGasExcluded(false)`), so expect `forge snapshot` numbers to drop. Under Hardhat, mock transactions emit `MockGasConsumed` events (extra receipt logs), and the plugins add `getAdjustedGasUsed(receipt)` / `getAdjustedGasBreakdown(receipt)` plus an opt-in `cofhe.gasSummary` report.
+- Updated dependencies [17ff23e]
+- Updated dependencies [0fe40c3]
+- Updated dependencies [6f7a4c5]
+- Updated dependencies [552d118]
+- Updated dependencies [22eebcc]
+- Updated dependencies [ccb7b68]
+- Updated dependencies [42fccae]
+  - @cofhe/sdk@0.8.0
+  - @cofhe/mock-contracts@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes

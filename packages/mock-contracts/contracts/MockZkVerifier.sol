@@ -3,7 +3,7 @@
 
 pragma solidity >=0.8.19 <0.9.0;
 
-import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { Common } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
 
@@ -104,7 +104,7 @@ contract MockZkVerifier {
   }
 
   function insertCtHash(uint256 ctHash, uint256 value) public {
-    MockTaskManager(TASK_MANAGER_ADDRESS).MOCK_setInEuintKey(ctHash, value);
+    MockTaskManager(address(Common.tm())).MOCK_setInEuintKey(ctHash, value);
     salt += 1;
   }
 
