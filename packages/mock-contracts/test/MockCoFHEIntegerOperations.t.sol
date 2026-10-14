@@ -11,15 +11,15 @@ contract MockCoFHEHarness is MockCoFHE {
   }
 
   function runNot(uint256 output, uint256 input) external {
-    MOCK_unaryOperation(output, Utils.functionIdToString(FunctionId.not), input);
+    MOCK_unaryOperation(output, FunctionId.not, input);
   }
 
   function runRol(uint256 output, uint256 lhs, uint256 rhs) external {
-    MOCK_twoInputOperation(output, Utils.functionIdToString(FunctionId.rol), lhs, rhs);
+    MOCK_twoInputOperation(output, FunctionId.rol, lhs, rhs);
   }
 
   function runRor(uint256 output, uint256 lhs, uint256 rhs) external {
-    MOCK_twoInputOperation(output, Utils.functionIdToString(FunctionId.ror), lhs, rhs);
+    MOCK_twoInputOperation(output, FunctionId.ror, lhs, rhs);
   }
 }
 
