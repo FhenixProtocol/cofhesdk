@@ -6,10 +6,11 @@ import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js'
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
-import { acps } from './acps.js';
+import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
+  ACPAccessStatus,
   CreateSelfACPOptions,
   ACP,
   CreateSharingACPOptions,
@@ -18,7 +19,9 @@ import type {
   RecipientACP,
   SelfACP,
   IncomingShare,
+  LabelledShare,
 } from 'acps/types.js';
+import type { ShareLabelCheck, ShareLabelVerifyMode } from 'acps/share-metadata/verify.js';
 
 // CLIENT
 
@@ -74,6 +77,14 @@ export type CofheClientACPsClients = {
   walletClient: WalletClient;
 };
 
+/**
+ * Options for `importShared`. `activate: false` stores the imported acp without making it the active
+ * one (default `true`). `name` names it (default "Shared by 0x1234…abcd"). Clients default to the
+ * connected ones; pass both to override.
+ */
+export type CofheClientImportSharedOptions = ImportSharedOptions &
+  (CofheClientACPsClients | { publicClient?: undefined; walletClient?: undefined });
+
 export type CofheClientACPs = {
   getSnapshot: typeof acps.getSnapshot;
   subscribe: typeof acps.subscribe;
@@ -81,7 +92,10 @@ export type CofheClientACPs = {
   // Creation methods (require connection, no params)
   createSelf: (options: CreateSelfACPOptions, clients?: CofheClientACPsClients) => Promise<SelfACP>;
   createSharing: (options: CreateSharingACPOptions, clients?: CofheClientACPsClients) => Promise<SharingACP>;
-  importShared: (options: ImportSharedACPOptions | string, clients?: CofheClientACPsClients) => Promise<RecipientACP>;
+  importShared: (
+    options: ImportSharedACPOptions | string,
+    importOptions?: CofheClientImportSharedOptions
+  ) => Promise<RecipientACP>;
 
   // Retrieval methods (chainId/account optional)
   getACP: (hash: string, chainId?: number, account?: string) => ACP | undefined;
@@ -102,13 +116,35 @@ export type CofheClientACPs = {
   revokeACP: (acp: ACP) => Promise<`0x${string}`>;
   revokeAllACPs: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isACPRevoked: (acp: ACP) => Promise<boolean>;
+  /**
+   * The ACP on-chain status as a value instead of a revert. Without a handle: 'valid', or
+   * 'expired' / 'revoked' / an invalid signature. With a handle, a valid ACP reports
+   * 'allowed', 'out-of-scope' or 'issuer-not-allowed'. For the issuer copy of a share (type
+   * 'sharing', no recipient signature yet) the handle-less check covers expiry and revocation only.
+   */
+  checkAccess: (acp: ACP, handle?: bigint | `0x${string}`) => Promise<ACPAccessStatus>;
 
-  /** Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `acp.sharingRegistry`). */
-  shareOnChain: (acp: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
-  /** Importable shares addressed to the connected account (unexpired, not revoked). */
+  /**
+   * Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `acp.sharingRegistry`),
+   * optionally with the labels of its handles (`options.labels`, one per handle) or an encoded blob.
+   */
+  shareOnChain: (acp: ACP, options?: ShareOnChainOptions) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
+  /** Importable shares addressed to the connected account (unexpired, not revoked), with their metadata. */
   getIncomingShares: () => Promise<IncomingShare[]>;
-  /** Import a share read from the registry: sign as recipient, store and activate. */
-  importFromChain: (share: IncomingShare) => Promise<RecipientACP>;
+  /** One share by id, as posted; null when unknown or removed. */
+  getShareFromChain: (shareId: `0x${string}`) => Promise<IncomingShare | null>;
+  /**
+   * Check a share's labels against the chain, index for index with its handles, as far as
+   * `verify` says (default 'all'). Takes a share read from the registry or an acp imported from
+   * exported JSON (or the issuer's sharing acp). Null for a share without metadata. Throws on a
+   * malformed blob.
+   */
+  verifyShareLabels: (
+    share: LabelledShare,
+    options?: { verify?: ShareLabelVerifyMode }
+  ) => Promise<ShareLabelCheck[] | null>;
+  /** Import a share read from the registry: sign as recipient, store and (unless `activate: false`) activate. */
+  importFromChain: (share: IncomingShare, options?: ImportSharedOptions) => Promise<RecipientACP>;
   /** Recipient-side: remove a share from the registry (after import, or to decline). */
   dismissShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
   /** Issuer-side: retract a pending share from the registry. */
@@ -128,4 +164,11 @@ export type CofheClientParams<TConfig extends CofheConfig> = {
   compactPkeCrsDeserializer: FheKeyDeserializer;
   initTfhe: TfheInitializer;
   zkProveWorkerFn?: ZkProveWorkerFunction;
+  /**
+   * Runs right before a ZK proof is generated on the calling thread, i.e. only
+   * when the worker path is disabled, unavailable or has failed. Platforms use
+   * it for setup that only pays off when that thread does the proving (web
+   * starts tfhe's rayon thread pool here).
+   */
+  beforeMainThreadProve?: () => Promise<void>;
 };

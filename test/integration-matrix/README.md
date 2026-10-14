@@ -10,6 +10,7 @@ Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 | **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |      ✓\*      |
 
 \* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
+On a testnet the recipient ("Alice") is `TEST_ALICE_PRIVATE_KEY` if set, else a key generated for the run. Set it to a funded key of your own to also run her transaction in the on-chain share flow (dismissing the share); with a generated key the issuer cancels the share instead. Why never a public key: `test/setup/src/env.ts`.
 Local CoFHE and CoFHE Staging are **opt-in** — disabled by default unless `MATRIX_CHAIN` explicitly names them
 (`localcofhe`, `staging`) or uses the `all` group. CoFHE Staging shares its chain ID (420105) with Local CoFHE
 (same devnet genesis, hosted remotely) — select it by the `staging` slug, not by chain ID.
@@ -92,6 +93,7 @@ scripts/
 test/
   matrix.test.ts             # Node runner for inherited suite — @cofhe/sdk/node
   matrix.web.test.ts         # Web runner for inherited suite — @cofhe/sdk/web
+  acp-share-flow.test.ts     # on-chain share flow with a labelled value, every chain (registry from config or the chain's ACL)
   flexible.test.ts           # Node runner for flexible suite
   flexible.web.test.ts       # Web runner for flexible suite
   react-hooks.web.test.tsx   # @cofhe/react useCofheWriteContract + useCofheReadContract invalidation, browser-only

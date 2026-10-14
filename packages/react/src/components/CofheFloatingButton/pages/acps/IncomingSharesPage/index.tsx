@@ -1,11 +1,94 @@
+import { useMemo } from 'react';
 import { ArrowBackIcon } from '@/components/Icons';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer.js';
 import { Button } from '@/components/CofheFloatingButton/components/Button.js';
-import { useIncomingShares, useImportFromChain, useRemoveShare } from '@/hooks/acps/index.js';
+import { useCofheShareLabels, useIncomingShares, useImportFromChain, useRemoveShare } from '@/hooks/acps/index.js';
+import type { CofheShareLabel } from '@/hooks/acps/index.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils';
-import type { IncomingShare } from '@cofhe/sdk/acps';
+import { useCofheChainId } from '@/hooks/useCofheConnection';
+import { useCofheTokens } from '@/hooks/useCofheTokenLists';
+import {
+  ERC7984_ABI,
+  decodeShareMetadata,
+  type IncomingShare,
+  type ShareLabelAbis,
+  type ShareLabelArg,
+} from '@cofhe/sdk/acps';
+
+/** The app's tokens by lowercase address: the only contracts the inbox names. */
+type KnownTokens = ReadonlyMap<string, { symbol: string }>;
+
+/**
+ * The token ABI for the labelled contracts that are tokens the app knows. A label is the issuer's
+ * claim, and "verified" only proves that the named contract returned the handle: anyone can deploy
+ * a contract that does. So every other contract stays unknown, shown by its selector and address.
+ */
+const knownTokenAbisFor = (share: IncomingShare, known: KnownTokens): ShareLabelAbis | undefined => {
+  if (share.metadata === '0x') return undefined;
+  try {
+    const contracts = decodeShareMetadata(share.metadata, share.handles).flatMap((l) =>
+      l.kind === 'unlabelled' ? [] : [l.contract]
+    );
+    return Object.fromEntries(contracts.filter((c) => known.has(c.toLowerCase())).map((c) => [c, ERC7984_ABI]));
+  } catch {
+    return undefined;
+  }
+};
+
+const CHECK_MARK: Record<CofheShareLabel['check'], string> = {
+  verified: '✓',
+  mismatch: '✗',
+  unverifiable: '?',
+  skipped: '·',
+  pending: '…',
+};
+
+const shortHex = (value: string): string => (value.length > 14 ? truncateAddress(value, 6, 4) ?? value : value);
+
+const argText = (arg: ShareLabelArg): string =>
+  arg.isIssuer ? 'issuer' : typeof arg.value === 'string' ? shortHex(arg.value) : String(arg.value ?? arg.raw);
+
+/** A known token by symbol, any other contract as what it is: unknown. The address is always shown. */
+const contractText = (contract: string, known: KnownTokens): string => {
+  const token = known.get(contract.toLowerCase());
+  return `${token ? token.symbol : 'unknown contract'} ${truncateAddress(contract, 6, 4)}`;
+};
+
+const labelText = (label: CofheShareLabel, known: KnownTokens): string => {
+  switch (label.kind) {
+    case 'stored':
+      return `${label.function?.name ?? label.selector}(${label.args.map(argText).join(', ')}) on ${contractText(label.contract, known)} @ ${label.block}`;
+    case 'event':
+      return `${label.event?.name ?? label.selector} on ${contractText(label.contract, known)} @ ${label.block}, log ${label.logIndex}`;
+    case 'unlabelled':
+      return 'unlabelled';
+  }
+};
+
+/** What each shared value is, as the issuer labelled it, and whether the chain confirms it. */
+const ShareLabels: React.FC<{ share: IncomingShare }> = ({ share }) => {
+  const chainId = useCofheChainId();
+  const tokens = useCofheTokens(chainId);
+  const known = useMemo<KnownTokens>(
+    () => new Map(tokens.map((token) => [token.address.toLowerCase(), { symbol: token.symbol }])),
+    [tokens]
+  );
+  const abis = useMemo(() => knownTokenAbisFor(share, known), [share, known]);
+  const { labels, error } = useCofheShareLabels(share, { abis });
+  if (error) return <div className="italic">Labels unreadable: {error.message}</div>;
+  if (labels == null) return null;
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {labels.map((label) => (
+        <li key={label.index} title={label.check}>
+          {CHECK_MARK[label.check]} {labelText(label, known)}
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
   const { navigateTo } = usePortalNavigation();
@@ -45,6 +128,7 @@ const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
       <div>
         Expires in: <b>{expirationInfo.label}</b>
       </div>
+      <ShareLabels share={share} />
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Button
           variant="primary"

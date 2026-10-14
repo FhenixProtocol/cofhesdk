@@ -11,26 +11,22 @@ import {
   type IncomingShare,
   type SharingACP,
   type ACPHashFields,
+  type ACPAccessStatus,
+  ACP_REVOKER_ABI,
+  ACP_SHARE_REGISTRY_ABI,
+  toChainShare,
+  computeShareId,
+  readSharesFor,
+  readShare,
+  decodeShareAppKey,
+  encodeShareMetadata,
+  type PostedShare,
+  type ShareLabel,
+  getAclServedAddresses,
+  clearAclServedAddresses,
 } from '@/acps';
 
-import {
-  type Hex,
-  type PublicClient,
-  type WalletClient,
-  encodeAbiParameters,
-  keccak256,
-  parseAbi,
-  zeroAddress,
-} from 'viem';
-
-import { TASK_MANAGER_ADDRESS } from './consts.js';
-
-// ACP default revoker (timestamp-based revocation) — interface shared by all revokers
-const ACP_VALIDATOR_ABI = parseAbi([
-  'function revokeSingle(uint256 id)',
-  'function revokeAllExisting()',
-  'function disabled(address issuer, uint256 id) view returns (bool)',
-]);
+import { type Hex, type PublicClient, type WalletClient, zeroAddress } from 'viem';
 
 // HELPERS
 
@@ -51,9 +47,10 @@ const storeActiveACP = async (acp: ACP, publicClient: any, walletClient: any) =>
 };
 
 // Generic function to handle acp creation with error handling.
-// `activate` controls whether the new acp becomes the issuer's active acp — true for
-// self/imported acps (the connected user decrypts with them), false for sharing acps (those
-// are delegated to a recipient and are never the issuer's own active acp).
+// `activate` controls whether the new acp becomes the connected account's active acp — true for
+// self acps and, by default, imported acps (the connected user decrypts with them); false for
+// sharing acps (delegated to a recipient, never the issuer's own active acp) and for imports
+// made with `activate: false`.
 const createACPWithSign = async <T, TACP extends ACP>(
   options: T,
   publicClient: PublicClient,
@@ -96,12 +93,38 @@ const createSharing = async (
   return createACPWithSign(options, publicClient, walletClient, ACPUtils.createSharingAndSign, false);
 };
 
+/** Options for importing a shared acp. */
+export type ImportActivationOptions = {
+  /**
+   * Make the imported acp the active one. Defaults to `true`.
+   * With `false` the acp is only stored: decrypts that use the active acp keep using the current one,
+   * and the imported acp is used only where it is passed explicitly (e.g. `.withACP(acp)`).
+   */
+  activate?: boolean;
+};
+
+/** Options for importing a shared acp: activation, and the recipient's own name for it. */
+export type ImportSharedOptions = ImportActivationOptions & {
+  /**
+   * The name of the imported acp. Defaults to "Shared by 0x1234…abcd" (its issuer); the issuer's
+   * own name for the share is not exported and is ignored if present.
+   */
+  name?: string;
+};
+
 const importShared = async (
   options: ImportSharedACPOptions | string,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClient,
+  { activate = true, name }: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
-  return createACPWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign);
+  return createACPWithSign(
+    options,
+    publicClient,
+    walletClient,
+    (o, pc, wc) => ACPUtils.importSharedAndSign(o, pc, wc, { name }),
+    activate
+  );
 };
 
 // ACP UTILS
@@ -263,65 +286,6 @@ const applyACPDefaults = <
   return result;
 };
 
-// ACL-SERVED ADDRESSES (defaultRevokerContract / shareRegistry)
-
-const ACL_SERVED_ADDRESSES_ABI = parseAbi([
-  'function acl() view returns (address)',
-  'function defaultRevokerContract() view returns (address)',
-  'function shareRegistry() view returns (address)',
-]);
-
-export interface AclServedAddresses {
-  defaultRevoker?: Hex;
-  shareRegistry?: Hex;
-}
-
-const aclServedAddressesCache = new Map<number, AclServedAddresses>();
-
-/** Test hook: forget resolved addresses (e.g. between redeployments on one chainId). */
-const clearAclServedAddresses = () => aclServedAddressesCache.clear();
-
-/**
- * The ACP infrastructure addresses the chain's ACL serves (TaskManager -> acl()
- * -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
- * resolve to `undefined` — callers fall back to `acp.*` config.
- *
- * Resolutions are cached per chainId. A failure to reach the TaskManager (network
- * error, no CoFHE deployment) is NOT cached, so a transient outage does not pin
- * an empty result for the whole session.
- */
-const getAclServedAddresses = async (publicClient: PublicClient, chainId: number): Promise<AclServedAddresses> => {
-  const cached = aclServedAddressesCache.get(chainId);
-  if (cached != null) return cached;
-
-  let aclAddress: Hex;
-  try {
-    aclAddress = await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS,
-      abi: ACL_SERVED_ADDRESSES_ABI,
-      functionName: 'acl',
-    });
-  } catch {
-    return {};
-  }
-
-  const [defaultRevoker, shareRegistry] = await Promise.all([
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'defaultRevokerContract' })
-      .catch(() => undefined),
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'shareRegistry' })
-      .catch(() => undefined),
-  ]);
-
-  const resolved: AclServedAddresses = {
-    defaultRevoker: defaultRevoker != null && defaultRevoker !== zeroAddress ? defaultRevoker : undefined,
-    shareRegistry: shareRegistry != null && shareRegistry !== zeroAddress ? shareRegistry : undefined,
-  };
-  aclServedAddressesCache.set(chainId, resolved);
-  return resolved;
-};
-
 /**
  * `applyACPDefaults` with the ACL consulted for the default revoker when
  * `acp.defaultRevoker` config does not name one for this chain — explicit
@@ -374,7 +338,7 @@ const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => 
 
   return walletClient.writeContract({
     address: acp.revokerContract,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'revokeSingle',
     args: [BigInt(acp.revokerData)],
     account: walletClient.account,
@@ -410,12 +374,26 @@ const revokeAllACPs = async (
 
   return walletClient.writeContract({
     address: revoker,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'revokeAllExisting',
     args: [],
     account: walletClient.account,
     chain: walletClient.chain,
   });
+};
+
+/**
+ * The ACP on-chain status as a value instead of a revert (see `ACPAccessStatus`): validity
+ * without a handle, and whether the ACP may read `handle` with one.
+ */
+const checkAccess = async (acp: ACP, publicClient: PublicClient, handle?: bigint | Hex): Promise<ACPAccessStatus> => {
+  // The issuer half of a share carries no recipient signature (the recipient adds it on import), so
+  // the ACL check would always fail it. What can change for the issuer is expiry and revocation.
+  if (acp.type === 'sharing' && handle === undefined) {
+    if (ACPUtils.isExpired(acp)) return 'expired';
+    return (await isACPRevoked(acp, publicClient)) ? 'revoked' : 'valid';
+  }
+  return ACPUtils.checkAccessOnChain(acp, publicClient, handle);
 };
 
 /**
@@ -426,73 +404,39 @@ const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boole
   if (acp.revokerContract === zeroAddress || acp.revokerData === 0) return false;
   return publicClient.readContract({
     address: acp.revokerContract,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'disabled',
     args: [acp.issuer, BigInt(acp.revokerData)],
   });
 };
 
-// SHARE (on-chain, via the ACPShareRegistry)
+/**
+ * What `shareOnChain` posts with a share: the labels of its handles (one per handle, in order;
+ * encoded with `encodeShareMetadata`), or an already encoded metadata blob. Written once, with the
+ * share. Omitted, the labels the acp was created with are posted (`createSharing({ labels })`),
+ * or none. `appKey` goes with given labels; a client configured with `acp: { app }` fills it in.
+ */
+export type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex; appKey?: Hex };
 
-const ACP_SHARE_REGISTRY_ABI = parseAbi([
-  'struct ACP { address issuer; uint64 expiration; address recipient; uint256 revokerData; address revokerContract; uint8 scope; address[] contracts; bytes32[] handles; bytes32 sealingKey; bytes issuerSignature; bytes recipientSignature; }',
-  'function share(ACP calldata acp) external returns (bytes32)',
-  'function removeShare(bytes32 shareId) external',
-  'function sharesFor(address recipient) external view returns (ACP[] memory)',
-  'function getShare(bytes32 shareId) external view returns (ACP memory)',
-  'function isShareValid(bytes32 shareId) external view returns (bool)',
-]);
-
-const ACP_TUPLE = [
-  {
-    type: 'tuple',
-    components: [
-      { name: 'issuer', type: 'address' },
-      { name: 'expiration', type: 'uint64' },
-      { name: 'recipient', type: 'address' },
-      { name: 'revokerData', type: 'uint256' },
-      { name: 'revokerContract', type: 'address' },
-      { name: 'scope', type: 'uint8' },
-      { name: 'contracts', type: 'address[]' },
-      { name: 'handles', type: 'bytes32[]' },
-      { name: 'sealingKey', type: 'bytes32' },
-      { name: 'issuerSignature', type: 'bytes' },
-      { name: 'recipientSignature', type: 'bytes' },
-    ],
-  },
-] as const;
-
-const ZERO_BYTES32 = `0x${'0'.repeat(64)}` as Hex;
-
-/** The on-chain payload for a sharing ACP: recipient-side fields empty. */
-const toChainShare = (acp: ACP) => {
-  // Same public struct as the off-chain export flow (ACPUtils.getPublic), with
-  // the recipient-side fields blanked — the recipient supplies them at import —
-  // and uint fields widened for the ABI encoder.
-  const pub = ACPUtils.getPublic(acp, true);
-  return {
-    ...pub,
-    expiration: BigInt(pub.expiration),
-    revokerData: BigInt(pub.revokerData),
-    sealingKey: ZERO_BYTES32,
-    recipientSignature: '0x' as Hex,
-  };
-};
-
-/** Mirrors the registry's `keccak256(abi.encode(acp))` share id. */
-const computeShareId = (acp: ACP): Hex => {
-  const p = toChainShare(acp);
-  return keccak256(encodeAbiParameters(ACP_TUPLE, [p]));
+const metadataOf = (acp: ACP, { labels, metadata, appKey }: ShareOnChainOptions): Hex => {
+  if (labels != null && metadata != null) throw new Error('Pass either labels or metadata, not both');
+  if (labels == null) return metadata ?? acp.metadata ?? '0x';
+  if (labels.length !== acp.handles.length) {
+    throw new Error(`Cannot label a share of ${acp.handles.length} handles with ${labels.length} labels`);
+  }
+  return encodeShareMetadata(labels, { issuer: acp.issuer, appKey });
 };
 
 /**
  * Post a signed sharing ACP to the on-chain share registry for its recipient
- * to discover and import — the on-chain alternative to `export()`.
+ * to discover and import — the on-chain alternative to `export()` — optionally
+ * with the labels of its handles.
  */
 const shareOnChain = async (
   acp: ACP,
   walletClient: WalletClient,
-  registry: Hex
+  registry: Hex,
+  options: ShareOnChainOptions = {}
 ): Promise<{ txHash: Hex; shareId: Hex }> => {
   if (acp.type !== 'sharing') {
     throw new Error(`Cannot share a '${acp.type}' ACP on-chain — only 'sharing' ACPs are shareable.`);
@@ -504,12 +448,13 @@ const shareOnChain = async (
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the ACP issuer can share it on-chain');
   }
+  const metadata = metadataOf(acp, options);
 
   const txHash = await walletClient.writeContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
     functionName: 'share',
-    args: [toChainShare(acp)],
+    args: [toChainShare(acp), metadata],
     account: walletClient.account,
     chain: walletClient.chain ?? null,
   });
@@ -517,45 +462,72 @@ const shareOnChain = async (
   return { txHash, shareId: computeShareId(acp) };
 };
 
-/** All importable shares addressed to `recipient` (unexpired, not revoked). */
+const toIncomingShare = ({ shareId, share: s, metadata }: PostedShare): IncomingShare => ({
+  shareId,
+  issuer: s.issuer,
+  expiration: Number(s.expiration),
+  recipient: s.recipient,
+  revokerData: Number(s.revokerData),
+  revokerContract: s.revokerContract,
+  scope: Number(s.scope),
+  contracts: [...s.contracts],
+  handles: [...s.handles],
+  issuerSignature: s.issuerSignature,
+  metadata,
+  ...(appKeyOf(metadata, s.handles) && { appKey: appKeyOf(metadata, s.handles) }),
+});
+
+/** The app key of a posted share; undefined when it has none, or its metadata does not decode. */
+const appKeyOf = (metadata: Hex, handles: readonly Hex[]): Hex | undefined => {
+  try {
+    return decodeShareAppKey(metadata, handles);
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * All importable shares addressed to `recipient` (unexpired, not revoked): the headers from
+ * `sharesFor`, then each share's `Shared` event from the block its header names (one
+ * single-block `getLogs` per block). A share whose event the node cannot serve yet is left out
+ * and turns up on a later read; it never fails the others (`readSharesFor` lists it as
+ * unreadable). Given an `appKey`, only the shares posted with that key.
+ */
 const getIncomingShares = async (
   publicClient: PublicClient,
   registry: Hex,
-  recipient: Hex
+  recipient: Hex,
+  { appKey }: { appKey?: Hex } = {}
 ): Promise<IncomingShare[]> => {
-  const raw = await publicClient.readContract({
-    address: registry,
-    abi: ACP_SHARE_REGISTRY_ABI,
-    functionName: 'sharesFor',
-    args: [recipient],
-  });
+  const shares = (await readSharesFor(publicClient, registry, recipient)).posted.map(toIncomingShare);
+  return appKey == null ? shares : shares.filter((share) => share.appKey === appKey);
+};
 
-  return raw.map((s) => ({
-    shareId: keccak256(encodeAbiParameters(ACP_TUPLE, [s])),
-    issuer: s.issuer,
-    expiration: Number(s.expiration),
-    recipient: s.recipient,
-    revokerData: Number(s.revokerData),
-    revokerContract: s.revokerContract,
-    scope: Number(s.scope),
-    contracts: [...s.contracts],
-    handles: [...s.handles],
-    issuerSignature: s.issuerSignature,
-  }));
+/** One share by id, as posted; null when unknown or removed. Expired or revoked shares are returned as is. */
+const getShareFromChain = async (
+  publicClient: PublicClient,
+  registry: Hex,
+  shareId: Hex
+): Promise<IncomingShare | null> => {
+  const posted = await readShare(publicClient, registry, shareId);
+  return posted && toIncomingShare(posted);
 };
 
 /**
  * Import a share read from the registry: fills the recipient's sealing key,
- * signs, stores and activates — the on-chain counterpart of importing an
- * exported JSON blob. The share stays on-chain until dismissed.
+ * signs, stores and (unless `activate: false`) activates — the on-chain
+ * counterpart of importing an exported JSON blob. Its metadata is kept on the
+ * recipient acp, as with an import of exported JSON. The share stays on-chain
+ * until dismissed.
  */
 const importFromChain = async (
   share: IncomingShare,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClient,
+  importOptions: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
-  const { shareId: _shareId, ...options } = share;
-  return importShared({ ...options, type: 'sharing' }, publicClient, walletClient);
+  const { shareId: _shareId, appKey: _appKey, ...options } = share;
+  return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
 };
 
 /** Remove a share from the registry (issuer retracts / recipient dismisses). */
@@ -608,9 +580,11 @@ export const acps = {
   revokeACP,
   revokeAllACPs,
   isACPRevoked,
+  checkAccess,
 
   shareOnChain,
   getIncomingShares,
+  getShareFromChain,
   importFromChain,
   removeShareOnChain,
   computeShareId,

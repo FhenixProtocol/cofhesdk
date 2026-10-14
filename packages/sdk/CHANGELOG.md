@@ -1,5 +1,40 @@
 # @cofhe/sdk Changelog
 
+## 0.8.0
+
+### Minor Changes
+
+- 0fe40c3: Add the `ethereum` (chain id 1) and `arbitrum` (Arbitrum One, chain id 42161) mainnet chains to `@cofhe/sdk/chains`, both with `environment: 'MAINNET'`. They are included in `chains`, `getChainById` and `getChainByName`.
+- 6f7a4c5: Resolve the Task Manager through the `CoFHEAddressBook` (`@fhenixprotocol/cofhe-contracts@1.0.0`). **Breaking:** `TASK_MANAGER_ADDRESS` is removed from `@cofhe/sdk`. Use `getTaskManagerAddress(publicClient)`, which reads `getTm(TASK_MANAGER_ID)` from the book at `COFHE_ADDRESS_BOOK_ADDRESS` (both exported) and caches the result per chain. If the chain has no book, or the id is unset, it throws `TASK_MANAGER_UNRESOLVED`. `verifyDecryptResult`, the ACL/ACP lookups and `useCofheEnabled` / `useCofheReadDecryptionResults` now resolve the Task Manager this way. `@cofhe/react` adds `useCofheTaskManagerAddress()`.
+
+  Mocks: a new `MockCoFHEAddressBook` is deployed at FHE.sol's `COFHE_ADDRESS_BOOK`, and `MockTaskManager` moves to `MOCKS_TASK_MANAGER_ADDRESS` (`0x…5000`) and is registered in the book. `MockACL` now stores its Task Manager (`setTaskManager` / `getTaskManagerAddress`) instead of reading a constant, so its `TASK_MANAGER_ADDRESS_()` getter is gone. All three plugins deploy and wire the book. Hardhat 2 exposes `hre.cofhe.mocks.getMockCoFHEAddressBook()`, Hardhat 3 exposes `conn.cofhe.mocks.MockCoFHEAddressBook`, and Foundry exposes `CofheTest.mockAddressBook`. Contracts must be built against `@fhenixprotocol/cofhe-contracts@1.0.0` or later (the hardhat plugin's peer range is now `>=1.0.0`). Each FHE op now makes one extra `getTm` call on the book, as it does on real networks, so expect slightly higher gas numbers.
+
+- 552d118: The CRS is now cached per security zone. It was fetched per zone but cached under the chain id alone, so after encrypting on zone 0, encrypting on zone 1 reused zone 0's CRS and produced a proof the ZK verifier rejects.
+
+  **Breaking (`KeysStorage`):** `crs` is now keyed by chain and zone, like `fhe`. `getCrs(chainId, securityZone = 0)` takes the zone, and `setCrs(chainId, securityZone, crs)` matches `setFheKey`'s argument order. A CRS persisted in the old per-chain shape is dropped on rehydrate and refetched.
+
+### Patch Changes
+
+- 17ff23e: Scoped decryption with shared ACPs.
+
+  **@cofhe/sdk**
+
+  - `client.acp.importShared` and `client.acp.importFromChain` take an `activate` option (default `true`). With `activate: false` the imported ACP is stored without becoming the active ACP, so decrypts that use the active ACP are unaffected; use the imported ACP explicitly, e.g. `.withACP(acp)`. `importShared`'s second argument is now `{ activate?, publicClient?, walletClient? }`; passing `{ publicClient, walletClient }` works as before.
+  - New `client.acp.checkAccess(acp, handle?)` (and `ACPUtils.checkAccessOnChain`) returns an ACP on-chain status instead of reverting: `valid`, `expired`, `revoked` or an invalid signature, and with a handle `allowed`, `out-of-scope` or `issuer-not-allowed`. New exported type: `ACPAccessStatus`. ACL reverts are now recognized when the public client comes from another copy of viem than the SDK, which also fixes `checkValidityOnChain` throwing a generic error in that setup. ACL reverts reported only as text (`custom error 0x…`, e.g. by a transport that drops the error data) are decoded too. For the issuer copy of a share (type `sharing`, no recipient signature yet) the handle-less check reports expiry and revocation instead of failing on the missing signature.
+  - `@cofhe/sdk/acps` exports the on-chain sharing pieces: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `ACP_SHARE_TUPLE_ABI`, `toChainShare`, `computeShareId`, `shareIdOfChainShare`, `getAclAddress`, `getAclServedAddresses` and `clearAclServedAddresses`, so an app can send registry and revoker writes through its own transaction path and still agree with the registry on share ids.
+
+  **@cofhe/react**
+
+  - Decrypt with a chosen ACP in part of the tree without changing the active ACP. New `<CofheACPScope acp={acp | hash}>` and `useCofheACPScope()`; `useCofheReadContractAndDecrypt`, `useCofheReadContract`, `useCofheReadContracts` and `useCofheTokenDecryptedBalance` take an `acp` option that wins over the scope. Inside a scope `useCofheTokenDecryptedBalance` reads the ACP issuer balance unless given an account, and an invalid or unknown scoped ACP disables the reads (`disabledDueToMissingValidACP`) instead of falling back to the active ACP. The decrypt cache key gains a fifth segment, the hash of the ACP that decrypts (the chosen one, else the active one), so a value decrypted with one ACP never answers for another. New exported types: `CofheACPInput`, `CofheACPScopeValue`.
+  - `<CofheACPScope>` and the per-hook `acp` option check the chosen ACP on chain (`client.acp.checkAccess`) when mounted, every minute and on window focus, so a revoked share turns the scope off and drops its decrypted values while the view is open. `useCofheACPScope()` gains `status` (`checking`, `valid`, `expired`, `revoked`, `invalid`, `unverified`); the scope decrypts only while it is `valid`. For a SNAPSHOT (handle-scope) ACP, `useCofheReadContractAndDecrypt` and `useCofheTokenDecryptedBalance` report `isOutOfScope` for a value the share does not list and never send it for decryption. New exported type: `CofheACPStatus`.
+  - Plaintext decrypted with a shared (non-self) ACP is kept in memory only: it is no longer written to the persisted query cache. Decrypts are cached under the ACP that made them and dropped when that ACP leaves the ACP store (e.g. `removeACP`) or when a non-self ACP expires while in use, so a revoked or expired share does not keep serving its values from cache.
+  - The sharing hooks are exported: `useCofheIncomingShares` (registry inbox, polled; shares already imported by the connected account are left out), `useCofheShareOnChain`, `useCofheImportShared({ activate })` (exported JSON or an `IncomingShare`), `useCofheRemoveShare`, `useCofheRevokeACP` and `useCofheACPStatus` (an ACP on-chain status, re-read after a revoke mines). The write hooks resolve once mined. The package-internal names (`useIncomingShares`, `useShareOnChain`, `useImportFromChain`, `useRemoveShare`) stay as deprecated aliases.
+  - New `useCofheACPs({ chainId?, type? })`: the connected account stored ACPs on a chain (the connected chain by default), optionally narrowed to one type, e.g. `useCofheACPs({ type: 'recipient' })` for received shares. `useCofheAllACPs` is deprecated: it returned only the connected account ACPs on the connected chain, not all ACPs, and is now an alias of `useCofheACPs()`.
+  - `useCofheDecrypt` is exported: decrypt a ciphertext handle directly (no contract read), with the same `acp` option and scope behaviour as `useCofheReadContractAndDecrypt`.
+
+- 22eebcc: The Node in-memory storage fallback (used when the filesystem key cache is not writable) no longer JSON-encodes values a second time. Previously cached FHE keys and CRS read back from the fallback as strings instead of objects, so they were effectively lost and refetched.
+- 42fccae: Add `tfheThreads` config option (`'auto'` | number | `false`, default `'auto'`) to multi-thread ZK proof generation on cross-origin-isolated web pages, and export the `TfheThreadsSetting` and `TfheInitializer` types.
+
 ## 0.7.1
 
 ## 0.7.0

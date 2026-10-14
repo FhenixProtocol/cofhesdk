@@ -25,7 +25,9 @@ import '@cofhe/hardhat-plugin';
 module.exports = {
   // ... other config
   cofhe: {
-    logMocks: true, // Optional: Set to true to log mock operations
+    logMocks: true, // Optional: Log mock FHE operations to the console (default: false)
+    gasSummary: true, // Optional: Print a per-method adjusted-gas summary after tests (default: false)
+    gasWarning: false, // Optional: Warn that mock gas differs from live FHE (default: false)
   },
   // Network configuration is automatically added by the plugin
 };
@@ -45,6 +47,7 @@ This plugin uses [@cofhe/mock-contracts](https://github.com/FhenixProtocol/cofhe
 
 The mock contracts include:
 
+- MockCoFHEAddressBook: Resolves the TaskManager for FHE.sol, deployed at FHE.sol's `COFHE_ADDRESS_BOOK`
 - MockTaskManager: Manages FHE operations and stores plaintext values
 - MockThresholdNetwork: Handles decryption requests
 - MockZkVerifier: Simulates verification of encrypted inputs
@@ -56,6 +59,44 @@ Key differences from the real CoFHE system:
 - Plaintext values are stored on-chain for testing and verification
 - Decryption operations are simulated with mock delays
 - Operations are logged using hardhat/console.sol
+
+### Gas Reporting
+
+The on-chain replication of off-chain FHE work makes mock transactions consume more gas than they would on a real CoFHE network. The mock task manager measures this overhead and emits a `MockGasConsumed(uint256)` event for every block of mock-only work, so the plugin can report corrected numbers:
+
+```typescript
+const tx = await myContract.doFheThings();
+const receipt = await tx.wait();
+
+// Gas usage excluding mock overhead — an estimate of real-network cost.
+const adjusted = hre.cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = hre.cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt (no RPC calls). On a real network the receipt carries no mock events, so `adjustedGasUsed` equals `gasUsed` — the same code works everywhere.
+
+To get a per-method overview after every test run, enable the summary table in your config:
+
+```typescript
+cofhe: {
+  gasSummary: true,
+}
+```
+
+```
+[COFHE-MOCKS] Gas summary — adjusted ≈ cost excluding mock-only overhead
+┌──────────────────┬──────────────────────────┬───────┬─────────────────┬────────────────────┬───────────────┐
+│ Contract         │ Method                   │ Calls │ Avg gas (mocks) │ Avg gas (adjusted) │ Mock overhead │
+├──────────────────┼──────────────────────────┼───────┼─────────────────┼────────────────────┼───────────────┤
+│ MyFHEContract    │ storeEncrypted(uint256)  │ 11    │ 179,897         │ 141,482            │ 21%           │
+└──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
+```
+
+Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
+
+The summary table is reconstructed from chain history after the run: transactions rolled back by `loadFixture` or `evm_snapshot`/`evm_revert` won't appear, and the table is best-effort after forced exits — use `getAdjustedGasUsed(receipt)` inside tests for exact per-transaction numbers.
 
 ### Mock Contracts Deployment
 
@@ -96,21 +137,26 @@ import { mock_expectPlaintext } from '@cofhe/hardhat-plugin';
 await mock_expectPlaintext(provider, ctHash, expectedValue);
 ```
 
-#### Network Utilities
+#### Creating a Client
 
 ```typescript
-// Get the CoFHE environment based on network name
-import { getCofheEnvironmentFromNetwork } from '@cofhe/hardhat-plugin';
-const environment = getCofheEnvironmentFromNetwork(networkName);
-
-// Check if a CoFHE environment is permitted for a given network
-import { isPermittedCofheEnvironment } from '@cofhe/hardhat-plugin';
-const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
-
-// Initialize CoFHEjs with a Hardhat signer
-import { cofhejs_initializeWithHardhatSigner } from '@cofhe/hardhat-plugin';
-await cofhejs_initializeWithHardhatSigner(signer, options);
+// One call: config, client, connected signer, and a self ACP
+const [signer] = await hre.ethers.getSigners();
+const client = await hre.cofhe.createClientWithBatteries(signer);
 ```
+
+Or step by step, to customize the config:
+
+```typescript
+import { hardhat } from '@cofhe/sdk/chains';
+
+const [signer] = await hre.ethers.getSigners();
+const config = await hre.cofhe.createConfig({ supportedChains: [hardhat] });
+const client = hre.cofhe.createClient(config);
+await hre.cofhe.connectWithHardhatSigner(client, signer);
+```
+
+Use `hre.cofhe.createConfig` rather than `createCofheConfig` from `@cofhe/sdk/node`: it sets the Hardhat environment and wires up the mock ZK verifier signer.
 
 ## Usage in Tests
 

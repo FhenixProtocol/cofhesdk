@@ -1,12 +1,13 @@
 {
   "name": "@cofhe/example-react",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite --force",
     "build": "vite build",
     "build-check": "tsc && vite build",
+    "check:types": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {

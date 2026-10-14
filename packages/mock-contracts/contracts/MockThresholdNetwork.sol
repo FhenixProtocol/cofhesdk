@@ -9,7 +9,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
-import { MockPermissioned, ACP } from './Permissioned.sol';
+import { ACP, PermissionedUpgradeable } from './Permissioned.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
@@ -181,16 +181,16 @@ contract MockThresholdNetwork {
 
   function decodeLowLevelReversion(bytes memory data) public pure returns (string memory error) {
     bytes4 selector = bytes4(data);
-    if (selector == MockPermissioned.PermissionInvalid_Expired.selector) {
+    if (selector == PermissionedUpgradeable.PermissionInvalid_Expired.selector) {
       return 'PermissionInvalid_Expired';
     }
-    if (selector == MockPermissioned.PermissionInvalid_IssuerSignature.selector) {
+    if (selector == PermissionedUpgradeable.PermissionInvalid_IssuerSignature.selector) {
       return 'PermissionInvalid_IssuerSignature';
     }
-    if (selector == MockPermissioned.PermissionInvalid_RecipientSignature.selector) {
+    if (selector == PermissionedUpgradeable.PermissionInvalid_RecipientSignature.selector) {
       return 'PermissionInvalid_RecipientSignature';
     }
-    if (selector == MockPermissioned.PermissionInvalid_Disabled.selector) {
+    if (selector == PermissionedUpgradeable.PermissionInvalid_Disabled.selector) {
       return 'PermissionInvalid_Disabled';
     }
     // Handle other errors
