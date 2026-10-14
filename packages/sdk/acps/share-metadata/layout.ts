@@ -43,7 +43,7 @@ export const ARG_TAG = {
 } as const;
 
 /** Field widths in bytes. */
-export const WIDTH = {
+export const BYTE_WIDTH = {
   version: 1,
   /** Length of a list, and a position in it: at most 255 of each per share. */
   count: 1,

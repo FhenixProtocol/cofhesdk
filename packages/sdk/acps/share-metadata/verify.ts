@@ -1,4 +1,5 @@
 import { concatHex, padHex, size, sliceHex, type Address, type Hex, type Log, type PublicClient } from 'viem';
+import { BYTE_WIDTH } from './layout';
 import type { EventValueLabel, ShareLabel, StoredValueLabel } from './schema.js';
 
 /**
@@ -21,21 +22,21 @@ export type ShareLabelVerifyMode = 'all' | 'events' | 'none';
 /** A label's verification, or `skipped` when the verify mode leaves it unchecked. */
 export type ShareLabelCheck = LabelVerification | 'skipped';
 
-const WORD_BYTES = 32;
-
 const sameWord = (a: Hex, b: Hex): boolean => a.toLowerCase() === b.toLowerCase();
 
 /** The 32-byte words of a byte string, in order. A trailing partial word is left out. */
 const wordsOf = (data: Hex): Hex[] => {
-  const count = Math.floor(size(data) / WORD_BYTES);
-  return Array.from({ length: count }, (_, index) => sliceHex(data, index * WORD_BYTES, (index + 1) * WORD_BYTES));
+  const count = Math.floor(size(data) / BYTE_WIDTH.word);
+  return Array.from({ length: count }, (_, index) =>
+    sliceHex(data, index * BYTE_WIDTH.word, (index + 1) * BYTE_WIDTH.word)
+  );
 };
 
 /** The view call a stored-value label names, with the issuer argument filled in. */
 const storedCallData = (label: StoredValueLabel, issuer: Address): Hex =>
   concatHex([
     label.selector,
-    ...label.args.map((arg) => (arg.type === 'issuer' ? padHex(issuer, { size: WORD_BYTES }) : arg.value)),
+    ...label.args.map((arg) => (arg.type === 'issuer' ? padHex(issuer, { size: BYTE_WIDTH.word }) : arg.value)),
   ]);
 
 /** Whether the ctHash is the labelled return word of the call's result. */

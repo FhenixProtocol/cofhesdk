@@ -10,6 +10,7 @@ import {
   type ContractFunctionName,
   type Log,
 } from 'viem';
+import { BYTE_WIDTH } from './layout';
 import type { EventValueLabel, ShareLabel, ShareLabelReadArg, StoredValueLabel } from './schema';
 
 /**
@@ -35,8 +36,6 @@ export type ViewFunctionLabelOptions<
   returnWord?: number;
 };
 
-const WORD_BYTES = 32;
-
 const findViewFunction = (abi: Abi, name: string, arity: number): AbiFunction => {
   const named = abi.filter((item): item is AbiFunction => item.type === 'function' && item.name === name);
   if (named.length === 0) throw new Error(`share metadata: the ABI has no function ${name}`);
@@ -58,7 +57,7 @@ const findViewFunction = (abi: Abi, name: string, arity: number): AbiFunction =>
 const encodeReadArg = (fn: AbiFunction, index: number, value: unknown): ShareLabelReadArg => {
   const input = fn.inputs[index];
   const word = encodeAbiParameters([input], [value]);
-  if (size(word) !== WORD_BYTES) {
+  if (size(word) !== BYTE_WIDTH.word) {
     throw new Error(
       `share metadata: argument ${index} of ${fn.name} is ${input.type}; only arguments of one static 32-byte word can be labelled`
     );
