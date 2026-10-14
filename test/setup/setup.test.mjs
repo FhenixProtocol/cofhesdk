@@ -42,8 +42,11 @@ if [ "$command" = "cast" ]; then
       printf '%s\\n' 'stubbed transaction'
       ;;
   esac
-elif [ "$command" = "forge" ] && [ "$1" = "inspect" ]; then
-  printf '%s\\n' '[]'
+elif [ "$command" = "forge" ]; then
+  case "$1" in
+    create) printf '%s\\n' 'Deployed to: 0x2222222222222222222222222222222222222222' ;;
+    inspect) printf '%s\\n' '[]' ;;
+  esac
 fi
 `;
 
