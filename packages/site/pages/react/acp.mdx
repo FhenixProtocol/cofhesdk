@@ -167,22 +167,41 @@ The write hooks resolve once the transaction is mined, so a read that follows se
 
 ### Share labels
 
-A SNAPSHOT share can carry the labels of its handles ([Labelling a SNAPSHOT share](/sdk/acp#labelling-a-snapshot-share)). The issuer posts them with the share; the recipient reads them described at once and checked against the chain:
+A SNAPSHOT share can carry the labels of its handles ([Labelling a SNAPSHOT share](/sdk/acp#labelling-a-snapshot-share)). The issuer posts them with the share. `useCofheShareOnChain` takes `{ acp, labels }` as well as a bare ACP; here the share holds one handle, the issuer's balance on a token, read at `balanceBlock`:
 
 ```tsx
-import { useCofheShareLabels, useCofheShareOnChain } from '@cofhe/react';
-import { ERC7984_ABI, viewFunctionLabel } from '@cofhe/sdk/acps';
+import { useCofheShareOnChain } from '@cofhe/react';
+import { ERC7984_ABI, viewFunctionLabel, type ACP } from '@cofhe/sdk/acps';
+import type { Address } from 'viem';
 
-// issuer: one label per handle, in order
-post.mutate({
-  acp,
-  labels: [
-    viewFunctionLabel({ contract: token, abi: ERC7984_ABI, functionName: 'confidentialBalanceOf', args: [acp.issuer], block }),
-  ],
-});
+function ShareBalance({ acp, token, balanceBlock }: { acp: ACP; token: Address; balanceBlock: bigint }) {
+  const post = useCofheShareOnChain();
+  const share = () =>
+    post.mutate({
+      acp,
+      // one label per handle, in the handles' order
+      labels: [
+        viewFunctionLabel({
+          contract: token,
+          abi: ERC7984_ABI,
+          functionName: 'confidentialBalanceOf',
+          args: [acp.issuer], // the issuer's own balance
+          block: balanceBlock,
+        }),
+      ],
+    });
+  return <button onClick={share}>Share my balance</button>;
+}
+```
 
-// recipient
-function ShareLabels({ share }: { share: IncomingShare }) {
+The recipient reads the labels described at once, and checked against the chain as the answers come in:
+
+```tsx
+import { useCofheShareLabels } from '@cofhe/react';
+import type { IncomingShare } from '@cofhe/sdk/acps';
+import type { Abi, Address } from 'viem';
+
+function ShareLabels({ share, token, tokenAbi }: { share: IncomingShare; token: Address; tokenAbi: Abi }) {
   const { labels } = useCofheShareLabels(share, { abis: { [token]: tokenAbi } }); // verify: 'all' by default
   return labels?.map((label) => (
     <div key={label.index}>
@@ -194,7 +213,7 @@ function ShareLabels({ share }: { share: IncomingShare }) {
 }
 ```
 
-Labels render from the blob immediately with `check: 'pending'`; each check fills in when the chain answers, once per share. `labels` is `null` for a share posted without labels.
+Labels render from the blob immediately with `check: 'pending'`; each check fills in when the chain answers, once per share. `labels` is `null` for a share posted without labels. The ABIs are for display only: for a contract without one, `function` / `event` stay `null` and the label keeps its `selector`; the checks run either way.
 
 ### One value without a scope
 
