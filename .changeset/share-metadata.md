@@ -42,7 +42,7 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 
 - `useCofheShareLabels(share, { verify, abis })` describes a share's labels right away and fills in each label's check as the chain answers.
 - `useCofheShareOnChain` takes `{ acp, labels }` or `{ acp, metadata }` as well as a bare ACP.
-- The floating button's inbox shows each share's labels and their checks. Its import form passes the name through `importShared`'s `name` option.
+- The floating button's inbox shows each share's labels and their checks, with the contract's address and the decoded arguments. A contract is named only when it is one of the app's tokens; any other shows as an unknown contract, since "verified" proves the contract returned the handle, not that the contract is a token. The import form passes the name through `importShared`'s `name` option.
 - The inbox and the token configs take `confidentialBalanceOf` from the SDK's `ERC7984_ABI` instead of keeping their own copies.
 
 **Mocks and plugins**

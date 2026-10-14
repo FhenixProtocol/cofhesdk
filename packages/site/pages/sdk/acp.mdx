@@ -483,12 +483,14 @@ const items = describeShareMetadata(share, { [token]: tokenAbi });
 const checks = await client.acp.verifyShareLabels(share, { verify: 'all' });
 ```
 
-| Result           | Meaning                                                                                   |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| `'verified'`     | The chain confirms the label: the ctHash is where the issuer said it is.                  |
-| `'mismatch'`     | The chain contradicts the label. Treat the handle as unlabelled, and the share with care. |
-| `'unverifiable'` | The node could not answer; usually the state of an old block is gone (see below).         |
-| `'skipped'`      | Not checked, because of the `verify` mode.                                                |
+| Result       | Meaning                                                                                   |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| `'verified'` | The chain confirms the label: the ctHash is where the issuer said it is.                  |
+| `'mismatch'` | The chain contradicts the label. Treat the handle as unlabelled, and the share with care. |
+
+`'verified'` confirms the chain, not the contract: it proves the named contract returned the handle, and anyone can deploy a contract that does. So name a contract only when you know it (your token list), pass ABIs only for those, and show the rest as unknown contracts with their address. The labels are the issuer's claim about where a value came from; what the value is worth to you follows from the contract, which only you can vouch for.
+| `'unverifiable'` | The node could not answer; usually the state of an old block is gone (see below). |
+| `'skipped'` | Not checked, because of the `verify` mode. |
 
 Both return `null` for a share without labels. Use `verify` to trade thoroughness for requests:
 

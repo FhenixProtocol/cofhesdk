@@ -133,6 +133,8 @@ import { useCofheIncomingShares, useCofheImportShared, useCofheRemoveShare } fro
 
 function Inbox() {
   const inbox = useCofheIncomingShares(); // polls every 15 s; shares already imported are left out
+  // the floating button's inbox names a labelled contract only when it is one of the app's tokens;
+  // any other contract shows as unknown, with its address and the decoded arguments
   const accept = useCofheImportShared({ activate: false });
   const dismiss = useCofheRemoveShare();
   return (inbox.data ?? []).map((share) => (
