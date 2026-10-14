@@ -62,6 +62,14 @@ describe('createCofheConfigBase', () => {
     expectValidConfigItem('environment', 'react', 'react');
   });
 
+  it('acp.app', () => {
+    expectInvalidConfigItem('acp.app', '');
+    expectInvalidConfigItem('acp.app', 123);
+
+    expectValidConfigItem('acp.app', 'explorer.fhenix.io', 'explorer.fhenix.io');
+    expectValidConfigItem('acp.app', undefined, undefined);
+  });
+
   it('supportedChains', () => {
     expectInvalidConfigItem('supportedChains', {});
     expectInvalidConfigItem('supportedChains', 'not-an-array');
