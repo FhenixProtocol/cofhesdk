@@ -6,18 +6,24 @@ Do this first. If the chain can't serve ACPs, nothing downstream matters.
 
 ```jsonc
 {
-  "@cofhe/sdk": "^0.7.0",
-  "@cofhe/react": "^0.7.0",
-  "@cofhe/abi": "^0.7.0",
-  "@cofhe/hardhat-plugin": "^0.7.0", // or @cofhe/hardhat-3-plugin
-  "@cofhe/foundry-plugin": "^0.7.0",
-  "@cofhe/mock-contracts": "^0.7.0",
-  "@fhenixprotocol/cofhe-contracts": "0.2.x",
+  "@cofhe/sdk": "^0.7.1",
+  "@cofhe/react": "^0.7.1",
+  "@cofhe/abi": "^0.7.1",
+  "@cofhe/hardhat-plugin": "^0.7.1", // or @cofhe/hardhat-3-plugin
+  "@cofhe/foundry-plugin": "^0.7.1",
+  "@cofhe/mock-contracts": "^0.7.1",
+  "@fhenixprotocol/cofhe-contracts": "0.2.0",
+  "fhenix-confidential-contracts": "0.4.0", // only if the project uses FHERC20 / confidential tokens
 }
 ```
 
 Every `@cofhe/*` package must be on the same version. Mixed versions produce type errors that
 look like migration bugs but aren't.
+
+The last two lines are part of this migration, not optional follow-up work — see
+[confidential-tokens.md](confidential-tokens.md) for what 0.4.0 changes. Note the contract
+packages are pinned **exactly**, not carets: `FHE.sol` is compiled into the project, so a range
+means the ABI can move under a lockfile refresh.
 
 > **In a monorepo, align every workspace manifest — including ones you are not migrating.** A
 > workspace whose code you leave alone but which is **bundled into** an app you are migrating
@@ -25,16 +31,36 @@ look like migration bugs but aren't.
 > and hooks read a store nothing writes. There is no compile error and no install warning; the app
 > just behaves as though no provider is mounted.
 
-> **`0.7.0` is not on npm yet.** `npm view @cofhe/sdk dist-tags` currently resolves `latest` to
-> `0.6.1`. Installing `^0.7.0` fails. Until it publishes, take the matching `alpha` tag across
-> every `@cofhe/*` package — they are timestamped, so pin one timestamp rather than re-resolving
-> `alpha` per package and ending up mixed. Confirm the tag before starting; do not assume the
-> range in this file works today.
+> **Resolve the versions before quoting them.** Run `npm view @cofhe/sdk dist-tags`,
+> `npm view @fhenixprotocol/cofhe-contracts dist-tags` and
+> `npm view fhenix-confidential-contracts dist-tags`. If `@cofhe/*` `0.7.1` has not published yet,
+> `0.7.0` is the ACP release and the code migration is identical — the difference between them is
+> the two contract dependencies below. Do not fall back to `alpha`/`beta` tags now that the stable
+> line exists; those are timestamped snapshots and mixing timestamps across packages is its own
+> failure mode.
 
-> **Check the exact `cofhe-contracts` version this release pins.** It shipped against
-> `0.2.0-beta.3`; confirm the final `0.2.0` version before pinning it in a production project.
-> `0.2.0-beta.3` is also the floor for the `sharedEuintXX` types, which every cross-contract
-> encrypted value has to move onto — see [shared-euints.md](shared-euints.md).
+### `@fhenixprotocol/cofhe-contracts` 0.2.0-beta.3 → 0.2.0
+
+`0.2.0` is out, and it is what `fhenix-confidential-contracts@0.4.0` depends on **exactly**. Bump
+the pin even in a project that is otherwise already on `@cofhe/*` 0.7.0.
+
+Nothing consumer-facing is removed between the beta and the stable — the delta is additive plus one
+mutability relaxation:
+
+- `isAllowed` becomes `view` (on `ICofhe.ITaskManager` and every `FHE.isAllowed` overload). Callers
+  are unaffected; a contract that **implements or overrides** `isAllowed` without `view` no longer
+  matches the interface and must gain the keyword.
+- new operations: `FHE.div` / `FHE.rem` on `euint64`, and `FHE.mul` / `FHE.div` / `FHE.rem` /
+  `FHE.square` on `euint128`.
+
+`0.2.0` remains the floor for the `sharedEuintXX` types, which every cross-contract encrypted value
+has to move onto — see [shared-euints.md](shared-euints.md).
+
+> **Two copies of `FHE.sol` is the failure to watch for.** If the project pins `0.2.0-beta.3` and
+> also pulls `fhenix-confidential-contracts@0.4.0` (which requires `0.2.0`), both resolve. The
+> Solidity then has two distinct `sharedEuint64` types with the same name, and the errors read as
+> nonsense — a value "is not" the type it obviously is. Check the installed tree, not just the
+> manifest: `npm ls @fhenixprotocol/cofhe-contracts` (or `pnpm why`) must report one version.
 
 Install, then let the compiler drive the rest.
 
@@ -119,6 +145,10 @@ redeployed on every chain it targets.
 ```bash
 # all @cofhe/* on the same version
 npm ls @cofhe/sdk @cofhe/react @cofhe/abi 2>/dev/null | grep '@cofhe/'
+
+# exactly one copy of each contract package - more than one line here is the bug
+npm ls @fhenixprotocol/cofhe-contracts fhenix-confidential-contracts 2>/dev/null \
+  | grep -E 'cofhe-contracts|confidential-contracts'
 ```
 
 Then connect a client and create a self ACP. If that succeeds, the chain is ACP-era and the

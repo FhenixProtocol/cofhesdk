@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { acpStore } from '@/acps';
+import { ACPUtils, acpStore, type IncomingShare, type SharingACP } from '@/acps';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -149,6 +149,96 @@ describe('Core ACPs Tests', () => {
       expect(acp.recipient).toBe(aliceAddress);
       expect(acp.recipientSignature).toBeDefined();
       expect(acp.recipientSignature).not.toBe('0x');
+    });
+  });
+
+  describe('checkAccess on the issuer copy of a share', () => {
+    it('is valid while unexpired and not revoked, without needing the recipient signature', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'To Alice', issuer: bobAddress, recipient: aliceAddress },
+        publicClient,
+        bobWalletClient
+      );
+      expect(sharing.recipientSignature).toBe('0x');
+      // No revoker configured here, so nothing on chain can disable it: valid without any RPC.
+      expect(await acps.checkAccess(sharing, publicClient)).toBe('valid');
+    });
+
+    it('reports expiry locally', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'Old', issuer: bobAddress, recipient: aliceAddress, expiration: 1 },
+        publicClient,
+        bobWalletClient
+      );
+      expect(await acps.checkAccess(sharing, publicClient)).toBe('expired');
+    });
+  });
+
+  describe('Import without activation', () => {
+    const ZERO_SHARE_ID = `0x${'0'.repeat(64)}` as const;
+
+    // Alice already decrypts with her own self acp; Bob then shares with her.
+    const setUp = async () => {
+      const self = await acps.createSelf({ name: 'Alice self', issuer: aliceAddress }, publicClient, aliceWalletClient);
+      const sharing = await acps.createSharing(
+        { name: 'Shared with Alice', issuer: bobAddress, recipient: aliceAddress },
+        publicClient,
+        bobWalletClient
+      );
+      return { self, sharing };
+    };
+
+    const toIncomingShare = (sharing: SharingACP): IncomingShare => {
+      const { sealingKey: _sealingKey, recipientSignature: _recipientSignature, ...pub } = ACPUtils.getPublic(sharing);
+      return { ...pub, shareId: ZERO_SHARE_ID };
+    };
+
+    it('importShared activates the imported acp by default', async () => {
+      const { sharing } = await setUp();
+      const imported = await acps.importShared(ACPUtils.export(sharing), publicClient, aliceWalletClient);
+
+      expect(acps.getActiveACPHash(chainId, aliceAddress)).toBe(imported.hash);
+    });
+
+    it('importShared with activate: false stores the acp and keeps the active one', async () => {
+      const { self, sharing } = await setUp();
+      const imported = await acps.importShared(ACPUtils.export(sharing), publicClient, aliceWalletClient, {
+        activate: false,
+      });
+
+      expect(acps.getACPs(chainId, aliceAddress)?.[imported.hash]).toBeDefined();
+      expect(acps.getActiveACPHash(chainId, aliceAddress)).toBe(self.hash);
+    });
+
+    it('importShared with activate: false leaves no active acp when there was none', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'Shared with Alice', issuer: bobAddress, recipient: aliceAddress },
+        publicClient,
+        bobWalletClient
+      );
+      const imported = await acps.importShared(ACPUtils.export(sharing), publicClient, aliceWalletClient, {
+        activate: false,
+      });
+
+      expect(acps.getACPs(chainId, aliceAddress)?.[imported.hash]).toBeDefined();
+      expect(acps.getActiveACPHash(chainId, aliceAddress)).toBeUndefined();
+    });
+
+    it('importFromChain activates the imported acp by default', async () => {
+      const { sharing } = await setUp();
+      const imported = await acps.importFromChain(toIncomingShare(sharing), publicClient, aliceWalletClient);
+
+      expect(acps.getActiveACPHash(chainId, aliceAddress)).toBe(imported.hash);
+    });
+
+    it('importFromChain with activate: false stores the acp and keeps the active one', async () => {
+      const { self, sharing } = await setUp();
+      const imported = await acps.importFromChain(toIncomingShare(sharing), publicClient, aliceWalletClient, {
+        activate: false,
+      });
+
+      expect(acps.getACPs(chainId, aliceAddress)?.[imported.hash]).toBeDefined();
+      expect(acps.getActiveACPHash(chainId, aliceAddress)).toBe(self.hash);
     });
   });
 

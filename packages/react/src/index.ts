@@ -8,10 +8,12 @@ export {
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
   useCofheActiveACP,
+  useCofheACPs,
   useCofheAllACPs,
   useCofheClient,
   useCofheConnection,
   useCofheEnabled,
+  useCofheTaskManagerAddress,
   useCofheEncrypt,
   useCofhePublicClient,
   useCofheRemoveACP,
@@ -62,6 +64,45 @@ export {
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+export { useCofheDecrypt } from '@/hooks/useCofheDecrypt';
+export {
+  CofheACPScope,
+  useCofheACPScope,
+  useCofheACPStatus,
+  type CofheACPInput,
+  type CofheACPScopeValue,
+  type CofheACPStatus,
+} from '@/hooks/useCofheACPScope';
+export {
+  useCofheIncomingShares,
+  useCofheShareOnChain,
+  useCofheImportShared,
+  useCofheRemoveShare,
+  useCofheRevokeACP,
+} from '@/hooks/acps/useOnChainSharing';
+export {
+  useCofheReadContract,
+  constructCofheReadContractQueryForInvalidation,
+  type UseCofheReadContractResult,
+  type UseCofheReadContractQueryOptions,
+} from '@/hooks/useCofheReadContract';
+export {
+  useCofheReadContracts,
+  type CofheReadContractsContract,
+  type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
+  type UseCofheReadContractsResult,
+  type UseCofheReadContractsQueryOptions,
+} from '@/hooks/useCofheReadContracts';
+export {
+  type useCofheWriteContractOptions,
+  type CofheWriteInvalidationTarget,
+  type CofheWriteInvalidates,
+  type CofheReadInvalidationDescriptor,
+} from '@/hooks/useCofheWriteContract';
 
 // Utils
 export {
@@ -164,7 +205,6 @@ export {
   invalidateQueriesWithContext,
   withInvalidationContext,
   findMatchingInvalidationContext,
-  consumeInvalidationContext,
   type InvalidationContextQueryFilters,
   type QueryFunctionWithInvalidationContext,
 } from './utils/invalidationContext';

@@ -5,9 +5,12 @@ import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUty
 import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@cofhe/sdk';
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
-import { useCofheDecrypt } from './useCofheDecrypt';
+import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
+import { useCofheChainId } from './useCofheConnection';
+import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import {
   useCofheReadContract,
+  type CofheReadChainParams,
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
@@ -48,6 +51,12 @@ const onPoll = (context: DecryptPollCallbackContext) => {
 };
 /**
  * Generic hook: read a confidential contract value and decrypt it.
+ *
+ * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, and the
+ * decryption follows the read's chain (it uses that chain's ACP).
+ *
+ * ACP: the read gates on, and the value decrypts with, `acp` if given, else the enclosing
+ * `<CofheACPScope>`, else the active ACP.
  */
 // TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
@@ -62,7 +71,12 @@ export function useCofheReadContractAndDecrypt<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
-  },
+    /**
+     * Gate the read on, and decrypt with, this ACP (or the hash of a stored one) instead of the
+     * enclosing `<CofheACPScope>` or the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
+  } & CofheReadChainParams,
 
   {
     readQueryOptions,
@@ -81,6 +95,8 @@ export function useCofheReadContractAndDecrypt<
   encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingValidACP: boolean;
+  /** The read is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
   /** The read's latest outcome is an error (its cached ctHash, if any, is stale). */
   isReadError: boolean;
   /** The decryption's latest outcome is an error (any cached decrypted value is stale). */
@@ -89,11 +105,25 @@ export function useCofheReadContractAndDecrypt<
   isValueStale: boolean;
   /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
   isKnownZero: boolean;
+  /**
+   * The decrypt ACP is a SNAPSHOT (handle-scope) share that does not cover this value, so it is never
+   * sent for decryption. Shares of other scopes are not pre-checked: a value they do not cover
+   * shows as a decrypt error.
+   */
+  isOutOfScope: boolean;
 } {
-  const { address, abi, functionName, args, requiresACP = true } = params;
+  const { address, functionName, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
+  // The chain the decrypt runs on — the same resolution `useCofheDecrypt` makes, needed here to
+  // name the exact cache entry a superseded decrypt lives under.
+  const connectedChainId = useCofheChainId();
+  const decryptChainId = params.chainId ?? connectedChainId;
+  // Likewise the ACP the decrypt is keyed under: the chosen one, else the active one.
+  const decryptACP = useCofheEffectiveACP({ acp: params.acp, chainId: params.chainId });
+  const decryptACPHash = decryptACP.acp?.hash;
 
-  const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresACP }, readQueryOptions);
+  // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
+  const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);
 
   const encryptedData = encrypted.data;
 
@@ -117,21 +147,24 @@ export function useCofheReadContractAndDecrypt<
   // query stays disabled (see useCofheDecrypt) and never yields a value. Surface it explicitly so
   // callers render a clear `0` instead of mistaking the absent value for a fault.
   const isKnownZero = asEncryptedReturnType != null && BigInt(asEncryptedReturnType.ctHash) === 0n;
+  const isOutOfScope = decryptACP.scoped && isHandleOutOfScope(decryptACP.acp, currentCtHash);
 
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
   // in the cache as a phantom "fetched → …" entry disagreeing with the live read.
-  const prevRef = useRef<{ ctHash: string; utype: FheTypes } | undefined>(undefined);
+  const prevRef = useRef<
+    { ctHash: string; utype: FheTypes; chainId: number | undefined; acpHash: string | undefined } | undefined
+  >(undefined);
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
-      queryClient.removeQueries({ queryKey: ['decryptCiphertext', prev.ctHash, prev.utype], exact: true });
+      queryClient.removeQueries({ queryKey: constructCofheDecryptQueryKey(prev), exact: true });
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined
-        ? { ctHash: currentCtHash, utype: currentUtype }
+        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId, acpHash: decryptACPHash }
         : undefined;
-  }, [currentCtHash, currentUtype, queryClient]);
+  }, [currentCtHash, currentUtype, decryptChainId, decryptACPHash, queryClient]);
 
   const decrypted = useCofheDecrypt(
     {
@@ -141,6 +174,8 @@ export function useCofheReadContractAndDecrypt<
       // Carry the source contract + method onto the decrypt so its card is
       // recognizable without a separate ctHash→address registry.
       context: { address, functionName },
+      chainId: params.chainId,
+      acp: params.acp,
     },
     decryptingQueryOptions
   );
@@ -155,9 +190,11 @@ export function useCofheReadContractAndDecrypt<
     encrypted,
     decrypted,
     disabledDueToMissingValidACP: encrypted.disabledDueToMissingValidACP,
+    disabledDueToWrongChain: encrypted.disabledDueToWrongChain,
     isReadError,
     isDecryptError,
     isValueStale,
     isKnownZero,
+    isOutOfScope,
   };
 }

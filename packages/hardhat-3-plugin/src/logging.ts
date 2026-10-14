@@ -2,11 +2,11 @@ import type { PublicClient, WalletClient } from 'viem';
 import chalk from 'chalk';
 
 import { MockTaskManagerArtifact } from '@cofhe/mock-contracts';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 
 async function getLoggingEnabled(publicClient: PublicClient): Promise<boolean> {
   return publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'logOps',
     args: [],
@@ -20,7 +20,7 @@ async function setLoggingEnabled(
 ): Promise<void> {
   const [account] = await walletClient.getAddresses();
   const hash = await walletClient.writeContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: MockTaskManagerArtifact.abi,
     functionName: 'setLogOps',
     args: [enabled],

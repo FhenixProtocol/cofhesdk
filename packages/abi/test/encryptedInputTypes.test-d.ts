@@ -59,6 +59,44 @@ test('fnStructContainsEncryptedInput should have parameter type [ContainsEncrypt
   assertType<preTransform>([{ value: 1n, encryptedInput: 1n }]);
 });
 
+test('fnStructArrayContainsEncryptedInput should have parameter type [ContainsEncryptedInput[], bytes]', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnStructArrayContainsEncryptedInput'>;
+  assertType<args>([[{ value: 1n, encryptedInput: hash32 }], signature]);
+
+  // The proof slot is dropped only if the struct array is seen to carry an encrypted input.
+  // Before the fix the array's internalType short-circuited that check, and the signature
+  // stayed in the pre-transform args - disagreeing with the runtime, which injects it.
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnStructArrayContainsEncryptedInput'>;
+  assertType<preTransform>([[{ value: 1n, encryptedInput: 1n }]]);
+});
+
+test('fnStructArrayFixedContainsEncryptedInput pins the fixed length on both sides', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnStructArrayFixedContainsEncryptedInput'>;
+  assertType<args>([
+    [
+      { value: 1n, encryptedInput: hash32 },
+      { value: 2n, encryptedInput: hash32 },
+    ],
+    signature,
+  ]);
+
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnStructArrayFixedContainsEncryptedInput'>;
+  assertType<preTransform>([
+    [
+      { value: 1n, encryptedInput: 1n },
+      { value: 2n, encryptedInput: 2n },
+    ],
+  ]);
+});
+
+test('fnPlainStructArray keeps its signature-free shape', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnPlainStructArray'>;
+  assertType<args>([[{ id: 1n, owner: '0xaaaa000000000000000000000000000000000001' }]]);
+
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnPlainStructArray'>;
+  assertType<preTransform>([[{ id: 1n, owner: '0xaaaa000000000000000000000000000000000001' }]]);
+});
+
 test('fnArrayContainsEncryptedInput should have parameter type [externalEuint32[], bytes]', () => {
   type args = CofheInputArgs<typeof TestABI, 'fnArrayContainsEncryptedInput'>;
   assertType<args>([[hash32], signature]);

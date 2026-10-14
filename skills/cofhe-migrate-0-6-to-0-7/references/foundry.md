@@ -72,7 +72,7 @@ every other helper now goes through it, including single-value ones (as a batch 
 
 Because `createExternal*` unwraps a batch of size 1, the `(hash, proof)` it returns is a **batch
 signature**. It verifies through `FHE.asEuint32(hash, proof)` — which routes through
-`batchVerifyInputs` as a one-element batch in cofhe-contracts 0.2.x — and through
+`batchVerifyInputs` as a one-element batch in cofhe-contracts 0.2.0 — and through
 `FHE.asEuint32s([hash], sig)`.
 
 It does **not** verify against a legacy per-item verifier. `MockTaskManager.verifyInput` and

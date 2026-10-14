@@ -1,0 +1,188 @@
+# ACPs in React
+
+The React hooks decrypt with an ACP the same way the SDK does. By default that is the active ACP of the connected account, so a signed-in user sees their own data with no extra code. This page covers the case where one view should decrypt with a different ACP: data someone shared with the user. For creating, sharing and importing ACPs themselves, see [ACPs](/sdk/acp).
+
+## Viewing shared data
+
+A recipient usually wants the issuer data in one view while the rest of the app keeps decrypting their own. Import the share without activating it, find it in the store when the user opens it, and wrap that view in `<CofheACPScope>`.
+
+The pieces fit together like this; each component is defined in the steps below:
+
+```tsx
+function AccessPage({ exported, me }: { exported: string; me: Address }) {
+  const [openHash, setOpenHash] = useState<string>();
+  return (
+    <>
+      {/* 1. once: import the share, the active ACP stays the user own */}
+      <AcceptShare exported={exported} />
+      {/* 2. any later visit: list received shares from the store */}
+      <SharedWithMe onOpen={setOpenHash} />
+      {openHash && (
+        <>
+          {/* 3. everything inside decrypts with the share */}
+          <CofheACPScope acp={openHash}>
+            <SharedBalance token={fusd} />
+            <SharedVaultPosition />
+          </CofheACPScope>
+          {/* no scope: one hook picks the ACP itself */}
+          <BothBalances token={fusd} me={me} shareHash={openHash} />
+        </>
+      )}
+    </>
+  );
+}
+```
+
+### 1. Import without activating
+
+```tsx
+import { useCofheImportShared } from '@cofhe/react';
+
+function AcceptShare({ exported }: { exported: string }) {
+  // Stored, not activated: the user own ACP keeps serving the rest of the app.
+  const accept = useCofheImportShared({ activate: false });
+  return <button onClick={() => accept.mutate(exported)}>Accept</button>;
+}
+```
+
+The same hook imports a share found in the on-chain registry: pass the `IncomingShare` instead of the JSON. See [On-chain inbox](#on-chain-inbox) below.
+
+### 2. Find it again later
+
+Imported ACPs are stored with type `'recipient'` and survive a reload, so a later visit lists them from the store. `useCofheACPs` returns the connected account ACPs on the connected chain (or `chainId`), narrowed by `type`:
+
+```tsx
+import { useCofheACPs } from '@cofhe/react';
+
+function SharedWithMe({ onOpen }: { onOpen: (hash: string) => void }) {
+  const received = useCofheACPs({ type: 'recipient' });
+  return received.map((acp) => (
+    <button key={acp.hash} onClick={() => onOpen(acp.hash)}>
+      {acp.name} from {acp.issuer}
+    </button>
+  ));
+}
+```
+
+### 3. Scope the view
+
+```tsx
+<CofheACPScope acp={openHash}>
+  <SharedBalance token={fusd} />
+</CofheACPScope>
+```
+
+`acp` takes the ACP or its hash. Inside the scope:
+
+- `useCofheTokenDecryptedBalance`, `useCofheReadContractAndDecrypt` and `useCofheReadContract(s)` gate on and decrypt with the scope ACP.
+- `useCofheTokenDecryptedBalance` reads the issuer balance when no `accountAddress` is given.
+- The scope checks its ACP on chain when it mounts, every minute and on window focus. Until the check passes, and once the ACP is revoked, expired, removed or unknown, the hooks are disabled (`disabledDueToMissingValidACP`); they never fall back to the active ACP. `useCofheACPScope().status` says which: `checking`, `valid`, `expired`, `revoked`, `invalid`, or `unverified` when the check itself failed (it is retried).
+- For a SNAPSHOT share, a value the share does not list is flagged `isOutOfScope` and never sent for decryption. LIVE shares are not pre-checked: a value they do not cover shows as a decrypt error.
+- Nested scopes: the innermost wins. Outside any scope nothing changes.
+
+```tsx
+import { useCofheACPScope, useCofheTokenDecryptedBalance, type ConfidentialToken } from '@cofhe/react';
+
+function SharedBalance({ token }: { token: ConfidentialToken }) {
+  // No account given: inside a scope this is the issuer balance.
+  const scope = useCofheACPScope();
+  const { data, disabledDueToMissingValidACP, isOutOfScope } = useCofheTokenDecryptedBalance({ token });
+  if (scope?.status === 'checking') return <p>…</p>;
+  if (scope?.status === 'revoked') return <p>The owner revoked this share.</p>;
+  if (disabledDueToMissingValidACP) return <p>This share has expired or was removed.</p>;
+  if (isOutOfScope) return <p>Not included in this share.</p>;
+  return <p>{data ? `${data.formatted} ${token.symbol}` : '…'}</p>;
+}
+```
+
+Any contract read works the same way. `useCofheACPScope()` returns `{ acp, issuer, isValid }` (or `null` outside a scope), for arguments that name the issuer:
+
+```tsx
+import { useCofheACPScope, useCofheReadContractAndDecrypt } from '@cofhe/react';
+
+function SharedVaultPosition() {
+  const scope = useCofheACPScope();
+  const { decrypted } = useCofheReadContractAndDecrypt({
+    address: VAULT_ADDRESS,
+    abi: vaultAbi,
+    functionName: 'confidentialBalanceOf',
+    args: scope?.issuer ? [scope.issuer] : undefined,
+  });
+  return <p>{decrypted.data?.toString() ?? '…'}</p>;
+}
+```
+
+A value that is only a handle, not a contract read, e.g. a transfer amount listed in a SNAPSHOT share, decrypts with `useCofheDecrypt`; inside a scope it uses the scope ACP too:
+
+```tsx
+import { useCofheDecrypt } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+function SharedAmount({ handle }: { handle: `0x${string}` }) {
+  const { data } = useCofheDecrypt({ input: { ctHash: handle, utype: FheTypes.Uint64 } });
+  return <span>{data?.toString() ?? '…'}</span>;
+}
+```
+
+### On-chain inbox
+
+Shares posted to the on-chain registry need no copy-paste. The recipient lists them, imports one (without activating it) and dismisses the registry entry; the issuer posts, watches the status and revokes:
+
+```tsx
+import { useCofheIncomingShares, useCofheImportShared, useCofheRemoveShare } from '@cofhe/react';
+
+function Inbox() {
+  const inbox = useCofheIncomingShares(); // polls every 15 s; shares already imported are left out
+  const accept = useCofheImportShared({ activate: false });
+  const dismiss = useCofheRemoveShare();
+  return (inbox.data ?? []).map((share) => (
+    <div key={share.shareId}>
+      From {share.issuer}
+      <button onClick={() => accept.mutate(share)}>Accept</button>
+      <button onClick={() => dismiss.mutate(share.shareId)}>Dismiss</button>
+    </div>
+  ));
+}
+```
+
+```tsx
+import { useCofheACPStatus, useCofheRevokeACP, useCofheShareOnChain } from '@cofhe/react';
+import type { ACP } from '@cofhe/sdk/acps';
+
+function GrantedShare({ acp }: { acp: ACP }) {
+  const post = useCofheShareOnChain();
+  const revoke = useCofheRevokeACP();
+  const { status } = useCofheACPStatus(acp); // valid, expired, revoked, ...; re-reads after revoke mines
+  return (
+    <div>
+      {acp.name}: {status}
+      <button onClick={() => post.mutate(acp)}>Send on-chain</button>
+      <button onClick={() => revoke.mutate(acp)}>Revoke</button>
+    </div>
+  );
+}
+```
+
+The write hooks resolve once the transaction is mined, so a read that follows sees the result.
+
+### One value without a scope
+
+Pass `acp` to the hook itself; it wins over any enclosing scope. Here the user own balance and a shared one sit side by side:
+
+```tsx
+function BothBalances({ token, me, shareHash }: { token: ConfidentialToken; me: Address; shareHash: string }) {
+  const mine = useCofheTokenDecryptedBalance({ token, accountAddress: me }); // active ACP
+  const theirs = useCofheTokenDecryptedBalance({ token, acp: shareHash }); // shared ACP, issuer account
+  return (
+    <p>
+      You: {mine.data?.formatted} · Them: {theirs.data?.formatted}
+    </p>
+  );
+}
+```
+
+### What happens to the decrypted values
+
+- Values decrypted with a shared ACP stay in memory; they are never written to the persisted query cache.
+- They are dropped when the ACP is removed (`client.acp.removeACP(hash)`) or expires, even while the view is open.
+- A revocation is caught by the scope re-check (on mount, every minute, on window focus), and the values are dropped the same way. For a one-off check outside React, use `client.acp.checkAccess(acp)`.
