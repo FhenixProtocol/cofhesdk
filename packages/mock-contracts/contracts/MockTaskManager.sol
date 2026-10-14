@@ -249,6 +249,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Signer address for decrypt result verification (threshold network's signing key)
   address public decryptResultSigner;
 
+  // Counter mixed into generated random seeds, as in the real task manager
+  uint256 private randomCounter;
+
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
 
@@ -481,6 +484,32 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     validateFunctionInputTypes(funcId, functionName, encryptedHashes);
   }
 
+  /// @dev Same checks as the real task manager: the plaintext must fit the target type and the
+  ///      security zone must be in range. Without them `FHE.asEuint8(256)` would be stored masked
+  ///      to 0 here while the real task manager reverts.
+  function validateTrivialEncryptInputs(uint256[] memory extraInputs) internal view {
+    uint256 securityZone = extraInputs[2];
+    if (securityZone > uint256(int256(type(int32).max)) || !isValidSecurityZone(int32(int256(securityZone)))) {
+      revert InvalidSecurityZone(int32(int256(securityZone)), securityZoneMin, securityZoneMax);
+    }
+
+    uint256 value = extraInputs[0];
+    uint256 toType = extraInputs[1];
+    uint256 max;
+    if (toType == Utils.EUINT8_TFHE) max = type(uint8).max;
+    else if (toType == Utils.EUINT16_TFHE) max = type(uint16).max;
+    else if (toType == Utils.EUINT32_TFHE) max = type(uint32).max;
+    else if (toType == Utils.EUINT64_TFHE) max = type(uint64).max;
+    else if (toType == Utils.EUINT128_TFHE) max = type(uint128).max;
+    else if (toType == Utils.EADDRESS_TFHE) max = type(uint160).max;
+    else if (toType == Utils.EBOOL_TFHE) max = 1;
+    else return;
+
+    if (value > max) {
+      revert InvalidInputForFunction('trivialEncrypt', uint8(toType));
+    }
+  }
+
   function validateSelectInputs(uint256[] memory encryptedHashes) internal pure {
     if (encryptedHashes.length != 3) {
       revert InvalidInputsAmount('select', encryptedHashes.length, 3);
@@ -511,6 +540,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
 
     validateInputs(encryptedHashes, funcId, operation);
+    if (funcId == FunctionId.trivialEncrypt) {
+      validateTrivialEncryptInputs(extraInputs);
+    }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
     int32 securityZone = getSecurityZone(funcId, encryptedHashes, extraInputs);
@@ -813,8 +845,42 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
-    // Mock implementation: just return a pseudo-random hash based on seed
-    return uint256(keccak256(abi.encode(returnType, seed, securityZone, block.timestamp)));
+    if (!isValidSecurityZone(securityZone)) {
+      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
+    }
+
+    if (seed == 0) {
+      seed = uint256(
+        keccak256(
+          abi.encodePacked(blockhash(block.number - 1), block.timestamp, randomCounter, block.chainid, securityZone)
+        )
+      );
+      unchecked {
+        randomCounter++;
+      }
+    }
+
+    // Same handle derivation as the real task manager: msg.sender is part of the preimage.
+    uint256[] memory inputs = new uint256[](2);
+    inputs[0] = seed;
+    inputs[1] = uint256(uint160(msg.sender));
+
+    uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, FunctionId.random);
+    acl.allowTransient(ctHash, msg.sender, address(this));
+    emit TaskCreated(
+      ctHash,
+      Utils.functionIdToString(FunctionId.random),
+      seed,
+      uint256(uint32(securityZone)),
+      inputs[1]
+    );
+
+    // NOTE: MOCK - the real task manager leaves the value to the coprocessor; store one here.
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
+    _set(ctHash, uint256(keccak256(abi.encode(ctHash))));
+    _mockGasTrackEnd(mode, startGas);
+
+    return ctHash;
   }
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
