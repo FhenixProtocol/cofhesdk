@@ -6,3 +6,4 @@ export * from './verify';
 export * from './describe';
 export * from './presets';
 export * from './erc7984';
+export * from './appKey';

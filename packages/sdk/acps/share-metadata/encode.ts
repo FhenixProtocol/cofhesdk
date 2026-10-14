@@ -1,5 +1,5 @@
 import { concatHex, isHex, numberToHex, padHex, size, type Address, type Hex } from 'viem';
-import { ARGS_CODE, ARG_TAG, ENTRY_KIND, LAYOUT_VERSION, BYTE_WIDTH } from './layout';
+import { APP_KEY_TAG, ARGS_CODE, ARG_TAG, ENTRY_KIND, LAYOUT_VERSION, BYTE_WIDTH } from './layout';
 import type { ShareLabel, ShareLabelReadArg, StoredValueLabel } from './schema';
 
 /** An unsigned big-endian integer in exactly that many bytes. Throws when the value does not fit. */
@@ -10,6 +10,7 @@ const BYTES_FIELD = {
   contract: { width: BYTE_WIDTH.address, name: 'a contract address' },
   selector: { width: BYTE_WIDTH.selector, name: 'a selector' },
   viewCallArgument: { width: BYTE_WIDTH.word, name: 'a view call argument' },
+  appKey: { width: BYTE_WIDTH.word, name: 'an app key' },
 } as const;
 
 /** A byte string for that field, checked to be exactly as wide as the field. */
@@ -87,8 +88,12 @@ const encodeArgs = ({ args: given, returnWord }: StoredValueLabel, issuerWord: H
  * in order of first use; function and event selectors share one list. Throws on a value that does
  * not fit its field (more than 255 contracts, a block past uint32, ...). Given the share `issuer`, a
  * stored-value argument equal to their address is stored as "the issuer" instead of the address.
+ * Given an `appKey` (`shareAppKey(app)`), it closes the blob, so the app can tell its shares apart.
  */
-export const encodeShareMetadata = (labels: readonly ShareLabel[], { issuer }: { issuer?: Address } = {}): Hex => {
+export const encodeShareMetadata = (
+  labels: readonly ShareLabel[],
+  { issuer, appKey }: { issuer?: Address; appKey?: Hex } = {}
+): Hex => {
   const issuerWord = issuerWordOf(issuer);
 
   // First pass: collect what the labels name, so each list is complete before any entry points into it.
@@ -137,5 +142,6 @@ export const encodeShareMetadata = (labels: readonly ShareLabel[], { issuer }: {
       concatHex([uint(tx.block, BYTE_WIDTH.block), uint(tx.txIndex, BYTE_WIDTH.txIndex)])
     ),
     ...entries,
+    ...(appKey == null ? [] : [uint(APP_KEY_TAG, BYTE_WIDTH.count), bytesField('appKey', appKey)]),
   ]);
 };

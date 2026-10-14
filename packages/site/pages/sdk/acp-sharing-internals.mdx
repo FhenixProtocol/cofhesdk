@@ -47,6 +47,7 @@ blob = version (1)
      | selectors:     count (1), 4 bytes each      function selectors, and event selectors (first 4 bytes of topic0)
      | transactions:  count (1), 6 bytes each      block (4), tx index (2)
      | entries: one per handle, in the share's order
+     | app key, optional: 0x01, key (32)          keccak256 of the app's name; absent when the blob ends
 
 stored value = 0x00 | contract (1) | selector (1) | block (4) | args                    8 bytes or more
 event value  = 0x01 | contract (1) | transaction (1) | log index (2) | selector (1)     6 bytes
@@ -84,7 +85,7 @@ A real share on Arbitrum Sepolia — two balances and five transfer amounts from
 01 01 03 0073 01          event value: fUSDy, transaction 3, log 115, ConfidentialTransfer
 ```
 
-The last two are the two values of one vault deposit and share its transaction. The fUSDy amount appears in two logs of that transaction (115 and 118); the label names the `ConfidentialTransfer`, and a check against log 118 fails on its selector.
+A share posted by a client configured with `acp: { app }` ends with `01` and the app's 32-byte key, 155 bytes for this sample. The last two are the two values of one vault deposit and share its transaction. The fUSDy amount appears in two logs of that transaction (115 and 118); the label names the `ConfidentialTransfer`, and a check against log 118 fails on its selector.
 
 **Limits.** 255 contracts, selectors and transactions per share (one-byte counts and positions); blocks up to 4.29 billion; 65,535 transactions per block and logs per block; stored-value arguments are static 32-byte words only.
 

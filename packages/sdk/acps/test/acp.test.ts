@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { UNLABELLED, decodeShareAppKey, shareAppKey } from '../share-metadata';
 import {
   ACPUtils,
   encodeShareMetadata,
@@ -88,6 +89,21 @@ describe('ACPUtils Tests', () => {
   });
 
   describe('createSharing', () => {
+    it('keeps the app key in the metadata, with the labels or with the handles listed as unlabelled', () => {
+      const handle = `0x${'aa'.repeat(32)}` as const;
+      const appKey = shareAppKey('explorer.fhenix.io');
+      const base = { type: 'sharing' as const, issuer: bobAddress, recipient: aliceAddress, handles: [handle] };
+
+      const keyOnly = ACPUtils.createSharing({ ...base, appKey });
+      expect(keyOnly.metadata).toBe(encodeShareMetadata([UNLABELLED], { appKey }));
+      expect(decodeShareAppKey(keyOnly.metadata, [handle])).toBe(appKey);
+
+      const labelled = ACPUtils.createSharing({ ...base, appKey, labels: [UNLABELLED] });
+      expect(labelled.metadata).toBe(keyOnly.metadata);
+
+      expect(ACPUtils.createSharing(base).metadata).toBeUndefined();
+    });
+
     it('should create a sharing acp with valid options', async () => {
       const options: CreateSharingACPOptions = {
         type: 'sharing',

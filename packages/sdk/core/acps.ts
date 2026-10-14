@@ -18,6 +18,7 @@ import {
   computeShareId,
   readSharesFor,
   readShare,
+  decodeShareAppKey,
   encodeShareMetadata,
   type PostedShare,
   type ShareLabel,
@@ -413,17 +414,17 @@ const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boole
  * What `shareOnChain` posts with a share: the labels of its handles (one per handle, in order;
  * encoded with `encodeShareMetadata`), or an already encoded metadata blob. Written once, with the
  * share. Omitted, the labels the acp was created with are posted (`createSharing({ labels })`),
- * or none.
+ * or none. `appKey` goes with given labels; a client configured with `acp: { app }` fills it in.
  */
-export type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex };
+export type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex; appKey?: Hex };
 
-const metadataOf = (acp: ACP, { labels, metadata }: ShareOnChainOptions): Hex => {
+const metadataOf = (acp: ACP, { labels, metadata, appKey }: ShareOnChainOptions): Hex => {
   if (labels != null && metadata != null) throw new Error('Pass either labels or metadata, not both');
   if (labels == null) return metadata ?? acp.metadata ?? '0x';
   if (labels.length !== acp.handles.length) {
     throw new Error(`Cannot label a share of ${acp.handles.length} handles with ${labels.length} labels`);
   }
-  return encodeShareMetadata(labels, { issuer: acp.issuer });
+  return encodeShareMetadata(labels, { issuer: acp.issuer, appKey });
 };
 
 /**
@@ -473,15 +474,32 @@ const toIncomingShare = ({ shareId, share: s, metadata }: PostedShare): Incoming
   handles: [...s.handles],
   issuerSignature: s.issuerSignature,
   metadata,
+  ...(appKeyOf(metadata, s.handles) && { appKey: appKeyOf(metadata, s.handles) }),
 });
+
+/** The app key of a posted share; undefined when it has none, or its metadata does not decode. */
+const appKeyOf = (metadata: Hex, handles: readonly Hex[]): Hex | undefined => {
+  try {
+    return decodeShareAppKey(metadata, handles);
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * All importable shares addressed to `recipient` (unexpired, not revoked): the headers from
  * `sharesFor`, then each share's `Shared` event from the block its header names (one
- * single-block `getLogs` per block).
+ * single-block `getLogs` per block). Given an `appKey`, only the shares posted with that key.
  */
-const getIncomingShares = async (publicClient: PublicClient, registry: Hex, recipient: Hex): Promise<IncomingShare[]> =>
-  (await readSharesFor(publicClient, registry, recipient)).map(toIncomingShare);
+const getIncomingShares = async (
+  publicClient: PublicClient,
+  registry: Hex,
+  recipient: Hex,
+  { appKey }: { appKey?: Hex } = {}
+): Promise<IncomingShare[]> => {
+  const shares = (await readSharesFor(publicClient, registry, recipient)).map(toIncomingShare);
+  return appKey == null ? shares : shares.filter((share) => share.appKey === appKey);
+};
 
 /** One share by id, as posted; null when unknown or removed. Expired or revoked shares are returned as is. */
 const getShareFromChain = async (
@@ -506,7 +524,7 @@ const importFromChain = async (
   walletClient: WalletClient,
   importOptions: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
-  const { shareId: _shareId, ...options } = share;
+  const { shareId: _shareId, appKey: _appKey, ...options } = share;
   return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
 };
 

@@ -7,6 +7,8 @@
  *                                                                   selectors (first 4 bytes of topic0)
  *                | transaction count (1) | transactions (6 each: block 4, tx index 2)
  *                | entries, one per ctHash, in the order of acp.handles
+ *                | app key, optional: 0x01 | key (32)       keccak256 of the name of the app the
+ *                                                           share is for; absent when the blob ends
  *
  *   stored value = 0x00 | contract (1) | selector (1) | block (4) | args                  8 bytes or more
  *   event value  = 0x01 | contract (1) | transaction (1) | log index (2) | selector (1)   6 bytes
@@ -41,6 +43,9 @@ export const ARG_TAG = {
   word: 0x00,
   issuer: 0x01,
 } as const;
+
+/** The one byte that opens the optional app key section at the end of the blob. */
+export const APP_KEY_TAG = 0x01;
 
 /** Field widths in bytes. */
 export const BYTE_WIDTH = {

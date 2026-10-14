@@ -28,6 +28,7 @@ import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain } from './onchain-utils.js';
 import { encodeShareMetadata } from './share-metadata/encode.js';
+import { UNLABELLED } from './share-metadata/presets';
 
 /** The name of an imported acp unless the recipient gives one: who it came from. */
 const sharedByName = (issuer: Hex): string => `Shared by ${issuer.slice(0, 6)}…${issuer.slice(-4)}`;
@@ -61,10 +62,15 @@ export const ACPUtils = {
    */
   createSharing: (options: CreateSharingACPOptions): SharingACP => {
     const validation = validateSharingACPOptions(options);
-    const { labels } = options;
+    const { labels, appKey } = options;
     if (labels != null && labels.length !== validation.handles.length) {
       throw new Error(`Cannot label a share of ${validation.handles.length} handles with ${labels.length} labels`);
     }
+    // With an app key but no labels, the handles are listed as unlabelled so the key has a blob to sit in.
+    const metadata =
+      labels != null || appKey != null
+        ? encodeShareMetadata(labels ?? validation.handles.map(() => UNLABELLED), { issuer: validation.issuer, appKey })
+        : undefined;
 
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
@@ -72,7 +78,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      ...(labels != null && { metadata: encodeShareMetadata(labels, { issuer: validation.issuer }) }),
+      ...(metadata != null && { metadata }),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,

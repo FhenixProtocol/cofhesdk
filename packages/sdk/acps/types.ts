@@ -203,6 +203,12 @@ export type CreateSharingACPOptions = ACPScopeOptions & {
    * written into `export()` and posted by `shareOnChain`.
    */
   labels?: readonly ShareLabel[];
+  /**
+   * The key of the app the share is for (`shareAppKey(app)`), kept in `metadata` with the labels.
+   * A client configured with `acp: { app }` fills it in; a recipient client with the same `app`
+   * lists the share, one with another app does not.
+   */
+  appKey?: Hex;
 };
 
 /** A share as exported (`SharedACP`) or read from the registry. A `name` in it is ignored. */
@@ -259,7 +265,14 @@ export type ACPAccessStatus =
  * metadata blob posted with it (`0x` when none) — for a SNAPSHOT share, the
  * labels of its handles (`decodeShareMetadata` / `describeShareMetadata`).
  */
-export type IncomingShare = Expand<Omit<SharedACP, 'type' | 'metadata'> & { shareId: Hex; metadata: Hex }>;
+export type IncomingShare = Expand<
+  Omit<SharedACP, 'type' | 'metadata'> & {
+    shareId: Hex;
+    metadata: Hex;
+    /** The key of the app the share was posted for (`shareAppKey(app)`), when it names one. */
+    appKey?: Hex;
+  }
+>;
 
 /**
  * What the share label helpers read: the handles, their issuer and the metadata blob. An

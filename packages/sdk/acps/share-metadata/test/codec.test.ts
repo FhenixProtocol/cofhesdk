@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { size, type Hex } from 'viem';
+import { keccak256, size, stringToHex, type Hex } from 'viem';
 import { encodeShareMetadata } from '../encode';
-import { decodeShareMetadata } from '../decode';
+import { decodeShareAppKey, decodeShareMetadata, decodeShareMetadataFull } from '../decode';
+import { shareAppKey } from '../appKey';
 import type { ShareLabel } from '../schema';
 import { CASES, CONFIDENTIAL_TRANSFER, FUSD, SAMPLE, WORD } from './fixtures';
 
@@ -23,6 +24,47 @@ describe('share metadata codec (v3)', () => {
     expect(blob).toBe(SAMPLE.blob);
     expect(size(blob)).toBe(122);
     expect(decodeShareMetadata(blob, SAMPLE.handles)).toEqual(SAMPLE.labels);
+  });
+
+  describe('app key', () => {
+    const appKey = shareAppKey('explorer.fhenix.io');
+
+    it('closes the blob with 0x01 and the 32-byte key, after the entries', () => {
+      const blob = encodeShareMetadata(SAMPLE.labels, { appKey });
+      expect(blob).toBe(SAMPLE.blob + '01' + appKey.slice(2));
+      expect(size(blob)).toBe(122 + 33);
+    });
+
+    it('decodes to the same labels, with the key alongside', () => {
+      const blob = encodeShareMetadata(SAMPLE.labels, { appKey });
+      expect(decodeShareMetadata(blob, SAMPLE.handles)).toEqual(SAMPLE.labels);
+      expect(decodeShareMetadataFull(blob, SAMPLE.handles)).toEqual({ labels: SAMPLE.labels, appKey });
+      expect(decodeShareAppKey(blob, SAMPLE.handles)).toBe(appKey);
+    });
+
+    it('is absent from a blob encoded without one, and from a share without metadata', () => {
+      expect(decodeShareAppKey(SAMPLE.blob, SAMPLE.handles)).toBeUndefined();
+      expect(decodeShareAppKey('0x', [])).toBeUndefined();
+      expect(decodeShareAppKey(undefined, [])).toBeUndefined();
+    });
+
+    it('fits a share with no handles: a blob of the key alone', () => {
+      const blob = encodeShareMetadata([], { appKey });
+      expect(blob).toBe('0x03' + '00' + '00' + '00' + '01' + appKey.slice(2));
+      expect(decodeShareMetadataFull(blob, [])).toEqual({ labels: [], appKey });
+    });
+
+    it('is the keccak256 of the app name', () => {
+      expect(appKey).toBe(keccak256(stringToHex('explorer.fhenix.io')));
+      expect(shareAppKey('other.app')).not.toBe(appKey);
+    });
+
+    it('rejects a key that is not 32 bytes, and a trailer that is not a key', () => {
+      expect(() => encodeShareMetadata([], { appKey: '0x1234' })).toThrow('an app key must be 32 bytes');
+      expect(() => decodeShareMetadata((SAMPLE.blob + '02' + appKey.slice(2)) as Hex, SAMPLE.handles)).toThrow(
+        'more entries'
+      );
+    });
   });
 
   it('lists a transaction once however many labels name it', () => {

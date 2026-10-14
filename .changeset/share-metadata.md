@@ -29,6 +29,7 @@ Share labels. A SNAPSHOT share can now say where each shared value came from, an
 
 - `client.acp.verifyShareLabels(share, { verify: 'all' | 'events' | 'none' })` checks the labels against the chain, and `describeShareMetadata(share, abis)` turns them into function and event names with their params. Both take a share from the registry or an imported ACP, and return `null` for a share without labels.
 - `getIncomingShares` reads the headers, then the events, with one single-block `getLogs` per block. `IncomingShare` gains `metadata`. New `client.acp.getShareFromChain(shareId)` reads one share.
+- `createCofheConfig({ acp: { app: 'explorer.fhenix.io' } })` marks every share the client creates with the app's key (`keccak256` of the name, kept in the share metadata), and `getIncomingShares` then lists only the shares posted for that app. `IncomingShare.appKey` exposes the key; `shareAppKey(app)` computes it.
 - `@cofhe/sdk/acps` also exports:
   - `encodeShareMetadata`, `decodeShareMetadata`;
   - `verifyShareLabel(s)`, `describeShareLabels`;

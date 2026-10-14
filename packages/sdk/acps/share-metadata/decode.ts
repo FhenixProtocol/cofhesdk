@@ -1,5 +1,5 @@
 import { getAddress, hexToBigInt, hexToNumber, size, sliceHex, type Hex } from 'viem';
-import { ARGS_CODE, ARG_TAG, ENTRY_KIND, LAYOUT_VERSION, BYTE_WIDTH } from './layout';
+import { APP_KEY_TAG, ARGS_CODE, ARG_TAG, ENTRY_KIND, LAYOUT_VERSION, BYTE_WIDTH } from './layout';
 import type { ShareLabel, ShareLabelReadArg } from './schema.js';
 
 /** Sequential reads over a blob. Each take throws when the blob ends before the field does. */
@@ -7,6 +7,7 @@ type Reader = {
   take: (width: number) => Hex;
   takeNumber: (width: number) => number;
   done: () => boolean;
+  remaining: () => number;
 };
 
 const readerOf = (blob: Hex): Reader => {
@@ -16,7 +17,12 @@ const readerOf = (blob: Hex): Reader => {
     offset += width;
     return sliceHex(blob, offset - width, offset);
   };
-  return { take, takeNumber: (width) => hexToNumber(take(width)), done: () => offset === size(blob) };
+  return {
+    take,
+    takeNumber: (width) => hexToNumber(take(width)),
+    done: () => offset === size(blob),
+    remaining: () => size(blob) - offset,
+  };
 };
 
 /** A counted list: its length in one byte, then that many items. */
@@ -48,12 +54,25 @@ const decodeArgs = (reader: Reader): { args: ShareLabelReadArg[]; returnWord: nu
   return { args: takeList(reader, () => decodeArg(reader)), returnWord };
 };
 
+/** The optional app key that closes the blob: nothing, or the tag byte and 32 bytes. */
+const takeAppKey = (reader: Reader): Hex | undefined => {
+  if (reader.done()) return undefined;
+  const isKey =
+    reader.remaining() === BYTE_WIDTH.count + BYTE_WIDTH.word && reader.takeNumber(BYTE_WIDTH.count) === APP_KEY_TAG;
+  if (!isKey) throw new Error('share metadata: the blob has more entries than the share has ctHashes');
+  return reader.take(BYTE_WIDTH.word);
+};
+
+/** The two things a blob holds: one label per ctHash, and the app key when the share names an app. */
+export type DecodedShareMetadata = { labels: ShareLabel[]; appKey: Hex | undefined };
+
 /**
- * Decodes a version 3 blob into one label per ctHash, in the order of `acp.handles`: the exact
- * inverse of `encodeShareMetadata`. Throws on another version, an unknown kind, code or tag, a
- * position outside its list, and unless the blob holds exactly one entry per ctHash.
+ * Decodes a version 3 blob: one label per ctHash, in the order of `acp.handles`, and the app key
+ * when there is one. The exact inverse of `encodeShareMetadata`. Throws on another version, an
+ * unknown kind, code or tag, a position outside its list, and unless the blob holds exactly one
+ * entry per ctHash.
  */
-export const decodeShareMetadata = (blob: Hex, handles: readonly Hex[]): ShareLabel[] => {
+export const decodeShareMetadataFull = (blob: Hex, handles: readonly Hex[]): DecodedShareMetadata => {
   const reader = readerOf(blob);
   const version = reader.takeNumber(BYTE_WIDTH.version);
   if (version !== LAYOUT_VERSION) throw new Error(`share metadata: unsupported version ${version}`);
@@ -87,6 +106,15 @@ export const decodeShareMetadata = (blob: Hex, handles: readonly Hex[]): ShareLa
         throw new Error(`share metadata: unknown entry kind ${kind}`);
     }
   });
+  const appKey = takeAppKey(reader);
   if (!reader.done()) throw new Error('share metadata: the blob has more entries than the share has ctHashes');
-  return labels;
+  return { labels, appKey };
 };
+
+/** The labels of a blob, one per ctHash in the order of `acp.handles` (see `decodeShareMetadataFull`). */
+export const decodeShareMetadata = (blob: Hex, handles: readonly Hex[]): ShareLabel[] =>
+  decodeShareMetadataFull(blob, handles).labels;
+
+/** The app key a share was posted with, or undefined: for a share without metadata, or without a key. */
+export const decodeShareAppKey = (metadata: Hex | undefined, handles: readonly Hex[]): Hex | undefined =>
+  metadata == null || metadata === '0x' ? undefined : decodeShareMetadataFull(metadata, handles).appKey;
