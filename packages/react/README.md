@@ -69,9 +69,10 @@ The `@cofhe/react/ui` entrypoint includes the package styles automatically.
 import { FheTypesList } from '@cofhe/react';
 import { CofheEncryptInput } from '@cofhe/react/ui';
 
-function MyComponent() {
+function MyComponent({ contractAddress }: { contractAddress: string }) {
   return (
     <CofheEncryptInput
+      consumingContract={contractAddress} // The contract that will receive the encrypted value
       placeholder="Enter value to encrypt..."
       options={FheTypesList} // Pre-defined FHE types
       showProgressBar={true}
@@ -85,14 +86,19 @@ function MyComponent() {
 ### 3. Use the hook directly for custom implementations
 
 ```tsx
-import { useEncryptInput } from '@cofhe/react';
+import { useCofheEncrypt } from '@cofhe/react';
+import { Encryptable } from '@cofhe/sdk';
 
-function CustomComponent() {
-  const { onEncryptInput, isEncryptingInput, encryptionProgress } = useEncryptInput();
+function CustomComponent({ contractAddress }: { contractAddress: string }) {
+  const { encryptInputsAsync, isEncrypting } = useCofheEncrypt();
 
   const handleEncrypt = async () => {
     try {
-      const result = await onEncryptInput('uint32', '42');
+      // One handle per item, followed by the signature for the whole batch
+      const result = await encryptInputsAsync({
+        items: [Encryptable.uint32(42n)],
+        consumingContract: contractAddress,
+      });
       console.log('Encrypted:', result);
     } catch (error) {
       console.error('Encryption failed:', error);
@@ -101,8 +107,8 @@ function CustomComponent() {
 
   return (
     <div>
-      <button onClick={handleEncrypt} disabled={isEncryptingInput}>
-        {isEncryptingInput ? `Encrypting... ${encryptionProgress}%` : 'Encrypt Value'}
+      <button onClick={handleEncrypt} disabled={isEncrypting}>
+        {isEncrypting ? 'Encrypting...' : 'Encrypt Value'}
       </button>
     </div>
   );
@@ -143,6 +149,7 @@ Advanced input component with integrated features:
 
 ```tsx
 interface CofheEncryptInputProps {
+  consumingContract: string; // Required: the contract that will consume the encrypted value
   placeholder?: string;
   initialValue?: string;
   options?: FheTypeOption[]; // Use FheTypesList or custom options
@@ -163,20 +170,20 @@ interface CofheEncryptInputProps {
 }
 ```
 
-## useEncryptInput Hook
+## useCofheEncrypt Hook
 
-Hook for custom encryption workflows with progress tracking:
+Mutation hook for custom encryption workflows. Next to the React Query mutation result it returns:
 
 ```tsx
 const {
-  onEncryptInput, // (type, value) => Promise<encrypted>
-  isEncryptingInput, // boolean - encryption in progress
-  encryptionStep, // Current step: 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done'
-  encryptionProgress, // Progress percentage (0-100)
-  encryptionProgressLabel, // Human-readable progress label
-  inputEncryptionDisabled, // boolean - whether encryption is disabled
-} = useEncryptInput();
+  encryptInputsAsync, // (variables) => Promise<[...hashes, signature]>
+  encryptInputs, // (variables) => void - fire-and-forget, read the result from `data` / `error`
+  isEncrypting, // boolean - encryption in progress
+  stepsState, // stepsState.lastStep - the latest encryption step
+} = useCofheEncrypt();
 ```
+
+The variables are `{ items, consumingContract, account?, chainId?, securityZone?, onStepChange? }`. `consumingContract` is required: the verifier binds it into the signature, so the batch can only be consumed by that contract.
 
 ## Styling
 
