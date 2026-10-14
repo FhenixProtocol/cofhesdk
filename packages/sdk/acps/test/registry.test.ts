@@ -62,8 +62,9 @@ const clientWith = (
 describe('registry reads', () => {
   it('reads the inbox with one getLogs per distinct block, in sharesFor order', async () => {
     const { client, getContractEvents } = clientWith();
-    const posted = await readSharesFor(client, REGISTRY, RECIPIENT);
+    const { posted, unreadable } = await readSharesFor(client, REGISTRY, RECIPIENT);
 
+    expect(unreadable).toEqual([]);
     expect(posted.map((p) => p.shareId)).toEqual(ids);
     expect(posted.map((p) => p.share)).toEqual(shares);
     expect(posted.map((p) => p.metadata)).toEqual([...metadata]);
@@ -89,21 +90,55 @@ describe('registry reads', () => {
       { block: 10n, acp: shares[0], id: ids[0], metadata: '0x03aa' },
       { block: 10n, acp: shares[0], id: ids[0], metadata: '0x03cc' },
     ]);
-    const [posted] = await readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }]);
+    const {
+      posted: [posted],
+    } = await readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }]);
     expect(posted.metadata).toBe('0x03cc');
   });
 
-  it('throws when the block the header names has no Shared event of the share', async () => {
-    const { client } = clientWith([]);
-    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }])).rejects.toThrow(
-      'no Shared event in block 10'
-    );
-  });
+  describe('one share never hides the rest', () => {
+    const all = () => shares.map((_, i) => ({ shareId: ids[i], header: headers[i] }));
 
-  it('throws when an event payload does not hash to its share id', async () => {
-    const { client } = clientWith([{ block: 10n, acp: shares[1], id: ids[0], metadata: '0x' }]);
-    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }])).rejects.toThrow(
-      'does not hash to its id'
-    );
+    it('a share whose block has no Shared event of it is unreadable, the others are posted', async () => {
+      // the node answered sharesFor from a newer block than the one it serves logs for
+      const { client } = clientWith(
+        shares.slice(0, 2).map((acp, i) => ({ block: headers[i].blockNumber, acp, id: ids[i], metadata: metadata[i] }))
+      );
+      const { posted, unreadable } = await readPostedShares(client, REGISTRY, all());
+      expect(posted.map((p) => p.shareId)).toEqual([ids[0], ids[1]]);
+      expect(unreadable).toEqual([
+        { shareId: ids[2], header: headers[2], reason: 'no Shared event in block 20, where the registry points' },
+      ]);
+    });
+
+    it('a share whose event payload does not hash to its id is unreadable, the others are posted', async () => {
+      const { client } = clientWith([
+        { block: 10n, acp: shares[1], id: ids[0], metadata: '0x' }, // the payload of share 2 under the id of share 1
+        { block: 10n, acp: shares[1], id: ids[1], metadata: '0x' },
+        { block: 20n, acp: shares[2], id: ids[2], metadata: '0x03bb' },
+      ]);
+      const { posted, unreadable } = await readPostedShares(client, REGISTRY, all());
+      expect(posted.map((p) => p.shareId)).toEqual([ids[1], ids[2]]);
+      expect(unreadable.map((u) => [u.shareId, u.reason])).toEqual([
+        [ids[0], 'the payload in its Shared event does not hash to its id'],
+      ]);
+    });
+
+    it('a block the node cannot serve makes its shares unreadable, with the error, and the others are posted', async () => {
+      const { client, getContractEvents } = clientWith();
+      getContractEvents.mockImplementationOnce(async () => {
+        throw new Error('block not found');
+      });
+      const { posted, unreadable } = await readPostedShares(client, REGISTRY, all());
+      expect(posted.length + unreadable.length).toBe(3);
+      expect(unreadable.length).toBeGreaterThan(0);
+      for (const u of unreadable)
+        expect(u.reason).toMatch(/Shared events of block \d+ could not be read: block not found/);
+    });
+
+    it('readShare throws, with the reason, for a listed share whose event cannot be read', async () => {
+      const { client } = clientWith([]);
+      await expect(readShare(client, REGISTRY, ids[0])).rejects.toThrow('no Shared event in block 10');
+    });
   });
 });

@@ -106,60 +106,96 @@ export type ShareHeader = {
 /** A share as posted: its payload and the metadata blob that came with it (`0x` when none). */
 export type PostedShare = { shareId: Hex; header: ShareHeader; share: ChainShare; metadata: Hex };
 
+/** A share the registry lists but whose `Shared` event could not be read, and why. */
+export type UnreadableShare = { shareId: Hex; header: ShareHeader; reason: string };
+
+/** Shares read from their events, and those that could not be; each share is on its own. */
+export type PostedShares = { posted: PostedShare[]; unreadable: UnreadableShare[] };
+
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
 /**
  * Fetches the `Shared` events of shares from the blocks their headers name: one single-block
  * `getLogs` per distinct block, filtered by registry and share ids, so any node answers it. Returns
- * the shares in the order given; where a block holds several events for one share id, the last. Throws when a block holds no `Shared` event of a share it should,
- * or an event's payload does not hash to its share id.
+ * the shares in the order given; where a block holds several events for one share id, the last.
+ * Never fails as a whole: a share whose block the node cannot serve yet, whose event is missing
+ * from it, or whose event payload does not hash to its id is returned as `unreadable`, with the
+ * reason, and the rest are posted as usual.
  */
 export const readPostedShares = async (
   publicClient: PublicClient,
   registry: Address,
   headers: readonly { shareId: Hex; header: ShareHeader }[]
-): Promise<PostedShare[]> => {
+): Promise<PostedShares> => {
   const idsByBlock = new Map<bigint, Hex[]>();
   for (const { shareId, header } of headers) {
     idsByBlock.set(header.blockNumber, [...(idsByBlock.get(header.blockNumber) ?? []), shareId]);
   }
 
-  const found = new Map<string, { share: ChainShare; metadata: Hex }>();
+  type Found = { share: ChainShare; metadata: Hex } | { reason: string };
+  const found = new Map<string, Found>();
   await Promise.all(
     [...idsByBlock].map(async ([block, shareIds]) => {
-      const logs = await publicClient.getContractEvents({
-        address: registry,
-        abi: ACP_SHARE_REGISTRY_ABI,
-        eventName: 'Shared',
-        args: { shareId: shareIds },
-        fromBlock: block,
-        toBlock: block,
-        strict: true,
-      });
+      let logs;
+      try {
+        logs = await publicClient.getContractEvents({
+          address: registry,
+          abi: ACP_SHARE_REGISTRY_ABI,
+          eventName: 'Shared',
+          args: { shareId: shareIds },
+          fromBlock: block,
+          toBlock: block,
+          strict: true,
+        });
+      } catch (error) {
+        for (const shareId of shareIds) {
+          found.set(shareId.toLowerCase(), {
+            reason: `the Shared events of block ${block} could not be read: ${messageOf(error)}`,
+          });
+        }
+        return;
+      }
       // Logs come in log-index order. A share removed and posted again within one block has two
       // Shared events there; the later one is the share, so each log overwrites the previous.
       for (const { args } of logs) {
-        if (shareIdOfChainShare(args.acp).toLowerCase() !== args.shareId.toLowerCase()) {
-          throw new Error(`Share ${args.shareId}: the payload in its Shared event does not hash to its id`);
-        }
-        found.set(args.shareId.toLowerCase(), { share: args.acp, metadata: args.metadata });
+        const hashes = shareIdOfChainShare(args.acp).toLowerCase() === args.shareId.toLowerCase();
+        found.set(
+          args.shareId.toLowerCase(),
+          hashes
+            ? { share: args.acp, metadata: args.metadata }
+            : { reason: 'the payload in its Shared event does not hash to its id' }
+        );
       }
     })
   );
 
-  return headers.map(({ shareId, header }) => {
-    const posted = found.get(shareId.toLowerCase());
-    if (posted == null) {
-      throw new Error(`Share ${shareId}: no Shared event in block ${header.blockNumber}, where the registry points`);
+  const result: PostedShares = { posted: [], unreadable: [] };
+  for (const { shareId, header } of headers) {
+    const entry = found.get(shareId.toLowerCase());
+    if (entry == null) {
+      result.unreadable.push({
+        shareId,
+        header,
+        reason: `no Shared event in block ${header.blockNumber}, where the registry points`,
+      });
+    } else if ('reason' in entry) {
+      result.unreadable.push({ shareId, header, reason: entry.reason });
+    } else {
+      result.posted.push({ shareId, header, ...entry });
     }
-    return { shareId, header, ...posted };
-  });
+  }
+  return result;
 };
 
-/** The importable shares addressed to `recipient` (unexpired, not revoked), read from their events. */
+/**
+ * The importable shares addressed to `recipient` (unexpired, not revoked), read from their events;
+ * those whose event could not be read are listed apart, so one of them never hides the rest.
+ */
 export const readSharesFor = async (
   publicClient: PublicClient,
   registry: Address,
   recipient: Address
-): Promise<PostedShare[]> => {
+): Promise<PostedShares> => {
   const [shareIds, headers] = await publicClient.readContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
@@ -173,7 +209,10 @@ export const readSharesFor = async (
   );
 };
 
-/** One share by id, read from its event; null when the registry has no such share (unknown or removed). */
+/**
+ * One share by id, read from its event; null when the registry has no such share (unknown or
+ * removed). Throws, with the reason, when the registry lists it but its event could not be read.
+ */
 export const readShare = async (
   publicClient: PublicClient,
   registry: Address,
@@ -186,6 +225,7 @@ export const readShare = async (
     args: [shareId],
   });
   if (header.issuer === '0x0000000000000000000000000000000000000000') return null;
-  const [posted] = await readPostedShares(publicClient, registry, [{ shareId, header }]);
-  return posted;
+  const { posted, unreadable } = await readPostedShares(publicClient, registry, [{ shareId, header }]);
+  if (unreadable.length > 0) throw new Error(`Share ${shareId}: ${unreadable[0].reason}`);
+  return posted[0];
 };

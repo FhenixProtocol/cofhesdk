@@ -489,7 +489,9 @@ const appKeyOf = (metadata: Hex, handles: readonly Hex[]): Hex | undefined => {
 /**
  * All importable shares addressed to `recipient` (unexpired, not revoked): the headers from
  * `sharesFor`, then each share's `Shared` event from the block its header names (one
- * single-block `getLogs` per block). Given an `appKey`, only the shares posted with that key.
+ * single-block `getLogs` per block). A share whose event the node cannot serve yet is left out
+ * and turns up on a later read; it never fails the others (`readSharesFor` lists it as
+ * unreadable). Given an `appKey`, only the shares posted with that key.
  */
 const getIncomingShares = async (
   publicClient: PublicClient,
@@ -497,7 +499,7 @@ const getIncomingShares = async (
   recipient: Hex,
   { appKey }: { appKey?: Hex } = {}
 ): Promise<IncomingShare[]> => {
-  const shares = (await readSharesFor(publicClient, registry, recipient)).map(toIncomingShare);
+  const shares = (await readSharesFor(publicClient, registry, recipient)).posted.map(toIncomingShare);
   return appKey == null ? shares : shares.filter((share) => share.appKey === appKey);
 };
 

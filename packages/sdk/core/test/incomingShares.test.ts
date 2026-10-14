@@ -65,6 +65,19 @@ describe('getIncomingShares and the app key', () => {
     expect(incoming.map((s) => s.shareId)).toEqual([ids[0]]);
   });
 
+  it('leaves out a share whose event the node cannot serve yet, and keeps the rest', async () => {
+    const lagging = {
+      readContract: vi.fn(async () => [ids, shares.map(() => header)]),
+      getContractEvents: vi.fn(async ({ args }: { args: { shareId: string[] } }) =>
+        shares
+          .map((acp, i) => ({ args: { shareId: ids[i], acp, metadata: metadata[i] } }))
+          .filter((e) => args.shareId.includes(e.args.shareId) && e.args.shareId !== ids[1])
+      ),
+    } as unknown as PublicClient;
+    const incoming = await acps.getIncomingShares(lagging, REGISTRY, RECIPIENT);
+    expect(incoming.map((s) => s.shareId)).toEqual([ids[0], ids[2]]);
+  });
+
   it('lists nothing for an app no share names', async () => {
     expect(await acps.getIncomingShares(client, REGISTRY, RECIPIENT, { appKey: shareAppKey('other') })).toEqual([]);
   });

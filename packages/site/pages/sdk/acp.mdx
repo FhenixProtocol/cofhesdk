@@ -372,7 +372,7 @@ const acp = await client.acp.importFromChain(incoming[0]);
 await client.acp.dismissShare(incoming[0].shareId);
 ```
 
-`getIncomingShares` lists only importable shares: expired shares and shares whose ACP was revoked are left out. `client.acp.getShareFromChain(shareId)` reads one share by id.
+`getIncomingShares` lists only importable shares: expired shares and shares whose ACP was revoked are left out. A share whose event the node cannot serve yet (a node that lags behind its own `sharesFor` answer) is left out too and appears on a later read; it never fails the rest. `client.acp.getShareFromChain(shareId)` reads one share by id.
 
 ### Mark shares for your app
 

@@ -15,7 +15,7 @@ The registry keeps in storage only what it checks itself — the share **header*
 event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata);
 ```
 
-`getIncomingShares` reads the headers with `sharesFor` (one call, filtered for expiry and revocation on-chain), then the events with one single-block `getLogs` per block, filtered by the share ids — a query any node answers, however old the block. If a share was removed and posted again within one block, that block holds two of its events; the later one is the share. Contracts keep `isShareValid(shareId)`; they cannot read a share's handles. Removing a share deletes its header; its event stays in its block, and readers no longer find it.
+`getIncomingShares` reads the headers with `sharesFor` (one call, filtered for expiry and revocation on-chain), then the events with one single-block `getLogs` per block, filtered by the share ids — a query any node answers, however old the block. If a share was removed and posted again within one block, that block holds two of its events; the later one is the share. Contracts keep `isShareValid(shareId)`; they cannot read a share's handles. Removing a share deletes its header; its event stays in its block, and readers no longer find it. Each share is read on its own: when a node cannot serve a block yet, or an event does not hash to its share id, `readSharesFor` lists that share as `unreadable` with the reason, and `getIncomingShares` leaves it out, so one share never hides the rest.
 
 ## Gas
 
