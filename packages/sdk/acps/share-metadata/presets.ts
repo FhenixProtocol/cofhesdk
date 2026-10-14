@@ -10,7 +10,7 @@ import {
   type ContractFunctionName,
   type Log,
 } from 'viem';
-import type { EventValueLabel, ShareLabel, ShareLabelReadArg, StoredValueLabel } from './schema.js';
+import type { EventValueLabel, ShareLabel, ShareLabelReadArg, StoredValueLabel } from './schema';
 
 /**
  * Builders for labels. The format knows nothing about tokens: a balance is the value a view

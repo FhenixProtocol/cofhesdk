@@ -14,7 +14,7 @@ import {
 } from 'viem';
 import { decodeShareMetadata } from './decode.js';
 import type { EventValueLabel, ShareLabel, StoredValueLabel } from './schema.js';
-import type { LabelledShare } from '../types.js';
+import type { LabelledShare } from '../types';
 
 /** A parameter as the ABI names it. `name` is absent when the ABI leaves it unnamed. */
 export type ShareLabelParam = { name?: string; type: string; indexed?: boolean };

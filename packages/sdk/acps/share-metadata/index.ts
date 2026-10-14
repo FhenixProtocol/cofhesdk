@@ -5,4 +5,4 @@ export * from './decode.js';
 export * from './verify.js';
 export * from './describe.js';
 export * from './presets.js';
-export * from './erc7984.js';
+export * from './erc7984';
