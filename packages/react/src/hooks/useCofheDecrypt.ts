@@ -90,7 +90,17 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     if (invalidHash) removeDecryptsOfACPs(queryClient, new Set([invalidHash]));
   }, [invalidHash, queryClient]);
 
-  const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
+  const {
+    enabled: userEnabled,
+    meta: optionMeta,
+    retry = (failureCount: number, error: Error) => {
+      if (error instanceof CofheError) return false; // don't retry decryption errors
+
+      // default retry behavior - 3 retries
+      return failureCount < 3;
+    },
+    ...restQueryOptions
+  } = queryOptions || {};
   // A SNAPSHOT share that does not list this handle can only fail: never send it.
   const outOfScope = isHandleOutOfScope(scopedACP, input?.ctHash);
   const enabled =
@@ -125,11 +135,6 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       ...optionMeta,
     },
     ...restQueryOptions,
-    retry: (failureCount, error) => {
-      if (error instanceof CofheError) return false; // don't retry decryption errors
-
-      // default retry behavior - 3 retries
-      return failureCount < 3;
-    },
+    retry,
   });
 }
