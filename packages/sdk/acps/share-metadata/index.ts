@@ -1,8 +1,8 @@
-export * from './schema.js';
-export { LAYOUT_VERSION as SHARE_METADATA_VERSION } from './layout.js';
-export * from './encode.js';
-export * from './decode.js';
-export * from './verify.js';
-export * from './describe.js';
-export * from './presets.js';
+export * from './schema';
+export { LAYOUT_VERSION as SHARE_METADATA_VERSION } from './layout';
+export * from './encode';
+export * from './decode';
+export * from './verify';
+export * from './describe';
+export * from './presets';
 export * from './erc7984';
