@@ -11,9 +11,8 @@ const memoryStorage: Record<string, unknown> = {};
 const getStorageDir = () => join(process.env.HOME || process.env.USERPROFILE || '.', '.cofhesdk');
 
 /**
- * Stored data can include sealing private keys, so the directory and files must
- * be private to the current user. `mode` only applies on creation, so chmod
- * also tightens directories/files created by earlier SDK versions.
+ * Keep the directory and files private to the current user. `mode` only applies
+ * on creation, so chmod also tightens directories/files created by earlier SDK versions.
  */
 const ensureStorageDir = async (storageDir: string) => {
   await fs.mkdir(storageDir, { recursive: true, mode: 0o700 });
