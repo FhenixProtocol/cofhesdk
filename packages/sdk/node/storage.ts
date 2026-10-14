@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 
 // Memory storage fallback
-const memoryStorage: Record<string, string> = {};
+const memoryStorage: Record<string, unknown> = {};
 
 /**
  * Creates a node storage implementation using the filesystem
@@ -34,7 +34,7 @@ export const createNodeStorage = (): IStorage => {
         await fs.writeFile(filePath, JSON.stringify(value));
       } catch (e) {
         console.warn('Node.js filesystem modules not available, falling back to memory storage' + e);
-        memoryStorage[name] = JSON.stringify(value);
+        memoryStorage[name] = value;
       }
     },
     removeItem: async (name: string) => {

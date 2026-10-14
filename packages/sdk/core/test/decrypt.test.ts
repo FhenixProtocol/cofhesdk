@@ -1,5 +1,5 @@
 import { STAGING_TESTS, stagingViemChain } from './stagingRedirect';
-import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
+import { FheTypes, verifyDecryptResult, createCofheConfigBase, getTaskManagerAddress } from '@/core';
 import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
@@ -19,7 +19,12 @@ import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
-const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+// Live-chain suite: needs the funded TEST_PRIVATE_KEY (signs decrypt requests against
+// pre-deployed testnet fixtures). Without it — fork PRs, where secrets are unavailable —
+// the suite skips; CI runs it separately with the key (test-live job).
+const LIVE_TESTS = Boolean(TEST_PRIVATE_KEY);
+const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const account = privateKeyToAccount(TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY);
 
 const TEST_CHAIN_ID = STAGING_TESTS ? stagingViemChain.id : PRIMARY_TEST_CHAIN;
 
@@ -29,7 +34,7 @@ const VIEM_CHAINS: Record<number, Chain> = {
   11155111: sepolia,
 };
 
-describe('Core – Decrypt Tests', () => {
+describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let config: ReturnType<typeof createCofheConfigBase>;
@@ -236,6 +241,8 @@ describe('Core – Decrypt Tests', () => {
         },
       ] as const;
 
+      const taskManagerAddress = await getTaskManagerAddress(publicClient);
+
       for (const sample of samples) {
         const sdkResult = await verifyDecryptResult(sample.handle, sample.cleartext, sample.signature, publicClient);
 
@@ -243,7 +250,7 @@ describe('Core – Decrypt Tests', () => {
           'function verifyDecryptResultSafe(uint256 ctHash, uint256 cleartext, bytes signature) view returns (bool)',
         ]);
         const tmResult = await publicClient.readContract({
-          address: TASK_MANAGER_ADDRESS,
+          address: taskManagerAddress,
           abi: verifyDecryptResultSafeAbi,
           functionName: 'verifyDecryptResultSafe',
           args: [sample.handle, sample.cleartext, sample.signature],

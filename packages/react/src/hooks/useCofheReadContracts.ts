@@ -1,12 +1,15 @@
-import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { assert } from 'ts-essentials';
-import type { Address } from 'viem';
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { useInternalQuery } from '../providers/index';
-import { transformEncryptedReturnTypes, type Abi } from '@cofhe/abi';
-import { serializeBigintRecursively } from '../utils/serializeBigint.js';
-
-const QUERY_CACHE_PREFIX = 'cofheReadContracts';
+import { type UseQueryOptions } from '@tanstack/react-query';
+import type { Address, ContractFunctionArgs, ContractFunctionName, Narrow } from 'viem';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
+import { useInternalQueries } from '../providers/index';
+import { type Abi, type CofheReturnType } from '@cofhe/abi';
+import {
+  createCofheReadContractQueryOptions,
+  getEnabledForCofheReadContract,
+  useCofheReadTarget,
+  type CofheReadChainParams,
+  type UseCofheReadContractQueryOptions,
+} from './useCofheReadContract';
 
 export type CofheReadContractsContract = {
   address: Address;
@@ -15,126 +18,237 @@ export type CofheReadContractsContract = {
   args?: readonly unknown[];
 };
 
-export type CofheReadContractsMulticallOptions = {
-  /**
-   * When `true` (default in viem), returns per-call status objects.
-   * When `false`, throws on any failed call.
-   */
-  allowFailure?: boolean;
-  /** Optional viem multicall options (kept loose to avoid coupling to viem's internal generics). */
-  [key: string]: unknown;
-};
+/**
+ * One `contracts` entry, checked against its own `abi`: a literal `functionName` must be one of
+ * the ABI's view/pure functions and `args` must match that function's inputs — or, as on
+ * `useCofheReadContract`, be `undefined` while they are not known yet (`args: account ? [account]
+ * : undefined`, with the batch gated by `enabled`). A `functionName` widened to `string` (a `.map`
+ * without `as const`) is accepted as-is, unchecked, like an entry whose `abi` is not literal — the
+ * result is `unknown` in both cases (`CofheReadContractsEntryResult`).
+ */
+export type CofheReadContractsEntry<contract> = contract extends { abi: infer abi extends Abi }
+  ? contract extends { functionName: infer functionName extends ContractFunctionName<abi, 'pure' | 'view'> }
+    ? {
+        address: Address;
+        abi: abi;
+        functionName: functionName;
+        args?: ContractFunctionArgs<abi, 'pure' | 'view', functionName> | undefined;
+      }
+    : contract extends { functionName: infer functionName extends string }
+      ? string extends functionName
+        ? { address: Address; abi: abi; functionName: string; args?: readonly unknown[] | undefined }
+        : {
+            address: Address;
+            abi: abi;
+            functionName: ContractFunctionName<abi, 'pure' | 'view'>;
+            args?: readonly unknown[] | undefined;
+          }
+      : CofheReadContractsContract
+  : CofheReadContractsContract;
 
-export type CofheReadContractsItem = {
-  result?: unknown;
+/**
+ * The `contracts` parameter for a given (narrowed) array type: the same walk as viem's
+ * `MulticallContracts` — a literal tuple entry by entry, a homogeneous list element-wise, anything
+ * looser as-is — with `CofheReadContractsEntry`'s optional `args` instead of viem's mandatory ones.
+ */
+export type CofheReadContractsEntries<contracts extends readonly unknown[]> = contracts extends readonly []
+  ? readonly []
+  : contracts extends readonly [infer contract, ...infer rest]
+    ? readonly [CofheReadContractsEntry<contract>, ...CofheReadContractsEntries<[...rest]>]
+    : readonly unknown[] extends contracts
+      ? contracts
+      : contracts extends readonly (infer contract)[]
+        ? readonly CofheReadContractsEntry<contract>[]
+        : readonly CofheReadContractsContract[];
+
+export type CofheReadContractsItem<TResult = unknown> = {
+  result?: TResult;
   error?: Error;
 };
 
+/**
+ * The decoded result of one `contracts` entry: what `useCofheReadContract` returns for the same
+ * read, encrypted outputs included — an `euint64` output is the encrypted value `{ ctHash, utype }`,
+ * not a bigint. `unknown` when the entry is not literal enough to tell: an `abi` typed as plain
+ * `Abi`, or a `functionName` widened to `string` (a `.map` without `as const`) — never a guess
+ * across the ABI's functions, same rule as viem's multicall.
+ */
+export type CofheReadContractsEntryResult<contract> = contract extends { abi: infer abi extends Abi }
+  ? contract extends { functionName: infer functionName extends ContractFunctionName<abi, 'pure' | 'view'> }
+    ? contract extends { args: infer args extends readonly unknown[] }
+      ? CofheReturnType<abi, functionName, args>
+      : CofheReturnType<abi, functionName>
+    : unknown
+  : unknown;
+
+/**
+ * `data` for a `contracts` array: one item per entry, in input order, each typed by its own entry.
+ * A literal tuple maps index by index; a homogeneous list (`tokens.map(...)`, with a literal
+ * `functionName`) maps to an array of that entry's item; anything looser keeps `unknown` results.
+ * The walk mirrors viem's `MulticallResults`, with the SDK's encrypted-aware return type per entry.
+ */
+export type CofheReadContractsData<
+  contracts extends readonly unknown[],
+  result extends unknown[] = [],
+> = contracts extends readonly []
+  ? result
+  : contracts extends readonly [infer contract, ...infer rest]
+    ? CofheReadContractsData<
+        [...rest],
+        [...result, CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined]
+      >
+    : readonly unknown[] extends contracts
+      ? (CofheReadContractsItem | undefined)[]
+      : contracts extends readonly (infer contract)[]
+        ? (CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined)[]
+        : (CofheReadContractsItem | undefined)[];
+
 export type UseCofheReadContractsQueryOptions = Omit<
-  UseQueryOptions<CofheReadContractsItem[], Error>,
-  'queryKey' | 'queryFn'
+  UseQueryOptions<unknown, Error>,
+  'queryKey' | 'queryFn' | 'select'
 > & {
   enabled?: boolean;
 };
 
-export function constructCofheReadContractsQueryKey(params: {
-  cofheChainId?: number;
-  contracts?: readonly CofheReadContractsContract[];
-  allowFailure?: boolean;
-  enabled?: boolean;
-}): readonly unknown[] {
-  const { cofheChainId, contracts, allowFailure, enabled } = params;
+export type UseCofheReadContractsResult<TContracts extends readonly unknown[] = readonly unknown[]> = {
+  /**
+   * One item per contract entry, in input order, typed by its entry (see `CofheReadContractsData`).
+   * An index is `undefined` while that read has not resolved yet — entries settle independently, so
+   * a partially-resolved array is normal. The whole array is `undefined` when the hook is disabled or
+   * `contracts` is empty.
+   */
+  data: CofheReadContractsData<Narrow<TContracts>> | undefined;
+  /** True while any entry is doing its initial load. */
+  isLoading: boolean;
+  /** True while any entry is fetching (initial load or refetch). */
+  isFetching: boolean;
+  /** True once every entry has resolved successfully. */
+  isSuccess: boolean;
+  /** True when any entry failed — regardless of `allowFailure`, which only shapes `error`. */
+  isError: boolean;
+  /**
+   * `null` unless `allowFailure` is `false` and at least one entry failed — then the first failure,
+   * mirroring viem's multicall throw-on-failure semantics. With `allowFailure: true` (the default)
+   * failures stay per-item in `data[i].error`.
+   */
+  error: Error | null;
+  /** Refetches every entry. */
+  refetch: () => Promise<void>;
+  /** True when `requiresACP` is set and there is no valid active ACP (all reads are gated off). */
+  disabledDueToMissingValidACP: boolean;
+  /** True when the batch is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
+};
 
-  const serializedContracts = (contracts ?? []).map((contract) => {
-    // Avoid putting non-serializable values in queryKey.
-    // `abi` is typically a plain JSON array, safe to include.
-    return {
-      address: contract.address,
-      functionName: contract.functionName,
-      args: Array.isArray(contract.args) ? serializeBigintRecursively(contract.args) : contract.args,
-      abi: contract.abi,
-    };
-  });
-
-  return [QUERY_CACHE_PREFIX, cofheChainId, serializedContracts, allowFailure, enabled];
-}
-
-export function getEnabledForCofheReadContracts(params: {
-  publicClient: unknown;
-  cofheChainId?: number;
-  contracts?: readonly CofheReadContractsContract[];
-  userEnabled?: boolean;
-}): boolean {
-  const { publicClient, cofheChainId, contracts, userEnabled } = params;
-
-  return !!publicClient && !!cofheChainId && !!contracts && contracts.length > 0 && (userEnabled ?? true);
-}
-
-function isViemAllowFailureResult(
-  value: unknown
-): value is { status: 'success' | 'failure'; result?: unknown; error?: Error } {
-  return !!value && typeof value === 'object' && 'status' in value;
-}
-
-function transformResultForContract(contract: CofheReadContractsContract, value: unknown): unknown {
-  // `transformEncryptedReturnTypes` expects Cofhe ABI & function typing, but multicall contracts can be heterogeneous.
-  // Runtime transformation still works; we keep types intentionally loose here.
-  return transformEncryptedReturnTypes(contract.abi, contract.functionName, value);
-}
-
-export function useCofheReadContracts(
+/**
+ * Plural companion of `useCofheReadContract`: a DYNAMIC-length list of reads in one hook call —
+ * the shape a fixed set of per-value hooks cannot express (one read per token-list entry, one per
+ * order id, …).
+ *
+ * Each entry runs as its own query with the exact `useCofheReadContract` query key, so everything
+ * built on those keys applies per entry with no extra wiring:
+ * - a `useCofheWriteContract({ invalidates: [{ address, functionName }] })` target refreshes the
+ *   matching entries here just like the singular reads;
+ * - the refetch an invalidation triggers is block-aware — it waits until the serving RPC node
+ *   knows the mined block before trusting its state;
+ * - cache entries are shared with any `useCofheReadContract` of the same read.
+ *
+ * With a batching transport the entries still coalesce into a single JSON-RPC request; unlike the
+ * previous multicall implementation this needs no multicall3 deployment on the chain.
+ *
+ * Typing: `contracts` is a const generic checked entry by entry against its own `abi`
+ * (`CofheReadContractsEntries` over `Narrow<…>` — the shape viem's `multicall` and wagmi's
+ * `useReadContracts` use; `Narrow` is what carries the literals through inference), and
+ * `data[i].result` is typed per entry (`CofheReadContractsData`). Entries built in a `.map` keep
+ * their types when the `functionName` stays literal (`functionName: 'balanceOf' as const`); a
+ * looser shape still works and falls back to `unknown` results.
+ *
+ * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, for the
+ * whole batch.
+ */
+export function useCofheReadContracts<
+  const TContracts extends readonly unknown[] = readonly CofheReadContractsContract[],
+>(
   params: {
-    contracts?: readonly CofheReadContractsContract[];
-    multicallOptions?: CofheReadContractsMulticallOptions;
-  },
+    contracts?: CofheReadContractsEntries<Narrow<TContracts>>;
+    /**
+     * Kept for API compatibility with the multicall-based implementation; only `allowFailure` is
+     * honored (see `UseCofheReadContractsResult.error`). Other multicall options are obsolete —
+     * the reads are individual calls now.
+     */
+    multicallOptions?: { allowFailure?: boolean; [key: string]: unknown };
+    /** Gate every read on a valid ACP (see `acp`), like `useCofheReadContract`. Defaults to `false`. */
+    requiresACP?: boolean;
+    /**
+     * Gate on this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>` or
+     * the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
+  } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractsQueryOptions
-): UseQueryResult<CofheReadContractsItem[], Error> {
-  const { contracts, multicallOptions } = params;
+): UseCofheReadContractsResult<TContracts> {
+  const { contracts, multicallOptions, requiresACP = false, acp } = params;
+  const allowFailure = multicallOptions?.allowFailure ?? true;
+  // The per-entry types live at the signature; the batch itself runs on the loose entry shape,
+  // exactly as the singular hook's query builder does.
+  const entries = (contracts ?? []) as readonly CofheReadContractsContract[];
 
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
+  // The whole batch shares one chain and client — same semantics as the singular hook.
+  const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
+  const gateACP = useCofheEffectiveACP({ acp, chainId: cofheChainId });
 
-  const enabled = getEnabledForCofheReadContracts({
-    publicClient,
-    cofheChainId,
-    contracts,
-    userEnabled: queryOptions?.enabled,
-  });
-
-  const { enabled: _ignoredEnabled, ...restQueryOptions } = queryOptions || {};
-
-  return useInternalQuery({
-    enabled,
-    queryKey: constructCofheReadContractsQueryKey({
-      cofheChainId,
-      contracts,
-      allowFailure: multicallOptions?.allowFailure,
-    }),
-    queryFn: async () => {
-      assert(publicClient, 'PublicClient should be guaranteed by enabled check');
-      assert(contracts && contracts.length > 0, 'Contracts should be guaranteed by enabled check');
-
-      const raw = await publicClient.multicall({
-        contracts,
-        ...(multicallOptions || {}),
+  const results = useInternalQueries({
+    queries: entries.map((contract) =>
+      createCofheReadContractQueryOptions({
+        enabled: getEnabledForCofheReadContract({
+          publicClient,
+          address: contract.address,
+          abi: contract.abi,
+          functionName: contract.functionName,
+          requiresACP,
+          hasValidActiveACP: gateACP.isValid,
+          userEnabled: queryOptions?.enabled,
+        }),
+        cofheChainId,
+        address: contract.address,
+        abi: contract.abi,
+        functionName: contract.functionName,
+        // Heterogeneous entries defeat per-entry generic inference; runtime behavior (block-aware
+        // read + encrypted-return transformation) is identical to the singular hook.
+        args: contract.args as never,
+        requiresACP,
+        activeACPHash: gateACP.acp?.hash,
+        publicClient,
+        queryOptions: queryOptions as UseCofheReadContractQueryOptions<Abi, never>,
+      })
+    ),
+    combine: (queryResults) => {
+      const items = queryResults.map((query): CofheReadContractsItem | undefined => {
+        if (query.isSuccess) return { result: query.data };
+        if (query.isError) return { error: query.error };
+        return undefined;
       });
 
-      // When `allowFailure: true`, viem returns per-item { status, result?, error? }.
-      // When `allowFailure: false`, viem returns an array of results (and throws on failure).
-      return raw.map((item, index): CofheReadContractsItem => {
-        const contract = contracts[index];
-        if (!contract) return { error: new Error('Multicall result length mismatch') };
-
-        if (isViemAllowFailureResult(item)) {
-          if (item.status === 'failure') {
-            return { error: item.error ?? new Error('Multicall call failed') };
-          }
-          return { result: transformResultForContract(contract, item.result) };
-        }
-
-        return { result: transformResultForContract(contract, item) };
-      });
+      return {
+        data: queryResults.length > 0 ? items : undefined,
+        isLoading: queryResults.some((query) => query.isLoading),
+        isFetching: queryResults.some((query) => query.isFetching),
+        isSuccess: queryResults.length > 0 && queryResults.every((query) => query.isSuccess),
+        isError: queryResults.some((query) => query.isError),
+        error: allowFailure ? null : queryResults.find((query) => query.isError)?.error ?? null,
+        refetch: async () => {
+          await Promise.all(queryResults.map((query) => query.refetch()));
+        },
+      };
     },
-    ...restQueryOptions,
   });
+
+  return {
+    ...results,
+    // `combine` assembles the items on the loose shape; each `result` is what the singular query
+    // for that entry decoded, which is exactly what `CofheReadContractsData` states per entry.
+    data: results.data as CofheReadContractsData<Narrow<TContracts>> | undefined,
+    disabledDueToMissingValidACP: requiresACP && !gateACP.isValid,
+    disabledDueToWrongChain,
+  };
 }

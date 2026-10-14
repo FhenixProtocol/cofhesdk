@@ -10,6 +10,7 @@ A mock smart contract library for testing CoFHE (Confidential Computing Framewor
 ## Features
 
 - Mock implementations of core CoFHE contracts:
+  - MockCoFHEAddressBook (deployed at FHE.sol's `COFHE_ADDRESS_BOOK`, resolves the TaskManager)
   - MockTaskManager
   - MockThresholdNetwork
   - MockZkVerifier
@@ -136,6 +137,15 @@ For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)`
 When interacting with CoFHE this request is routed to the Threshold Network, which returns the plaintext to the consumer for local use.
 
 When working with the mocks, the `cofheClient` instead queries the `MockThresholdNetwork` contract, which verifies the request `acp` and returns the decrypted result.
+
+### Gas
+
+Because the mocks replicate the off-chain FHE computation on-chain (plaintext math, mock storage writes, logging), transactions consume more gas than they would on a real CoFHE network. The mocks account for this in two ways:
+
+- **Foundry**: when gas exclusion is enabled (`setMockGasExcluded(true)` — the foundry plugin's `deployMocks()` does this automatically), the mock-only work runs between `pauseGasMetering` / `resumeGasMetering` cheatcodes, so forge's reported gas approximates real-network cost. Requires cheatcode access (`vm.allowCheatcodes(taskManagerAddress)`) and forge ≥ 1.0; without either, execution silently stays metered.
+- **Everywhere else** (Hardhat, anvil): `MockTaskManager` measures each block of mock-only work with `gasleft()` and emits a `MockGasConsumed(uint256)` event. Summing these events from a receipt and subtracting from `gasUsed` yields the adjusted cost — the hardhat plugins expose this as `getAdjustedGasUsed(receipt)` / `getAdjustedGasBreakdown(receipt)` and an opt-in `gasSummary` table.
+
+`eth_estimateGas` is never adjusted: the mock work really executes, so transactions still need the raw gas limit.
 
 ### Using Foundry
 

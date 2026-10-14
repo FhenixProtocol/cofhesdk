@@ -24,6 +24,16 @@
       "passThroughEnv": ["TEST_PRIVATE_KEY", "MATRIX_CHAIN", "CI"],
       "env": ["TEST_STAGING_ENABLED"]
     },
+    "test:live": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "CI"],
+      "env": ["TEST_STAGING_ENABLED"]
+    },
+    "test:threadpool": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI"],
+      "env": ["TEST_STAGING_ENABLED", "TEST_THREADPOOL_ENABLED"]
+    },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },

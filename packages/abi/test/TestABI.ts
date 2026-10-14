@@ -403,6 +403,91 @@ export const TestABI = [
   },
   {
     type: 'function',
+    name: 'fnStructArrayContainsEncryptedInput',
+    inputs: [
+      {
+        name: 'orders',
+        type: 'tuple[]',
+        internalType: 'struct ABITest.ContainsEncryptedInput[]',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'encryptedInput',
+            type: 'bytes32',
+            internalType: 'externalEuint32',
+          },
+        ],
+      },
+      {
+        name: 'inputProof',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'fnStructArrayFixedContainsEncryptedInput',
+    inputs: [
+      {
+        name: 'orders',
+        type: 'tuple[2]',
+        internalType: 'struct ABITest.ContainsEncryptedInput[2]',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'encryptedInput',
+            type: 'bytes32',
+            internalType: 'externalEuint32',
+          },
+        ],
+      },
+      {
+        name: 'inputProof',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'fnPlainStructArray',
+    inputs: [
+      {
+        name: 'rows',
+        type: 'tuple[]',
+        internalType: 'struct ABITest.Plain[]',
+        components: [
+          {
+            name: 'id',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'owner',
+            type: 'address',
+            internalType: 'address',
+          },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'numberHash',
     inputs: [],
     outputs: [

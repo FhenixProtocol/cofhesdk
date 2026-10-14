@@ -93,3 +93,102 @@ describe('transformEncryptedReturnTypes', () => {
     ]);
   });
 });
+
+// Struct-array returns (`tuple[]` / `tuple[N]`) — e.g. a batch getter returning
+// `Order[]`. The regression: the array itself was processed as one tuple, so the
+// named-component lookups found nothing and the result collapsed to `{}`.
+const StructArrayABI = [
+  {
+    type: 'function',
+    name: 'fnReturnStructArray',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ABITest.ContainsEncryptedResult[]',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'encryptedResult',
+            type: 'bytes32',
+            internalType: 'euint32',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    // Hand-written ABI shape: no internalType fields at all.
+    type: 'function',
+    name: 'fnReturnPlainStructArray',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'owner', type: 'address' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'fnReturnStructArrayFixed',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[2]',
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'owner', type: 'address' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+] as const;
+
+describe('transformEncryptedReturnTypes: struct arrays', () => {
+  it('should transform each element of a struct array (encrypted fields included)', () => {
+    const result = transformEncryptedReturnTypes(StructArrayABI, 'fnReturnStructArray', [
+      { value: 1n, encryptedResult: '0x1' },
+      { value: 2n, encryptedResult: '0x2' },
+    ]);
+    expect(result).toEqual([
+      { value: 1n, encryptedResult: { ctHash: '0x1', utype: FheTypes.Uint32 } },
+      { value: 2n, encryptedResult: { ctHash: '0x2', utype: FheTypes.Uint32 } },
+    ]);
+  });
+
+  it('should keep a plain struct array intact (hand-written ABI, no internalType)', () => {
+    const rows = [
+      { id: 1n, owner: '0xaaaa000000000000000000000000000000000001' },
+      { id: 2n, owner: '0xaaaa000000000000000000000000000000000002' },
+    ] as const;
+    const result = transformEncryptedReturnTypes(StructArrayABI, 'fnReturnPlainStructArray', rows);
+    expect(result).toEqual(rows);
+  });
+
+  it('should preserve an empty struct array', () => {
+    const result = transformEncryptedReturnTypes(StructArrayABI, 'fnReturnPlainStructArray', []);
+    expect(result).toEqual([]);
+  });
+
+  it('should enforce the declared length of a fixed-size struct array', () => {
+    expect(() =>
+      transformEncryptedReturnTypes(StructArrayABI, 'fnReturnStructArrayFixed', [
+        { id: 1n, owner: '0xaaaa000000000000000000000000000000000001' },
+      ] as never)
+    ).toThrow(/size mismatch/i);
+  });
+});

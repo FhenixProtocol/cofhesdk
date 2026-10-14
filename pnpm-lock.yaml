@@ -164,8 +164,8 @@ importers:
         specifier: workspace:*
         version: link:../mock-contracts
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -217,8 +217,8 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: '>=0.2.0'
-        version: 0.2.0
+        specifier: '>=1.0.0'
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
@@ -286,12 +286,15 @@ importers:
       typescript:
         specifier: 5.5.4
         version: 5.5.4
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
 
   packages/mock-contracts:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -678,8 +681,8 @@ importers:
         specifier: workspace:*
         version: link:../setup
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.1.0
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
@@ -719,21 +722,45 @@ importers:
       '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../../packages/mock-contracts
+      '@cofhe/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       '@cofhe/test-setup':
         specifier: workspace:*
         version: link:../setup
+      '@tanstack/react-query':
+        specifier: 5.100.10
+        version: 5.100.10(react@18.3.1)
+      '@testing-library/dom':
+        specifier: 10.4.1
+        version: 10.4.1
+      '@testing-library/react':
+        specifier: 16.3.0
+        version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.19)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
       '@types/node':
         specifier: 20.19.15
         version: 20.19.15
+      '@types/react':
+        specifier: 18.2.61
+        version: 18.2.61
+      '@types/react-dom':
+        specifier: 18.2.19
+        version: 18.2.19
       '@vitest/browser':
         specifier: 3.2.4
         version: 3.2.4(playwright@1.55.0)(vitest@3.2.4)
       playwright:
         specifier: 1.55.0
         version: 1.55.0
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -747,8 +774,8 @@ importers:
   test/setup:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -2583,8 +2610,8 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@fhenixprotocol/cofhe-contracts@0.2.0:
-    resolution: {integrity: sha512-8VNnTSSG1xdZPFwQybBWX0xzOYIlL9v6QAFa35tER7ChaAJx9JUcNT2UqZQux84ZCplOkS4cCfUv/mtQ/6nEzg==}
+  /@fhenixprotocol/cofhe-contracts@1.0.0:
+    resolution: {integrity: sha512-ThkpKiGog+v0peA8U6R7Goow4Cvlp4pXlAeRZN8VCnE5+7C71ozZciybDLExRbdHo4sKo2B/UN554qBMHOLZdw==}
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
@@ -7530,6 +7557,29 @@ packages:
       lz-string: 1.5.0
       picocolors: 1.1.1
       pretty-format: 27.5.1
+    dev: true
+
+  /@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.19)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-kFSyxiEDwv1WLl2fgsq6pPBbw5aWKrsY2/noi1Id0TK0UParSF62oFQFGHXIyaG4pp2tEub/Zlel+fjjZILDsw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@testing-library/dom': ^10.0.0
+      '@types/react': ^18.0.0 || ^19.0.0
+      '@types/react-dom': ^18.0.0 || ^19.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.28.4
+      '@testing-library/dom': 10.4.1
+      '@types/react': 18.2.61
+      '@types/react-dom': 18.2.19
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
     dev: true
 
   /@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1):

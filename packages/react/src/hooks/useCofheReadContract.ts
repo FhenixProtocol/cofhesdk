@@ -1,21 +1,37 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import {
+  getAddress,
   type Address,
   type ContractFunctionReturnType,
   type ContractFunctionName,
   type ContractFunctionArgs,
   type ReadContractReturnType,
 } from 'viem';
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { useCofheActiveACP } from './useCofheACPs';
+import { useMemo } from 'react';
+import { useCofheConnection, type useCofhePublicClient } from './useCofheConnection';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
 import { withInvalidationContext } from '@/utils/invalidationContext';
+import { asCofhePublicClient, type PublicClientLike } from '@/utils/viemClientBridge';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
+
+/// Best-effort checksum. The address segment of every read key — and of every invalidation
+/// prefix, since both flow through `constructCofheReadContractQueryForInvalidation` — is
+/// canonicalized here, so a read key and an invalidation descriptor can never disagree on
+/// address case. Anything that isn't a valid address passes through untouched.
+export function checksummedOr(address: Address | undefined): Address | undefined {
+  if (!address) return address;
+  try {
+    return getAddress(address);
+  } catch {
+    return address;
+  }
+}
 
 export function constructCofheReadContractQueryKey({
   cofheChainId,
@@ -24,7 +40,6 @@ export function constructCofheReadContractQueryKey({
   args,
   requiresACP,
   activeACPHash,
-  enabled,
 }: {
   cofheChainId?: number;
   address?: Address;
@@ -32,7 +47,6 @@ export function constructCofheReadContractQueryKey({
   args?: readonly unknown[];
   requiresACP?: boolean;
   activeACPHash?: string;
-  enabled?: boolean;
 }): readonly unknown[] {
   return [
     ...constructCofheReadContractQueryForInvalidation({
@@ -43,8 +57,6 @@ export function constructCofheReadContractQueryKey({
 
     args ? serializeBigintRecursively(args) : [],
     requiresACP ? activeACPHash : undefined,
-    // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
-    enabled,
   ];
 }
 
@@ -58,15 +70,117 @@ export function constructCofheReadContractQueryForInvalidation({
   functionName?: string;
   // add more specificity if needed. Just make sure it matches the order of keys
 }): readonly unknown[] {
-  return [QUERY_CACHE_PREFIX, cofheChainId, address, functionName];
+  return [QUERY_CACHE_PREFIX, cofheChainId, checksummedOr(address), functionName];
+}
+
+/** The chain segment of a cofhe read key or invalidation prefix — `undefined` for any other key. */
+export function cofheReadKeyChainId(queryKey: readonly unknown[]): number | undefined {
+  return queryKey[0] === QUERY_CACHE_PREFIX && typeof queryKey[1] === 'number' ? queryKey[1] : undefined;
+}
+
+/**
+ * The bare cofhe read prefix `['cofheReadContract']` — the one key that spans every chain — pinned
+ * to `chainId`. `undefined` for any other key: a key that names a chain, or is not a cofhe read
+ * key at all. (An enabled read's key always carries its chain in slot 1: the connection sets
+ * chainId and publicClient together, and a pinned read requires `chainId`.)
+ */
+export function cofheReadKeyPinnedTo(queryKey: readonly unknown[], chainId: number): readonly unknown[] | undefined {
+  const isBarePrefix = queryKey.length === 1 && queryKey[0] === QUERY_CACHE_PREFIX;
+  return isBarePrefix ? [QUERY_CACHE_PREFIX, chainId] : undefined;
 }
 
 export type UseCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = Omit<UseQueryOptions<CofheReturnType<TAbi, TfunctionName>, Error>, 'queryKey' | 'queryFn'> & {
-  enabled?: boolean; // TODO: check callback variant, maybe it'll fix the issue above about forcing enable to be query key
+  // Plain boolean only (no callback form): it is composed with the hook's own gating
+  // (client/address/ACP presence) at construction time.
+  enabled?: boolean;
 };
+
+/**
+ * Which chain a read belongs to — its cache key's chain segment — and optionally the client that
+ * serves it:
+ * - neither: the read follows the connected wallet, its chain and its client;
+ * - `chainId` alone GUARDS the read to that chain: it runs only while the wallet is connected to
+ *   it, and is otherwise disabled with `disabledDueToWrongChain` — never a silent read of the
+ *   wrong chain;
+ * - `publicClient` (which requires `chainId`) serves the read through that client instead,
+ *   wherever the wallet sits — or with no wallet connected at all. A client whose own chain
+ *   disagrees with `chainId` keeps the read disabled (`disabledDueToWrongChain`).
+ *
+ * ACP gating (`requiresACP`) and decryption follow the read's chain: they use that chain's ACP.
+ */
+export type CofheReadChainParams =
+  | {
+      /**
+       * The read's chain — its cache key's chain segment.
+       * - alone: GUARDS the read — it runs only while the wallet is connected to this chain,
+       *   otherwise it stays disabled (`disabledDueToWrongChain`);
+       * - with `publicClient`: the read goes through that client, wherever the wallet sits.
+       *
+       * Omit both to follow the connected wallet.
+       */
+      chainId?: number;
+      /**
+       * Serve the read through this client instead of the wallet's — wherever the wallet sits, or
+       * with no wallet connected. Requires `chainId`; a client whose own chain disagrees with it
+       * keeps the read disabled (`disabledDueToWrongChain`). While `undefined` (e.g. still
+       * loading), the read behaves like `chainId` alone.
+       */
+      publicClient?: undefined;
+    }
+  | {
+      /**
+       * The read's chain — its cache key's chain segment.
+       * - alone: GUARDS the read — it runs only while the wallet is connected to this chain,
+       *   otherwise it stays disabled (`disabledDueToWrongChain`);
+       * - with `publicClient`: the read goes through that client, wherever the wallet sits.
+       *
+       * Omit both to follow the connected wallet.
+       */
+      chainId: number;
+      /**
+       * Serve the read through this client instead of the wallet's — wherever the wallet sits, or
+       * with no wallet connected. Requires `chainId`; a client whose own chain disagrees with it
+       * keeps the read disabled (`disabledDueToWrongChain`). While `undefined` (e.g. still
+       * loading), the read behaves like `chainId` alone.
+       */
+      publicClient: PublicClientLike | undefined;
+    };
+
+/** Resolves a read's `CofheReadChainParams` into the chain it belongs to and the client serving it. */
+export function useCofheReadTarget({ chainId, publicClient: ownClient }: CofheReadChainParams): {
+  publicClient: ReturnType<typeof useCofhePublicClient>;
+  cofheChainId: number | undefined;
+  disabledDueToWrongChain: boolean;
+} {
+  const connection = useCofheConnection();
+  const ownPublicClient = useMemo(() => asCofhePublicClient(ownClient), [ownClient]);
+
+  if (ownPublicClient) {
+    const clientChainId = ownPublicClient.chain?.id;
+    const wrongChain = chainId === undefined || (clientChainId !== undefined && clientChainId !== chainId);
+    return {
+      publicClient: wrongChain ? undefined : ownPublicClient,
+      cofheChainId: chainId,
+      disabledDueToWrongChain: wrongChain,
+    };
+  }
+
+  if (chainId === undefined) {
+    return { publicClient: connection.publicClient, cofheChainId: connection.chainId, disabledDueToWrongChain: false };
+  }
+
+  // Guarded: only the connected client of THAT chain may serve the read. Disconnected is not
+  // "wrong chain" — the read waits for a connection like any other.
+  const wrongChain = connection.chainId !== undefined && connection.chainId !== chainId;
+  return {
+    publicClient: wrongChain ? undefined : connection.publicClient,
+    cofheChainId: chainId,
+    disabledDueToWrongChain: wrongChain,
+  };
+}
 
 export function getEnabledForCofheReadContract(params: {
   publicClient: unknown;
@@ -158,7 +272,6 @@ export function createCofheReadContractQueryOptions<
       args: Array.isArray(args) ? args : undefined,
       requiresACP,
       activeACPHash,
-      enabled,
     }),
     queryFn: withInvalidationContext<
       readonly unknown[],
@@ -204,7 +317,18 @@ export type UseCofheReadContractResult<
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = UseQueryResult<CofheReturnType<TAbi, TfunctionName>, Error> & {
   disabledDueToMissingValidACP: boolean;
+  /** The read is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
 };
+
+/**
+ * Read a contract view function through the SDK cache; `useCofheWriteContract({ invalidates })`
+ * refreshes it block-awarely. Which chain and client serve it:
+ * - neither `chainId` nor `publicClient`: the connected wallet's;
+ * - `chainId` alone: only while the wallet is on that chain (else `disabledDueToWrongChain`);
+ * - `chainId` + `publicClient`: that client, wherever the wallet sits;
+ * - `publicClient` alone: a type error.
+ */
 export function useCofheReadContract<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
@@ -215,14 +339,19 @@ export function useCofheReadContract<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
-  },
+    /**
+     * Gate on this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>` or
+     * the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
+  } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
-  const { address, abi, functionName, args, requiresACP = true } = params;
+  const { address, abi, functionName, args, requiresACP = true, acp } = params;
 
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
-  const activeACP = useCofheActiveACP();
+  const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
+  // The ACP the read gates on: the `acp` option, else the enclosing scope, else the active one.
+  const gateACP = useCofheEffectiveACP({ acp, chainId: cofheChainId });
 
   const enabled = getEnabledForCofheReadContract({
     publicClient,
@@ -230,7 +359,7 @@ export function useCofheReadContract<
     abi,
     functionName,
     requiresACP,
-    hasValidActiveACP: !!activeACP?.isValid,
+    hasValidActiveACP: gateACP.isValid,
     userEnabled: queryOptions?.enabled,
   });
 
@@ -243,7 +372,7 @@ export function useCofheReadContract<
       functionName,
       args: Array.isArray(args) ? args : undefined,
       requiresACP,
-      activeACPHash: activeACP?.acp.hash,
+      activeACPHash: gateACP.acp?.hash,
       publicClient,
       queryOptions,
     })
@@ -251,6 +380,7 @@ export function useCofheReadContract<
 
   return {
     ...result,
-    disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
+    disabledDueToMissingValidACP: requiresACP && !gateACP.isValid,
+    disabledDueToWrongChain,
   };
 }

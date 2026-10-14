@@ -22,12 +22,21 @@ import { deployMocks, type DeployMocksArgs, type LogMocksDeploy } from './deploy
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { getFixedMockContract, mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
+import {
+  mock_getAdjustedGasBreakdown,
+  mock_getAdjustedGasUsed,
+  printMockGasSummary,
+  type AdjustableGasReceipt,
+  type AdjustedGasBreakdown,
+} from './gas.js';
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockThresholdNetworkArtifact,
+  MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   type MockACL,
+  type MockCoFHEAddressBook,
   type MockTaskManager,
   type MockThresholdNetwork,
   type MockZkVerifier,
@@ -45,6 +54,14 @@ declare module 'hardhat/types/config' {
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning?: boolean;
       /**
+       * Print a per-method gas summary after `hardhat test`, showing raw gas next to
+       * adjusted gas (mock-only overhead excluded - an estimate of real-network cost).
+       * Reconstructed from chain history: transactions rolled back by loadFixture /
+       * evm_revert won't appear - use getAdjustedGasUsed(receipt) for exact numbers.
+       * (default: false)
+       */
+      gasSummary?: boolean;
+      /**
        * Controls deploy-mocks console output.
        * - `''`   — silent, no output
        * - `'v'`  — single summary line (default)
@@ -60,6 +77,8 @@ declare module 'hardhat/types/config' {
       logMocks: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning: boolean;
+      /** Print a per-method adjusted-gas summary after `hardhat test` (default: false) */
+      gasSummary: boolean;
       mocksDeployVerbosity: LogMocksDeploy;
     };
   }
@@ -132,26 +151,25 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (taskArgs: { sou
 });
 
 extendConfig((config, userConfig) => {
-  // Allow users to override the localcofhe network config
-  if (userConfig.networks && userConfig.networks.localcofhe) {
-    return;
+  // Inject localcofhe preset only when the user hasn't defined it.
+  // Must not early-return: sepolia presets and config.cofhe still need to run
+  // (Hardhat 3 plugin already scopes the skip this way).
+  if (!userConfig.networks?.localcofhe) {
+    config.networks.localcofhe = {
+      gas: 'auto',
+      gasMultiplier: 1.2,
+      gasPrice: 'auto',
+      timeout: 10_000,
+      httpHeaders: {},
+      url: 'http://127.0.0.1:42069',
+      accounts: [
+        '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+        '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+        '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+        '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
+      ],
+    };
   }
-
-  // Default config
-  config.networks.localcofhe = {
-    gas: 'auto',
-    gasMultiplier: 1.2,
-    gasPrice: 'auto',
-    timeout: 10_000,
-    httpHeaders: {},
-    url: 'http://127.0.0.1:42069',
-    accounts: [
-      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-      '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
-      '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
-      '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
-    ],
-  };
 
   // Only add Sepolia config if user hasn't defined it
   if (!userConfig.networks?.['eth-sepolia']) {
@@ -185,6 +203,7 @@ extendConfig((config, userConfig) => {
   config.cofhe = {
     logMocks: userConfig.cofhe?.logMocks ?? false,
     gasWarning: userConfig.cofhe?.gasWarning ?? false,
+    gasSummary: userConfig.cofhe?.gasSummary ?? false,
     mocksDeployVerbosity: (userConfig.cofhe?.mocksDeployVerbosity ?? 'v') as LogMocksDeploy,
   };
 });
@@ -243,7 +262,12 @@ task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
       mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
   }
-  return runSuper();
+
+  const result = await runSuper();
+  if (hre.config.cofhe.gasSummary) {
+    await printMockGasSummary(hre);
+  }
+  return result;
 });
 
 task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
@@ -277,6 +301,7 @@ export * from './utils.js';
 export * from './fund.js';
 export * from './logging.js';
 export * from './deploy.js';
+export * from './gas.js';
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
@@ -320,6 +345,26 @@ declare module 'hardhat/types/runtime' {
        * @returns {Promise<CofheClient>} The CoFHE client instance
        */
       createClientWithBatteries: (signer?: HardhatEthersSigner) => Promise<CofheClient>;
+
+      /**
+       * Returns a transaction's gas usage excluding mock-only overhead (FHE op replication,
+       * decrypt-task storage, mock logging) - an estimate of what the transaction would cost
+       * on a real CoFHE network. Pure function of the receipt (sums the mock task manager's
+       * MockGasConsumed events from `receipt.logs`); on a real network the receipt carries no
+       * such events and the raw `gasUsed` is returned unchanged.
+       * @param {AdjustableGasReceipt} receipt - The transaction receipt (ethers or viem shape)
+       * @returns {bigint} gasUsed minus mock overhead
+       */
+      getAdjustedGasUsed: (receipt: AdjustableGasReceipt) => bigint;
+
+      /**
+       * Full gas breakdown of a transaction receipt: raw `gasUsed`, the mock-only `mockGas`,
+       * the `adjustedGasUsed` (raw minus mock), and the number of mock gas events.
+       * See getAdjustedGasUsed.
+       * @param {AdjustableGasReceipt} receipt - The transaction receipt (ethers or viem shape)
+       * @returns {AdjustedGasBreakdown} The breakdown
+       */
+      getAdjustedGasBreakdown: (receipt: AdjustableGasReceipt) => AdjustedGasBreakdown;
 
       mocks: {
         /**
@@ -392,6 +437,12 @@ declare module 'hardhat/types/runtime' {
          * @param {bigint} expectedValue - The expected plaintext value
          */
         expectPlaintext: (ctHash: bigint | string, expectedValue: bigint) => Promise<void>;
+
+        /**
+         * Get the MockCoFHEAddressBook contract (typed via typechain)
+         * @returns {Promise<MockCoFHEAddressBook>} The MockCoFHEAddressBook contract
+         */
+        getMockCoFHEAddressBook: () => Promise<MockCoFHEAddressBook>;
 
         /**
          * Get the MockTaskManager contract (typed via typechain)
@@ -493,6 +544,8 @@ extendEnvironment((hre) => {
       // Return client
       return client;
     },
+    getAdjustedGasUsed: mock_getAdjustedGasUsed,
+    getAdjustedGasBreakdown: mock_getAdjustedGasBreakdown,
     mocks: {
       withLogs: async (closureName: string, closure: () => Promise<void>) => {
         return mock_withLogs(hre, closureName, closure);
@@ -514,6 +567,8 @@ extendEnvironment((hre) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
+      getMockCoFHEAddressBook: async () =>
+        getFixedMockContract(hre, MockCoFHEAddressBookArtifact) as unknown as Promise<MockCoFHEAddressBook>,
       getMockTaskManager: async () =>
         getFixedMockContract(hre, MockTaskManagerArtifact) as unknown as Promise<MockTaskManager>,
       getMockACL: async () => {
