@@ -137,23 +137,26 @@ import { mock_expectPlaintext } from '@cofhe/hardhat-plugin';
 await mock_expectPlaintext(provider, ctHash, expectedValue);
 ```
 
-#### Network Utilities
+#### Creating a Client
 
 ```typescript
-// Get the CoFHE environment based on network name
-import { getCofheEnvironmentFromNetwork } from '@cofhe/hardhat-plugin';
-const environment = getCofheEnvironmentFromNetwork(networkName);
+// One call: config, client, connected signer, and a self ACP
+const [signer] = await hre.ethers.getSigners();
+const client = await hre.cofhe.createClientWithBatteries(signer);
+```
 
-// Check if a CoFHE environment is permitted for a given network
-import { isPermittedCofheEnvironment } from '@cofhe/hardhat-plugin';
-const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
+Or step by step, to customize the config:
 
-// Create a CoFHE client and connect a Hardhat signer
-import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
+```typescript
+import { hardhat } from '@cofhe/sdk/chains';
 
-const client = createCofheClient(createCofheConfig({ /* ... */ }));
+const [signer] = await hre.ethers.getSigners();
+const config = await hre.cofhe.createConfig({ supportedChains: [hardhat] });
+const client = hre.cofhe.createClient(config);
 await hre.cofhe.connectWithHardhatSigner(client, signer);
 ```
+
+Use `hre.cofhe.createConfig` rather than `createCofheConfig` from `@cofhe/sdk/node`: it sets the Hardhat environment and wires up the mock ZK verifier signer.
 
 ## Usage in Tests
 
