@@ -1,6 +1,7 @@
 import nacl from 'tweetnacl';
 import { type Hex } from 'viem';
 import { fromHexString, toBeArray, toBigInt, toHexString, isBigIntOrNumber, isString } from './utils.js';
+import { CofheError, CofheErrorCode } from '../core/error.js';
 
 /** 32-byte X25519 keys as bare hex (no 0x prefix) */
 const KEY_HEX_LENGTH = 64;
@@ -74,9 +75,28 @@ export const unsealWithPrivateKey = (privateKey: string, parsedData: EthEncrypte
     parsedData.public_key instanceof Uint8Array ? parsedData.public_key : new Uint8Array(parsedData.public_key);
   const dataToDecrypt = parsedData.data instanceof Uint8Array ? parsedData.data : new Uint8Array(parsedData.data);
 
-  const decryptedMessage = nacl.box.open(dataToDecrypt, nonce, ephemPublicKey, fromHexString(privateKey));
+  // nacl returns null for a wrong key or tampered payload and throws on malformed inputs. Either way it
+  // is a CofheError, so callers that stop retrying on those (e.g. `useCofheDecrypt`) do not re-request.
+  let decryptedMessage: Uint8Array | null;
+  let cause: Error | undefined;
+  try {
+    decryptedMessage = nacl.box.open(dataToDecrypt, nonce, ephemPublicKey, fromHexString(privateKey));
+  } catch (e) {
+    decryptedMessage = null;
+    cause = e instanceof Error ? e : undefined;
+  }
   if (!decryptedMessage) {
-    throw new Error('Failed to decrypt message');
+    // Lengths only: the context must not carry the private key or any sealing material.
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
+      message: 'Failed to unseal decrypt response',
+      cause,
+      context: {
+        dataLength: dataToDecrypt.length,
+        nonceLength: nonce.length,
+        publicKeyLength: ephemPublicKey.length,
+      },
+    });
   }
 
   return toBigInt(decryptedMessage);

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GenerateSealingKey, seal, unsealWithPrivateKey } from '../index.js';
+import { CofheError, CofheErrorCode } from '../../core/error.js';
 
 describe('seal / unsealWithPrivateKey', () => {
   it('should seal data into EthEncryptedData shape', () => {
@@ -79,6 +80,56 @@ describe('seal / unsealWithPrivateKey', () => {
       // @ts-expect-error - invalid value
       seal('not a number', publicKey);
     }).toThrow('Value not a number is not a number or bigint: string');
+  });
+
+  describe('unseal failures are CofheErrors', () => {
+    const expectUnsealFailed = (fn: () => unknown, secrets: string[] = []) => {
+      let thrown: unknown;
+      try {
+        fn();
+      } catch (e) {
+        thrown = e;
+      }
+      expect(thrown).toBeInstanceOf(CofheError);
+      expect((thrown as CofheError).code).toBe(CofheErrorCode.SealOutputFailed);
+      const serialized = (thrown as CofheError).serialize();
+      for (const secret of secrets) expect(serialized).not.toContain(secret.replace(/^0x/, ''));
+    };
+
+    it('throws SealOutputFailed when unsealing with the wrong private key', () => {
+      const pair = GenerateSealingKey();
+      const other = GenerateSealingKey();
+      const sealed = seal(BigInt(42), pair.publicKey);
+
+      expectUnsealFailed(() => unsealWithPrivateKey(other.privateKey, sealed), [other.privateKey, pair.privateKey]);
+    });
+
+    it('throws SealOutputFailed when the sealed payload is corrupted', () => {
+      const pair = GenerateSealingKey();
+      const sealed = seal(BigInt(42), pair.publicKey);
+      const corrupted = { ...sealed, data: Uint8Array.from(sealed.data) };
+      corrupted.data[0] ^= 0xff;
+
+      expectUnsealFailed(() => unsealWithPrivateKey(pair.privateKey, corrupted), [pair.privateKey]);
+    });
+
+    it('throws SealOutputFailed, keeping the cause, when nacl rejects malformed inputs', () => {
+      const pair = GenerateSealingKey();
+      const sealed = seal(BigInt(42), pair.publicKey);
+      const shortNonce = { ...sealed, nonce: sealed.nonce.slice(0, 4) };
+
+      expectUnsealFailed(() => unsealWithPrivateKey(pair.privateKey, shortNonce), [pair.privateKey]);
+      try {
+        unsealWithPrivateKey(pair.privateKey, shortNonce);
+      } catch (e) {
+        expect((e as CofheError).cause).toBeInstanceOf(Error);
+      }
+    });
+
+    it('still reports a malformed sealing key as a plain key error, not a seal failure', () => {
+      const sealed = seal(BigInt(1), GenerateSealingKey().publicKey);
+      expect(() => unsealWithPrivateKey('deadbeef', sealed)).toThrow('Private key must be of length 64');
+    });
   });
 });
 
