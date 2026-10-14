@@ -85,7 +85,7 @@ describe('createCofheConfigBase', () => {
     expectInvalidConfigItem('defaultACPExpiration', null);
 
     expectValidConfigItem('defaultACPExpiration', 5, 5);
-    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 30);
+    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 7);
   });
 
   it('fheKeyStorage', async () => {

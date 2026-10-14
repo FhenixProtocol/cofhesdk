@@ -243,6 +243,8 @@ const getOrCreateSharingACP = async (
 
 /**
  * Applies the config's ACP defaults to creation options. Explicit user options always win:
+ *  - expiration: injected only when the options carry none, `defaultExpiration` seconds
+ *    after the latest block's timestamp
  *  - revoker: injected only when the options carry NO revoker pair. The contract is the
  *    config's `defaultRevoker` for the chain, else the one the ACL serves; the id
  *    (`revokerData`) is the latest block's timestamp ("every acp revocable by default")
@@ -251,6 +253,7 @@ const getOrCreateSharingACP = async (
  */
 const applyACPDefaultsFromChain = async <
   T extends {
+    expiration?: number;
     revokerData?: number;
     revokerContract?: string;
     scope?: number;
@@ -261,9 +264,16 @@ const applyACPDefaultsFromChain = async <
   options: T,
   acpConfig: { defaultRevoker?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
   publicClient: PublicClient,
-  chainId: number
+  chainId: number,
+  defaultExpiration?: number
 ): Promise<T> => {
   const result = { ...options };
+  let latestBlockTimestamp: Promise<number> | undefined;
+  const blockTimestamp = () => (latestBlockTimestamp ??= getLatestBlockTimestamp(publicClient));
+
+  if (options.expiration == null && defaultExpiration != null) {
+    result.expiration = (await blockTimestamp()) + defaultExpiration;
+  }
 
   const hasRevokerOptions = options.revokerData != null || options.revokerContract != null;
   if (!hasRevokerOptions) {
@@ -271,7 +281,7 @@ const applyACPDefaultsFromChain = async <
       acpConfig?.defaultRevoker?.[chainId] ?? (await getAclServedAddresses(publicClient, chainId)).defaultRevoker;
     if (defaultRevoker != null) {
       result.revokerContract = defaultRevoker;
-      result.revokerData = await getBlockRevokerData(publicClient);
+      result.revokerData = await blockTimestamp();
     }
   }
 
@@ -285,20 +295,21 @@ const applyACPDefaultsFromChain = async <
 };
 
 /**
- * The chain-aware revoker id source: the latest block timestamp, not the local
- * clock. The revoker rejects future-dated ids against `block.timestamp` of the
- * LAST block, so a local clock ahead of the chain (or a chain with sparse
- * blocks) would otherwise make a freshly created acp temporarily unusable.
+ * The chain-aware time source for acp defaults: the latest block timestamp, not the
+ * local clock. The chain checks both against `block.timestamp` of the LAST block (the
+ * revoker rejects future-dated ids, the ACL rejects a past expiration), so a local clock
+ * off from the chain (or a chain with sparse blocks) would otherwise make a freshly
+ * created acp unusable.
  */
-const getBlockRevokerData = async (publicClient: PublicClient): Promise<number> => {
+const getLatestBlockTimestamp = async (publicClient: PublicClient): Promise<number> => {
   const block = await publicClient.getBlock();
-  const revokerData = Number(block.timestamp);
-  if (!Number.isSafeInteger(revokerData)) {
+  const timestamp = Number(block.timestamp);
+  if (!Number.isSafeInteger(timestamp)) {
     throw new Error(
-      `ACP revokerData cannot represent the chain block timestamp ${block.timestamp.toString()} as a safe integer`
+      `ACP defaults cannot represent the chain block timestamp ${block.timestamp.toString()} as a safe integer`
     );
   }
-  return revokerData;
+  return timestamp;
 };
 
 // REVOKE (on-chain, via the acp's revoker contract)
