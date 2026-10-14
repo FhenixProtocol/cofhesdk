@@ -58,7 +58,6 @@ function initTfhe(tfheThreads: TfheThreadsSetting = 'auto'): Promise<void> {
   return initPromise;
 }
 
-
 // Guard the top-level `self` references so this file is safe to evaluate in
 // non-worker contexts (e.g. when bundlers like webpack pull the worker chunk
 // into the server bundle for SSR). The body is dead code anywhere `self` is

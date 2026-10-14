@@ -8,9 +8,9 @@ import {
   type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
-  fromHexString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
+import { fromHexString } from '../core/utils.js';
 
 // Import node-specific storage (internal use only)
 import { createNodeStorage } from './storage.js';

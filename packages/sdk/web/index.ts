@@ -12,9 +12,9 @@ import {
   type TfheInitializer,
   type TfheThreadsSetting,
   fheTypeToString,
-  fromHexString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
+import { fromHexString } from '../core/utils.js';
 
 // Import web-specific storage (internal use only)
 import { createSsrStorage, createWebStorage } from './storage.js';
@@ -116,7 +116,6 @@ function requireTfhe(): typeof import('tfhe') {
   }
   return tfheModule;
 }
-
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
   return requireTfhe().TfheCompactPublicKey.safe_deserialize(

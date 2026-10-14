@@ -31,7 +31,6 @@ declare const __THREADPOOL_TESTS__: boolean | undefined;
  */
 export const THREADPOOL_TESTS = typeof __THREADPOOL_TESTS__ !== 'undefined' ? __THREADPOOL_TESTS__ : false;
 
-
 /** Fetch the network's real FHE public key + CRS. Proving itself is fully local. */
 export async function fetchNetworkKeys(securityZone = 0): Promise<{ fheKey: string; crs: string }> {
   const post = async (path: string) => {
