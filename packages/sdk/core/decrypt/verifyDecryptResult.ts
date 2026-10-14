@@ -9,7 +9,7 @@ import {
   type Hex,
   type PublicClient,
 } from 'viem';
-import { TASK_MANAGER_ADDRESS } from '../consts.js';
+import { getTaskManagerAddress } from '../taskManager.js';
 
 const decryptResultSignerAbi = parseAbi(['function decryptResultSigner() view returns (address)']);
 const UINT_TYPE_MASK = 0x7fn;
@@ -30,10 +30,14 @@ const buildDecryptResultHash = (ctHash: bigint, cleartext: bigint, chainId: numb
  *
  * The recovered signer must equal the on-chain configured `decryptResultSigner`.
  *
+ * Fails closed: if the chain has no `decryptResultSigner` set (zero address), this returns `false`.
+ * The on-chain `verifyDecryptResult` instead accepts any signature in that case.
+ *
  * This mirrors the TaskManager decrypt-result hash format:
  * `keccak256(abi.encodePacked(result, encType, chainId, ctHash))`
  *
- * The only on-chain read performed is `TaskManager.decryptResultSigner()` (via `eth_call`).
+ * The only on-chain reads performed are the Task Manager lookup in the CoFHEAddressBook (cached
+ * per chain) and `TaskManager.decryptResultSigner()` (via `eth_call`).
  *
  * Works with both production and mock deployments.
  */
@@ -45,13 +49,13 @@ export async function verifyDecryptResult(
 ): Promise<boolean> {
   const chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
   const expectedSigner = await publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: await getTaskManagerAddress(publicClient, chainId),
     abi: decryptResultSignerAbi,
     functionName: 'decryptResultSigner',
     args: [],
   });
 
-  if (isAddressEqual(expectedSigner, zeroAddress)) return true;
+  if (isAddressEqual(expectedSigner, zeroAddress)) return false;
 
   const ctHash = BigInt(handle);
   const messageHash = buildDecryptResultHash(ctHash, cleartext, chainId);

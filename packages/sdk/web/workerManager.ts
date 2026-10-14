@@ -3,7 +3,7 @@
  * Manages worker lifecycle and request/response handling
  */
 
-import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '@/core';
+import type { TfheThreadsSetting, ZkProveWorkerRequest, ZkProveWorkerResponse } from '@/core';
 
 // Declare Worker type for environments where it's not available
 declare const Worker: any;
@@ -124,7 +124,8 @@ class ZkProveWorkerManager {
     fheKeyHex: string,
     crsHex: string,
     items: Array<{ utype: string; data: any }>,
-    metadata: Uint8Array
+    metadata: Uint8Array,
+    tfheThreads?: TfheThreadsSetting
   ): Promise<Uint8Array> {
     // Initialize worker if needed
     await this.initializeWorker();
@@ -150,6 +151,7 @@ class ZkProveWorkerManager {
         crsHex,
         items,
         metadata: Array.from(metadata),
+        tfheThreads,
       };
 
       (this.worker as any).postMessage(message);

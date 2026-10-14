@@ -180,7 +180,8 @@ const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed
 const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
 const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001';
 const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002';
-const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
+const COFHE_ADDRESS_BOOK_ADDRESS = '0xC0F4e00E531a2B086492Ae3DCC1515038307196b';
+const MOCKS_TASK_MANAGER_ADDRESS = '0x0000000000000000000000000000000000005000';
 const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
   '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
 const MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY =
@@ -326,7 +327,8 @@ console.log(`\nMock accounts on Hardhat (${bold('deployMocks')}):`);
 console.log(`  Owner / deployer          ${bold(hardhatMockAddress)}  ${hardhatMockOutput}`);
 console.log(`  Decrypt result signer     ${bold(mockDecryptSignerAddress)}  ${mockDecryptSignerOutput}`);
 console.log(`  ZK verifier signer        ${bold(mockZkVerifierSignerAddress)}  ${mockZkVerifierSignerOutput}`);
-console.log(`  Fixed contracts           TaskManager ${TASK_MANAGER_ADDRESS}`);
+console.log(`  Fixed contracts           MockCoFHEAddressBook ${COFHE_ADDRESS_BOOK_ADDRESS}`);
+console.log(`                            MockTaskManager ${MOCKS_TASK_MANAGER_ADDRESS}`);
 console.log(`                            MockZkVerifier ${MOCKS_ZK_VERIFIER_ADDRESS}`);
 console.log(`                            MockThresholdNetwork ${MOCKS_THRESHOLD_NETWORK_ADDRESS}`);
 console.log('  SimpleTest                deployed explicitly where tests need it');
@@ -360,6 +362,7 @@ run('forge build');
 
 const registry = readRegistry();
 let changed = false;
+let deploymentFailed = false;
 
 const targets = args.chains
   ? args.chains.map((id) => ALL_CHAINS.find((c) => c.id === id) || (() => { throw new Error(`Unknown chain ${id}`); })())
@@ -418,6 +421,7 @@ for (const contract of CONTRACTS) {
       changed = true;
     } catch (err) {
       console.error(`    FAILED: ${err.message}`);
+      deploymentFailed = true;
     }
   }
 }
@@ -425,8 +429,13 @@ for (const contract of CONTRACTS) {
 if (changed) {
   writeRegistry(registry);
   console.log(`\nRegistry updated: ${REGISTRY_PATH}`);
-} else {
+} else if (!deploymentFailed) {
   console.log('\nAll deployments up to date.');
+}
+
+if (deploymentFailed) {
+  console.error('\nOne or more deployments failed.');
+  process.exit(1);
 }
 
 // ── Primary test chain initialization ───────────────────────────────────────

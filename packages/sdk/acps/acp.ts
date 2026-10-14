@@ -1,5 +1,6 @@
 import { keccak256, toHex, zeroAddress, parseAbi, type Hex, type PublicClient, type WalletClient } from 'viem';
 import {
+  type ACPAccessStatus,
   type ACP,
   type SelfACP,
   type SharingACP,
@@ -25,7 +26,7 @@ import {
 } from './validation.js';
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
-import { checkACPValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
+import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain } from './onchain-utils.js';
 
 /**
  * Main ACP utilities - functional approach for React compatibility
@@ -407,5 +408,13 @@ export const ACPUtils = {
   checkValidityOnChain: async (acp: ACP, publicClient: PublicClient): Promise<boolean> => {
     const publicAcp = ACPUtils.getPublic(acp);
     return checkACPValidityOnChain(publicAcp, publicClient);
+  },
+
+  /**
+   * The acp on-chain status as a value instead of a revert: 'valid' or why not, and given a
+   * handle, whether the acp may read it (see `ACPAccessStatus`).
+   */
+  checkAccessOnChain: async (acp: ACP, publicClient: PublicClient, handle?: bigint | Hex): Promise<ACPAccessStatus> => {
+    return getACPAccessStatusOnChain(ACPUtils.getPublic(acp), publicClient, handle);
   },
 };

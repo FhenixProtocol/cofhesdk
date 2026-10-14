@@ -6,6 +6,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from '../encrypt/encryptInputsBuilder.js';
 import { Encryptable } from '../types.js';
+import { acps } from '../acps.js';
 
 // Mock dependencies
 vi.mock('../keyStore', () => ({
@@ -427,6 +428,46 @@ describe('createCofheClientBase', () => {
       expect(client.acp).toHaveProperty('removeACP');
       expect(client.acp).toHaveProperty('selectActiveACP');
       expect(client.acp).toHaveProperty('removeActiveACP');
+    });
+
+    describe('import activation', () => {
+      const share = { shareId: `0x${'0'.repeat(64)}` } as any;
+
+      it('importShared forwards activate with the connected clients', async () => {
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        await client.connect(publicClient, walletClient);
+        const spy = vi.spyOn(acps, 'importShared').mockResolvedValue({} as any);
+
+        await client.acp.importShared('{}', { activate: false });
+
+        expect(spy).toHaveBeenCalledWith('{}', publicClient, walletClient, { activate: false });
+        spy.mockRestore();
+      });
+
+      it('importShared still takes explicit clients, activating by default', async () => {
+        await client.connect(createMockPublicClient(), createMockWalletClient());
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        const spy = vi.spyOn(acps, 'importShared').mockResolvedValue({} as any);
+
+        await client.acp.importShared('{}', { publicClient, walletClient });
+
+        expect(spy).toHaveBeenCalledWith('{}', publicClient, walletClient, { activate: undefined });
+        spy.mockRestore();
+      });
+
+      it('importFromChain forwards activate', async () => {
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        await client.connect(publicClient, walletClient);
+        const spy = vi.spyOn(acps, 'importFromChain').mockResolvedValue({} as any);
+
+        await client.acp.importFromChain(share, { activate: false });
+
+        expect(spy).toHaveBeenCalledWith(share, publicClient, walletClient, { activate: false });
+        spy.mockRestore();
+      });
     });
   });
 });

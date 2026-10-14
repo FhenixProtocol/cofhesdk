@@ -50,7 +50,7 @@ contract CofheClient is Test {
   bool private _connected;
 
   constructor() {
-    mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
+    mockTaskManager = MockTaskManager(address(Common.tm()));
     mockAcl = MockACL(address(mockTaskManager.acl()));
     mockZkVerifier = MockZkVerifier(ZK_VERIFIER_ADDRESS);
     mockZkVerifierSigner = MockZkVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);
