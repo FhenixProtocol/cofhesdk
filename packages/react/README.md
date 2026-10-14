@@ -109,6 +109,21 @@ function CustomComponent() {
 }
 ```
 
+## Wallet selection
+
+CoFHE signs with whatever `walletClient` the app supplies to `CofheProvider`
+(or `connect()`). It does not read `window.ethereum` or pick a wallet itself —
+the signing wallet is whichever provider your connector bound to. So when a user
+has multiple injected wallets installed, disambiguation is a connector-layer
+concern in your app, not something the SDK resolves.
+
+To let users pick a wallet, use [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963)
+discovery instead of the generic injected provider (`window.ethereum`). With
+wagmi, every discovered wallet is a connector, so list `useConnectors()` and let
+the user choose. The signer then follows the wallet they connected. See
+[`examples/react`](https://github.com/FhenixProtocol/cofhesdk/blob/master/examples/react/src/components/Navigation.tsx) for a
+working connect menu.
+
 ## CofheEncryptInput Component
 
 Advanced input component with integrated features:

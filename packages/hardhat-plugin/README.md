@@ -47,6 +47,7 @@ This plugin uses [@cofhe/mock-contracts](https://github.com/FhenixProtocol/cofhe
 
 The mock contracts include:
 
+- MockCoFHEAddressBook: Resolves the TaskManager for FHE.sol, deployed at FHE.sol's `COFHE_ADDRESS_BOOK`
 - MockTaskManager: Manages FHE operations and stores plaintext values
 - MockThresholdNetwork: Handles decryption requests
 - MockZkVerifier: Simulates verification of encrypted inputs
@@ -136,21 +137,26 @@ import { mock_expectPlaintext } from '@cofhe/hardhat-plugin';
 await mock_expectPlaintext(provider, ctHash, expectedValue);
 ```
 
-#### Network Utilities
+#### Creating a Client
 
 ```typescript
-// Get the CoFHE environment based on network name
-import { getCofheEnvironmentFromNetwork } from '@cofhe/hardhat-plugin';
-const environment = getCofheEnvironmentFromNetwork(networkName);
-
-// Check if a CoFHE environment is permitted for a given network
-import { isPermittedCofheEnvironment } from '@cofhe/hardhat-plugin';
-const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
-
-// Initialize CoFHEjs with a Hardhat signer
-import { cofhejs_initializeWithHardhatSigner } from '@cofhe/hardhat-plugin';
-await cofhejs_initializeWithHardhatSigner(signer, options);
+// One call: config, client, connected signer, and a self ACP
+const [signer] = await hre.ethers.getSigners();
+const client = await hre.cofhe.createClientWithBatteries(signer);
 ```
+
+Or step by step, to customize the config:
+
+```typescript
+import { hardhat } from '@cofhe/sdk/chains';
+
+const [signer] = await hre.ethers.getSigners();
+const config = await hre.cofhe.createConfig({ supportedChains: [hardhat] });
+const client = hre.cofhe.createClient(config);
+await hre.cofhe.connectWithHardhatSigner(client, signer);
+```
+
+Use `hre.cofhe.createConfig` rather than `createCofheConfig` from `@cofhe/sdk/node`: it sets the Hardhat environment and wires up the mock ZK verifier signer.
 
 ## Usage in Tests
 

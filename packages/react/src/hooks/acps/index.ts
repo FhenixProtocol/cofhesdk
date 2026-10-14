@@ -16,3 +16,5 @@ export {
   useImportFromChain,
   useRemoveShare,
 } from './useOnChainSharing';
+export { useCofheShareLabels } from './useCofheShareLabels';
+export type { CofheShareLabel, UseCofheShareLabelsResult } from './useCofheShareLabels';

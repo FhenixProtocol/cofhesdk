@@ -84,6 +84,10 @@ export default defineConfig({
                 link: '/sdk/acp',
               },
               {
+                text: 'Share registry internals',
+                link: '/sdk/acp-sharing-internals',
+              },
+              {
                 text: 'Decrypting to View',
                 link: '/sdk/decrypt-to-view',
               },

@@ -1,5 +1,7 @@
 /** All values inlined at build time by tsup's `define` — see tsup.config.ts */
 
+import { generatePrivateKey } from 'viem/accounts';
+
 export const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY as `0x${string}`;
 
 export const TEST_LOCALCOFHE_PRIVATE_KEY = (process.env.TEST_LOCALCOFHE_PRIVATE_KEY ||
@@ -7,9 +9,18 @@ export const TEST_LOCALCOFHE_PRIVATE_KEY = (process.env.TEST_LOCALCOFHE_PRIVATE_
 
 export const PRIMARY_TEST_CHAIN = Number(process.env.PRIMARY_TEST_CHAIN || '421614');
 
-/** Shared "Alice" test account used across chain configs for sharing-permit flows. */
-export const TEST_ALICE_PRIVATE_KEY = (process.env.TEST_ALICE_PRIVATE_KEY ||
-  '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d') as `0x${string}`;
+/**
+ * "Alice", the recipient in the sharing flows on testnets and staging (the Anvil chain has its own,
+ * funded Alice). Set TEST_ALICE_PRIVATE_KEY to a funded key of your own and she also sends her own
+ * transactions (dismissing a share). Unset, a fresh key is generated once per test process: it holds
+ * no gas, so the issuer removes the share instead.
+ *
+ * Never a public key here. Anvil's default accounts carry EIP-7702 delegations set by strangers on
+ * every public testnet, and the ACL then verifies the recipient's signature through that delegate
+ * (ERC-1271), which may reject it.
+ */
+export const TEST_ALICE_KEY_PROVIDED = Boolean(process.env.TEST_ALICE_PRIVATE_KEY);
+export const TEST_ALICE_PRIVATE_KEY = (process.env.TEST_ALICE_PRIVATE_KEY || generatePrivateKey()) as `0x${string}`;
 
 /** Same default as setup.mjs's STAGING_CHAIN.rpc — override both together if it moves. */
 export const STAGING_RPC_URL = process.env.STAGING_RPC_URL || 'https://staging-hostchain-v1.sw-dom.co';

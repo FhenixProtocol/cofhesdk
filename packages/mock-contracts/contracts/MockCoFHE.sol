@@ -329,8 +329,13 @@ abstract contract MockCoFHE {
       return;
     }
     if (funcId == FunctionId.not) {
-      bool inputIsTruthy = _get(input) == 1;
-      _set(ctHash, !inputIsTruthy);
+      if (getIsBoolTypeFromHash(ctHash)) {
+        bool inputIsTruthy = _get(input) == 1;
+        _set(ctHash, !inputIsTruthy);
+      } else {
+        // bitwise NOT, masked to the type width by _set
+        _set(ctHash, ~_get(input));
+      }
       if (logOps) logOperation('FHE.not', logCtHash(input), logCtHash(ctHash));
       return;
     }
@@ -393,8 +398,14 @@ abstract contract MockCoFHE {
       return;
     }
     if (funcId == FunctionId.rem) {
-      unchecked {
-        _set(ctHash, _get(input1) % _get(input2));
+      // Like TFHE-rs, the remainder by zero returns the first input unchanged
+      uint256 cleartext2 = _get(input2);
+      if (cleartext2 == 0) {
+        _set(ctHash, _get(input1));
+      } else {
+        unchecked {
+          _set(ctHash, _get(input1) % cleartext2);
+        }
       }
       if (logOps) logOperation('FHE.rem', string.concat(logCtHash(input1), ' % ', logCtHash(input2)), logCtHash(ctHash));
       return;
@@ -483,19 +494,32 @@ abstract contract MockCoFHE {
       return;
     }
     if (funcId == FunctionId.rol) {
-      unchecked {
-        _set(ctHash, _get(input1) << _get(input2));
-      }
+      // rotation within the type width, amount modulo the width (TFHE-rs semantics); _set masks the result
+      uint256 bits = getUtypeBits(ctHash);
+      uint256 shift = _get(input2) % bits;
+      uint256 value = _get(input1);
+      _set(ctHash, shift == 0 ? value : (value << shift) | (value >> (bits - shift)));
 
-      if (logOps) logOperation('FHE.rol', string.concat(logCtHash(input1), ' << ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps)
+        logOperation(
+          'FHE.rol',
+          string.concat('rol(', logCtHash(input1), ', ', logCtHash(input2), ')'),
+          logCtHash(ctHash)
+        );
       return;
     }
     if (funcId == FunctionId.ror) {
-      unchecked {
-        _set(ctHash, _get(input1) >> _get(input2));
-      }
+      uint256 bits = getUtypeBits(ctHash);
+      uint256 shift = _get(input2) % bits;
+      uint256 value = _get(input1);
+      _set(ctHash, shift == 0 ? value : (value >> shift) | (value << (bits - shift)));
 
-      if (logOps) logOperation('FHE.ror', string.concat(logCtHash(input1), ' >> ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps)
+        logOperation(
+          'FHE.ror',
+          string.concat('ror(', logCtHash(input1), ', ', logCtHash(input2), ')'),
+          logCtHash(ctHash)
+        );
       return;
     }
     revert InvalidTwoInputOperation(Utils.functionIdToString(funcId));

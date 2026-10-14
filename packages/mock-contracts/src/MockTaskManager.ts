@@ -4,7 +4,7 @@ import { type MockArtifact } from './types';
 export const MockTaskManagerArtifact = {
   contractName: 'MockTaskManager',
   isFixed: true,
-  fixedAddress: '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9',
+  fixedAddress: '0x0000000000000000000000000000000000005000',
   abi: [
     {
       type: 'constructor',
@@ -1311,11 +1311,6 @@ export const MockTaskManagerArtifact = {
           internalType: 'string',
         },
       ],
-    },
-    {
-      type: 'error',
-      name: 'NotImplemented',
-      inputs: [],
     },
     {
       type: 'error',

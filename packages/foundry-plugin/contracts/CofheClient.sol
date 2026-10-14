@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 import { Test } from 'forge-std/Test.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
@@ -50,7 +50,7 @@ contract CofheClient is Test {
   bool private _connected;
 
   constructor() {
-    mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
+    mockTaskManager = MockTaskManager(address(Common.tm()));
     mockAcl = MockACL(address(mockTaskManager.acl()));
     mockZkVerifier = MockZkVerifier(ZK_VERIFIER_ADDRESS);
     mockZkVerifierSigner = MockZkVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);

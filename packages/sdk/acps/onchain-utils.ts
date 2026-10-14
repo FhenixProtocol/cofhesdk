@@ -1,6 +1,6 @@
 import { type Hex, type PublicClient, decodeErrorResult, parseAbi, zeroAddress } from 'viem';
 import type { ACPAccessStatus, EIP712Domain, ACPPublic } from './types';
-import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
+import { getTaskManagerAddress } from '../core/taskManager.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
   const ACL_IFACE = 'function acl() view returns (address)';
@@ -10,7 +10,7 @@ export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> =>
 
   // Get the ACL address
   return (await publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS as `0x${string}`,
+    address: await getTaskManagerAddress(publicClient),
     abi: aclAbi,
     functionName: 'acl',
   })) as `0x${string}`;
@@ -341,8 +341,8 @@ const aclServedAddressesCache = new Map<number, AclServedAddresses>();
 export const clearAclServedAddresses = () => aclServedAddressesCache.clear();
 
 /**
- * The ACP infrastructure addresses the chain's ACL serves (TaskManager -> acl()
- * -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
+ * The ACP infrastructure addresses the chain's ACL serves (CoFHEAddressBook ->
+ * TaskManager -> acl() -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
  * resolve to `undefined` — callers fall back to `acp.*` config.
  *
  * Resolutions are cached per chainId. A failure to reach the TaskManager (network
@@ -359,7 +359,7 @@ export const getAclServedAddresses = async (
   let aclAddress: Hex;
   try {
     aclAddress = await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS,
+      address: await getTaskManagerAddress(publicClient, chainId),
       abi: ACL_SERVED_ADDRESSES_ABI,
       functionName: 'acl',
     });

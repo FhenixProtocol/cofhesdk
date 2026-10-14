@@ -13,6 +13,7 @@ export {
   useCofheClient,
   useCofheConnection,
   useCofheEnabled,
+  useCofheTaskManagerAddress,
   useCofheEncrypt,
   useCofhePublicClient,
   useCofheRemoveACP,
@@ -79,6 +80,11 @@ export {
   useCofheRemoveShare,
   useCofheRevokeACP,
 } from '@/hooks/acps/useOnChainSharing';
+export {
+  useCofheShareLabels,
+  type CofheShareLabel,
+  type UseCofheShareLabelsResult,
+} from '@/hooks/acps/useCofheShareLabels';
 export {
   useCofheReadContract,
   constructCofheReadContractQueryForInvalidation,

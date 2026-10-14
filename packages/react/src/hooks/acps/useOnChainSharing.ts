@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Hex } from 'viem';
-import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP } from '@cofhe/sdk/acps';
+import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP, ShareLabel } from '@cofhe/sdk/acps';
 import { CofheError, CofheErrorCode } from '@cofhe/sdk';
 import { useInternalMutation, useInternalQuery, useInternalQueryClient } from '../../providers/index.js';
 import { useCofheClient } from '../useCofheClient.js';
@@ -10,6 +10,9 @@ import { useCofheAccount, useCofheChainId } from '../useCofheConnection.js';
 
 const INCOMING_SHARES_KEY = 'cofhe-incoming-shares';
 const INCOMING_SHARES_REFETCH_MS = 15_000;
+
+/** What a share is posted with: its labels, or an already encoded metadata blob. */
+type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex };
 
 type MutationCallbacks = {
   onSuccess?: () => void;
@@ -65,15 +68,19 @@ export const useCofheIncomingShares = ({
   });
 };
 
-/** Issuer side: post a signed sharing ACP to the on-chain share registry. Resolves once mined. */
+/**
+ * Issuer side: post a signed sharing ACP to the on-chain share registry, optionally with the labels
+ * of its handles (`{ acp, labels }`, one label per handle). Resolves once mined.
+ */
 export const useCofheShareOnChain = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
 
-  return useInternalMutation<{ txHash: Hex; shareId: Hex }, Error, ACP>({
+  return useInternalMutation<{ txHash: Hex; shareId: Hex }, Error, ACP | ({ acp: ACP } & ShareOnChainOptions)>({
     onSuccess,
     onError,
-    mutationFn: async (acp) => {
-      const result = await cofheClient.acp.shareOnChain(acp);
+    mutationFn: async (input) => {
+      const { acp, ...options } = 'acp' in input ? input : { acp: input };
+      const result = await cofheClient.acp.shareOnChain(acp, options);
       await mined(cofheClient, result.txHash);
       return result;
     },

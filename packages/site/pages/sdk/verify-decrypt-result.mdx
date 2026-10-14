@@ -82,3 +82,4 @@ if (!isValid) throw new Error('Rejecting untrusted decrypt result');
 - **Wrong chain**: verification must be performed against the same chain that produced the handle (`ctHash`).
 - **Wrong plaintext**: even a single-bit change in `plaintext` will make verification return `false`.
 - **Signature formatting**: the signature must be a `0x...` hex string exactly as returned by `decryptForTx`.
+- **No signer configured**: if the chain's TaskManager has no `decryptResultSigner` set (zero address), `verifyDecryptResult` returns `false` for every result. The on-chain check skips verification in that case, so a result can be rejected here and still be accepted by a contract.

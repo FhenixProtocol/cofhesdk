@@ -27,6 +27,11 @@ import {
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain } from './onchain-utils.js';
+import { encodeShareMetadata } from './share-metadata/encode.js';
+import { UNLABELLED } from './share-metadata/presets';
+
+/** The name of an imported acp unless the recipient gives one: who it came from. */
+const sharedByName = (issuer: Hex): string => `Shared by ${issuer.slice(0, 6)}…${issuer.slice(-4)}`;
 
 /**
  * Main ACP utilities - functional approach for React compatibility
@@ -57,6 +62,15 @@ export const ACPUtils = {
    */
   createSharing: (options: CreateSharingACPOptions): SharingACP => {
     const validation = validateSharingACPOptions(options);
+    const { labels, appKey } = options;
+    if (labels != null && labels.length !== validation.handles.length) {
+      throw new Error(`Cannot label a share of ${validation.handles.length} handles with ${labels.length} labels`);
+    }
+    // With an app key but no labels, the handles are listed as unlabelled so the key has a blob to sit in.
+    const metadata =
+      labels != null || appKey != null
+        ? encodeShareMetadata(labels ?? validation.handles.map(() => UNLABELLED), { issuer: validation.issuer, appKey })
+        : undefined;
 
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
@@ -64,6 +78,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
+      ...(metadata != null && { metadata }),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
@@ -73,9 +88,10 @@ export const ACPUtils = {
   },
 
   /**
-   * Import a shared acp from various input formats
+   * Import a shared acp from various input formats. The acp is named `name`, or after its issuer
+   * ("Shared by 0x1234…abcd"); a `name` in the share itself is ignored.
    */
-  importShared: (options: ImportSharedACPOptions | string): RecipientACP => {
+  importShared: (options: ImportSharedACPOptions | string, { name }: { name?: string } = {}): RecipientACP => {
     let parsedOptions: ImportSharedACPOptions;
 
     // Handle different input types
@@ -106,6 +122,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
+      name: name?.trim() || sharedByName(validation.issuer),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
@@ -184,9 +201,10 @@ export const ACPUtils = {
   importSharedAndSign: async (
     options: ImportSharedACPOptions | string,
     publicClient: PublicClient,
-    walletClient: WalletClient
+    walletClient: WalletClient,
+    importOptions: { name?: string } = {}
   ): Promise<RecipientACP> => {
-    const acp = ACPUtils.importShared(options);
+    const acp = ACPUtils.importShared(options, importOptions);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
@@ -218,6 +236,7 @@ export const ACPUtils = {
       recipientSignature: acp.recipientSignature,
       _signedDomain: acp._signedDomain,
       sealingPrivateKey: acp.sealingPrivateKey,
+      ...(acp.metadata != null && { metadata: acp.metadata }),
     };
   },
 
@@ -297,7 +316,7 @@ export const ACPUtils = {
   /**
    * Export acp data for sharing (strips the private component).
    * Fixed `SharedACP` shape — every field always present, aligned with
-   * `ACPPublic` and the on-chain sharing payload.
+   * `ACPPublic` and the on-chain sharing payload — plus `metadata` when the acp has labels.
    */
   export: (acp: ACP): string => {
     if (acp.type !== 'sharing') {
@@ -312,7 +331,6 @@ export const ACPUtils = {
     }
 
     const shared: SharedACP = {
-      name: acp.name,
       type: acp.type,
       issuer: acp.issuer,
       expiration: acp.expiration,
@@ -323,6 +341,7 @@ export const ACPUtils = {
       contracts: acp.contracts,
       handles: acp.handles,
       issuerSignature: acp.issuerSignature,
+      ...(acp.metadata != null && acp.metadata !== '0x' && { metadata: acp.metadata }),
     };
 
     return JSON.stringify(shared, undefined, 2);

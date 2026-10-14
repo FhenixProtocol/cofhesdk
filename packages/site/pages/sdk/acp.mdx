@@ -243,7 +243,7 @@ const exported = ACPUtils.export(sharingACP);
 ```
 
 :::info
-The exported JSON does not contain any sensitive data and can be shared via any channel.
+The exported JSON does not contain any sensitive data and can be shared via any channel. It does not contain the ACP `name` either: that is the issuer's own note, and the recipient names the share themselves.
 :::
 :::warning
 Do not share `serialize(acp)` output -- serialization is meant for _local persistence_ and includes the sealing private key.
@@ -302,6 +302,8 @@ setActiveACPHash(chainId, account, recipientACP.hash);
 
 ::::
 
+The imported ACP is named after its issuer ("Shared by 0x1234…abcd"); pass `name` to give it your own, e.g. `importShared(exported, { name: 'Payroll from Bob' })`. A `name` in the JSON is ignored.
+
 To store the imported ACP without making it active, pass `activate: false`. Decrypts that use the active ACP keep using the current one, and the imported ACP is used only where you pass it, for example `.withACP(recipientACP)`. This fits an app that shows someone else's shared data in one view while the rest of the app keeps using the user's own ACP.
 
 ```ts twoslash
@@ -318,7 +320,7 @@ In React, see [ACPs in React](/react/acp).
 
 ## Sharing on-chain
 
-Instead of exporting JSON and sending it over a second channel, the issuer can post the share to the on-chain **ACP share registry**. The recipient discovers it from any cofhesdk-enabled app and imports it directly — no copy-paste.
+Instead of exporting JSON and sending it over a second channel, the issuer can post the share to the on-chain **ACP share registry**. The recipient finds it from any cofhesdk-enabled app and imports it directly — no copy-paste.
 
 Configure the registry address per chain:
 
@@ -331,7 +333,7 @@ const config = createCofheConfig({
 });
 ```
 
-### Issuer shares on-chain
+### Post a share
 
 ```ts twoslash [client.acp]
 // @noErrors
@@ -347,9 +349,13 @@ const sharingAcp = await client.acp.createSharing({
 const { txHash, shareId } = await client.acp.shareOnChain(sharingAcp);
 ```
 
-Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. The issuer can retract a pending share with `client.acp.cancelShare(shareId)`.
+Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. To retract a pending share, call `client.acp.cancelShare(shareId)`.
 
-### Recipient discovers and imports
+:::warning
+Everything posted is cleartext — the same data as the exported JSON — so posting on-chain makes the issuer→recipient relationship public. The ACP `name` is never posted: it is the only free-text field of a share, and on-chain it would be public forever.
+:::
+
+### Find and import incoming shares
 
 ```ts twoslash [client.acp]
 // @noErrors
@@ -359,16 +365,146 @@ declare const client: import('@cofhe/sdk').CofheClient;
 const incoming = await client.acp.getIncomingShares();
 
 // fills in the recipient's sealing key, signs, stores and activates
-// (pass { activate: false } to only store it)
+// (pass { activate: false } to only store it, { name } to name it)
 const acp = await client.acp.importFromChain(incoming[0]);
 
 // optionally clean up the on-chain entry afterwards (or decline a share)
 await client.acp.dismissShare(incoming[0].shareId);
 ```
 
-An app that sends these writes through its own transaction path can use the same pieces from `@cofhe/sdk/acps`: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `toChainShare(acp)` (the registry payload), `computeShareId(acp)` (the id the registry assigns) and `getAclServedAddresses(publicClient, chainId)` (the registry and default revoker the chain ACL serves).
+`getIncomingShares` lists only importable shares: expired shares and shares whose ACP was revoked are left out. A share whose event the node cannot serve yet (a node that lags behind its own `sharesFor` answer) is left out too and appears on a later read; it never fails the rest. `client.acp.getShareFromChain(shareId)` reads one share by id.
 
-The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
+### Mark shares for your app
+
+Shares from every app land in the same registry. To tell yours apart, name your app in the config:
+
+```ts
+const config = createCofheConfig({
+  // ...
+  acp: { app: 'explorer.fhenix.io' },
+});
+```
+
+Every share this client creates then carries the app's key, `keccak256('explorer.fhenix.io')`, in its metadata, and `getIncomingShares` lists only the shares posted with that key. A client without `app` marks nothing and lists everything. The name itself is never on-chain; `shareAppKey(app)` from `@cofhe/sdk/acps` computes the key, and each `IncomingShare` exposes the one it carries as `appKey`.
+
+An app that sends these writes through its own transaction path can use the same pieces from `@cofhe/sdk/acps`: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `toChainShare(acp)` (the registry payload), `computeShareId(acp)` (the id the registry assigns), `readSharesFor` / `readShare` (shares read back from the registry) and `getAclServedAddresses(publicClient, chainId)` (the registry and default revoker the chain ACL serves). How the registry stores a share, and what posting costs, is in [Share registry internals](/sdk/acp-sharing-internals).
+
+## Labelling a SNAPSHOT share
+
+A SNAPSHOT share (`handles` scope) lists ctHashes only, so the recipient cannot tell what each one is. The issuer can say, with one **label** per handle:
+
+- a **stored value**: what a view function returned at a block, e.g. the issuer's `confidentialBalanceOf` on a token;
+- an **event value**: a value carried by one log, e.g. the amount of a `ConfidentialTransfer`;
+- or **unlabelled**, when the issuer prefers not to say.
+
+Labels are written once, with the share, and cannot be changed afterwards. They are the issuer's claim: the recipient checks them against the chain before relying on them.
+
+### Add labels to a share
+
+Pass `labels` to `createSharing`, one per handle and in the same order. `viewFunctionLabel` labels a value a view function returned, from the contract's ABI; `eventLogLabel(log)` labels a value a log carried, from the log as viem returns it (a receipt's `logs`, `getLogs`, `getContractEvents`). For a handle you don't want to describe, pass `{ kind: 'unlabelled' }`.
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const issuer: `0x${string}`; // the connected account
+declare const token: `0x${string}`;
+declare const balanceHandle: `0x${string}`;
+declare const publicClient: import('viem').PublicClient;
+declare const transferTxHash: `0x${string}`;
+declare const transferHandle: `0x${string}`;
+declare const otherHandle: `0x${string}`;
+declare const block: bigint;
+// ---cut---
+import { ERC7984_ABI, eventLogLabel, viewFunctionLabel } from '@cofhe/sdk/acps';
+import { parseEventLogs } from 'viem';
+
+// the transfer whose amount is shared: its log, from the receipt
+const { logs } = await publicClient.waitForTransactionReceipt({ hash: transferTxHash });
+const [transferLog] = parseEventLogs({ abi: ERC7984_ABI, eventName: 'ConfidentialTransfer', logs });
+
+const sharingAcp = await client.acp.createSharing({
+  issuer,
+  recipient: '0x…',
+  handles: [balanceHandle, transferHandle, otherHandle],
+  labels: [
+    viewFunctionLabel({
+      contract: token,
+      abi: ERC7984_ABI,
+      functionName: 'confidentialBalanceOf',
+      args: [issuer], // your own balance: stored as "the issuer", not as an address
+      block,
+    }),
+    eventLogLabel(transferLog), // the amount of that transfer
+    { kind: 'unlabelled' }, // say nothing about this one
+  ],
+});
+```
+
+The labels travel with the share whichever way you hand it over:
+
+```ts twoslash
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const sharingAcp: import('@cofhe/sdk/acps').ACP;
+// ---cut---
+await client.acp.shareOnChain(sharingAcp); // on-chain
+const exported = client.acp.export(sharingAcp); // or in the JSON
+```
+
+To post different labels than the ones on the ACP, pass them to `shareOnChain(acp, { labels })`.
+
+In `viewFunctionLabel`, an argument equal to the issuer's address (your own, when you share your balance) is stored as "the issuer" rather than as an address: the SDK compresses it when it encodes the labels, and the recipient fills it in from the share. Arguments must be static ABI types (one 32-byte word each), and the ctHash is the first return word unless you pass `returnWord`. `ERC7984_ABI` holds the `confidentialBalanceOf` read and the `ConfidentialTransfer` event of a confidential token; any other contract's ABI works the same way.
+
+:::info
+A label names one specific log or view call, and the recipient learns everything else in that log too — its other parameters. Label only what you are willing to show.
+:::
+
+### Show and check the labels
+
+On the recipient side, every `IncomingShare` carries its `metadata` (`0x` when posted without labels), and an imported ACP keeps it whichever way it came in — so both readers below take either one.
+
+1. **Describe** the labels for display with `describeShareMetadata(share, abis)`. Pass the ABIs of the contracts you know; a missing ABI never fails, it leaves `function` / `event` as `null`.
+2. **Verify** them with `client.acp.verifyShareLabels`, which checks each label against the chain and returns one result per handle.
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const token: `0x${string}`;
+declare const tokenAbi: import('viem').Abi;
+// ---cut---
+import { describeShareMetadata } from '@cofhe/sdk/acps';
+
+const [share] = await client.acp.getIncomingShares();
+
+// one item per handle: kind, and function / event names and params from the ABIs you pass
+const items = describeShareMetadata(share, { [token]: tokenAbi });
+
+// one result per handle: 'verified' | 'mismatch' | 'unverifiable' | 'skipped'
+const checks = await client.acp.verifyShareLabels(share, { verify: 'all' });
+```
+
+| Result       | Meaning                                                                                   |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| `'verified'` | The chain confirms the label: the ctHash is where the issuer said it is.                  |
+| `'mismatch'` | The chain contradicts the label. Treat the handle as unlabelled, and the share with care. |
+
+`'verified'` confirms the chain, not the contract: it proves the named contract returned the handle, and anyone can deploy a contract that does. So name a contract only when you know it (your token list), pass ABIs only for those, and show the rest as unknown contracts with their address. The labels are the issuer's claim about where a value came from; what the value is worth to you follows from the contract, which only you can vouch for.
+| `'unverifiable'` | The node could not answer; usually the state of an old block is gone (see below). |
+| `'skipped'` | Not checked, because of the `verify` mode. |
+
+Both return `null` for a share without labels. Use `verify` to trade thoroughness for requests:
+
+| `verify`          | Checks                               | Requests                                                              |
+| ----------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| `'all'` (default) | every label                          | one `getLogs` per contract and block, one `eth_call` per stored value |
+| `'events'`        | event values only                    | one `getLogs` per contract and block                                  |
+| `'none'`          | nothing; trust the labels as written | none                                                                  |
+
+:::warning
+Checking a **stored value** repeats the view call at the labelled block, which needs a node that still has that block's state. Public nodes drop old state quickly, so for a share more than a few hours old you need an archive node, or the check comes back `unverifiable`. **Event values** are checked from a single-block log query, which any node answers however old the block, so `verify: 'events'` works everywhere.
+:::
+
+In React, `useCofheShareLabels(share, { verify, abis })` does both steps at once: see [Share labels in React](/react/acp#share-labels). The exact checks, and the byte layout of the labels, are in [Share registry internals](/sdk/acp-sharing-internals).
 
 ## Checking an ACP on-chain
 

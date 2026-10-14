@@ -16,7 +16,9 @@ export function CofheProvider(props: CofheProviderProps) {
   const { children, queryClient, publicClient, walletClient } = props;
 
   const config = useMemo(() => {
-    // priority: explicit config prop > config from provided client > create default config
+    assert(!(props.config && props.cofheClient), 'CofheProvider accepts either config or cofheClient, not both');
+
+    // use an explicit config, the provided client's config, or the default config
     if (props.config) return props.config;
     if (props.cofheClient) {
       assert(props.cofheClient.config.environment === 'react', 'Provided cofheClient must have react config');

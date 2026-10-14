@@ -10,6 +10,7 @@ A mock smart contract library for testing CoFHE (Confidential Computing Framewor
 ## Features
 
 - Mock implementations of core CoFHE contracts:
+  - MockCoFHEAddressBook (deployed at FHE.sol's `COFHE_ADDRESS_BOOK`, resolves the TaskManager)
   - MockTaskManager
   - MockThresholdNetwork
   - MockZkVerifier

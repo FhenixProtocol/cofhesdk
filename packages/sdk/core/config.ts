@@ -73,6 +73,13 @@ export type CofheConfig = {
      * names a registry.
      */
     sharingRegistry?: Record<number, `0x${string}`>;
+    /**
+     * The name of this app, e.g. 'explorer.fhenix.io'. Set, every share the client creates
+     * carries the app's key (`shareAppKey(app)`, kept in the share metadata), and
+     * `getIncomingShares` lists only the shares posted for this app. Unset, shares carry no
+     * key and every importable share is listed.
+     */
+    app?: string;
   };
   /** Mocks configs */
   mocks: {
@@ -138,6 +145,7 @@ export const CofheConfigSchema = z.object({
       defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
       sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
+      app: z.string().min(1).optional(),
     })
     .optional()
     .default({}),

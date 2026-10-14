@@ -3,6 +3,7 @@ import type { PublicClient } from 'viem';
 import { checkACPValidityOnChain, getACPAccessStatusOnChain } from '../onchain-utils';
 import type { ACPPublic } from '../types';
 
+const TASK_MANAGER = '0x0000000000000000000000000000000000005000';
 const ACL = '0x00000000000000000000000000000000000000ac';
 const ISSUER = '0x00000000000000000000000000000000000000b0';
 
@@ -33,7 +34,9 @@ function foreignRevert(errorName: string) {
 
 function client({ simulate, reads = {} }: { simulate?: () => unknown; reads?: Record<string, () => unknown> }) {
   return {
+    chain: { id: 31337 },
     readContract: vi.fn(async ({ functionName }: { functionName: string }) => {
+      if (functionName === 'getTm') return TASK_MANAGER;
       if (functionName === 'acl') return ACL;
       const read = reads[functionName];
       if (!read) throw new Error(`unexpected read ${functionName}`);

@@ -66,7 +66,6 @@ export type ACPStructOutput = [
 export interface MockACLInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | 'TASK_MANAGER_ADDRESS_'
       | 'allow'
       | 'allowForDecryption'
       | 'allowGlobal'
@@ -90,6 +89,7 @@ export interface MockACLInterface extends Interface {
       | 'receiveCtHash'
       | 'setDefaultRevokerContract'
       | 'setShareRegistry'
+      | 'setTaskManager'
       | 'shareCtHash'
       | 'shareRegistry'
   ): FunctionFragment;
@@ -99,11 +99,12 @@ export interface MockACLInterface extends Interface {
       | 'AllowedForDecryption'
       | 'DefaultRevokerContractUpdated'
       | 'EIP712DomainChanged'
+      | 'Initialized'
       | 'NewDelegation'
       | 'ShareRegistryUpdated'
+      | 'TaskManagerUpdated'
   ): EventFragment;
 
-  encodeFunctionData(functionFragment: 'TASK_MANAGER_ADDRESS_', values?: undefined): string;
   encodeFunctionData(functionFragment: 'allow', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowForDecryption', values: [BigNumberish[], AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowGlobal', values: [BigNumberish, AddressLike]): string;
@@ -130,10 +131,10 @@ export interface MockACLInterface extends Interface {
   encodeFunctionData(functionFragment: 'receiveCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'setDefaultRevokerContract', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setShareRegistry', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'setTaskManager', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'shareCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'shareRegistry', values?: undefined): string;
 
-  decodeFunctionResult(functionFragment: 'TASK_MANAGER_ADDRESS_', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowForDecryption', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowGlobal', data: BytesLike): Result;
@@ -157,6 +158,7 @@ export interface MockACLInterface extends Interface {
   decodeFunctionResult(functionFragment: 'receiveCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setDefaultRevokerContract', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setShareRegistry', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setTaskManager', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'shareCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'shareRegistry', data: BytesLike): Result;
 }
@@ -196,6 +198,18 @@ export namespace EIP712DomainChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace NewDelegationEvent {
   export type InputTuple = [sender: AddressLike, delegatee: AddressLike, contractAddress: AddressLike];
   export type OutputTuple = [sender: string, delegatee: string, contractAddress: string];
@@ -211,6 +225,19 @@ export namespace NewDelegationEvent {
 }
 
 export namespace ShareRegistryUpdatedEvent {
+  export type InputTuple = [oldAddress: AddressLike, newAddress: AddressLike];
+  export type OutputTuple = [oldAddress: string, newAddress: string];
+  export interface OutputObject {
+    oldAddress: string;
+    newAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TaskManagerUpdatedEvent {
   export type InputTuple = [oldAddress: AddressLike, newAddress: AddressLike];
   export type OutputTuple = [oldAddress: string, newAddress: string];
   export interface OutputObject {
@@ -255,8 +282,6 @@ export interface MockACL extends BaseContract {
   listeners<TCEvent extends TypedContractEvent>(event: TCEvent): Promise<Array<TypedListener<TCEvent>>>;
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
-
-  TASK_MANAGER_ADDRESS_: TypedContractMethod<[], [string], 'view'>;
 
   allow: TypedContractMethod<
     [handle: BigNumberish, account: AddressLike, requester: AddressLike],
@@ -334,6 +359,8 @@ export interface MockACL extends BaseContract {
 
   setShareRegistry: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
 
+  setTaskManager: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+
   shareCtHash: TypedContractMethod<
     [handle: BigNumberish, sharer: AddressLike, receiver: AddressLike],
     [void],
@@ -344,7 +371,6 @@ export interface MockACL extends BaseContract {
 
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-  getFunction(nameOrSignature: 'TASK_MANAGER_ADDRESS_'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'allow'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike, requester: AddressLike], [void], 'nonpayable'>;
@@ -418,6 +444,7 @@ export interface MockACL extends BaseContract {
   getFunction(
     nameOrSignature: 'setShareRegistry'
   ): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'setTaskManager'): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'shareCtHash'
   ): TypedContractMethod<[handle: BigNumberish, sharer: AddressLike, receiver: AddressLike], [void], 'nonpayable'>;
@@ -445,6 +472,9 @@ export interface MockACL extends BaseContract {
     EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
+    key: 'Initialized'
+  ): TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
+  getEvent(
     key: 'NewDelegation'
   ): TypedContractEvent<NewDelegationEvent.InputTuple, NewDelegationEvent.OutputTuple, NewDelegationEvent.OutputObject>;
   getEvent(
@@ -453,6 +483,13 @@ export interface MockACL extends BaseContract {
     ShareRegistryUpdatedEvent.InputTuple,
     ShareRegistryUpdatedEvent.OutputTuple,
     ShareRegistryUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: 'TaskManagerUpdated'
+  ): TypedContractEvent<
+    TaskManagerUpdatedEvent.InputTuple,
+    TaskManagerUpdatedEvent.OutputTuple,
+    TaskManagerUpdatedEvent.OutputObject
   >;
 
   filters: {
@@ -489,6 +526,17 @@ export interface MockACL extends BaseContract {
       EIP712DomainChangedEvent.OutputObject
     >;
 
+    'Initialized(uint64)': TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+
     'NewDelegation(address,address,address)': TypedContractEvent<
       NewDelegationEvent.InputTuple,
       NewDelegationEvent.OutputTuple,
@@ -509,6 +557,17 @@ export interface MockACL extends BaseContract {
       ShareRegistryUpdatedEvent.InputTuple,
       ShareRegistryUpdatedEvent.OutputTuple,
       ShareRegistryUpdatedEvent.OutputObject
+    >;
+
+    'TaskManagerUpdated(address,address)': TypedContractEvent<
+      TaskManagerUpdatedEvent.InputTuple,
+      TaskManagerUpdatedEvent.OutputTuple,
+      TaskManagerUpdatedEvent.OutputObject
+    >;
+    TaskManagerUpdated: TypedContractEvent<
+      TaskManagerUpdatedEvent.InputTuple,
+      TaskManagerUpdatedEvent.OutputTuple,
+      TaskManagerUpdatedEvent.OutputObject
     >;
   };
 }

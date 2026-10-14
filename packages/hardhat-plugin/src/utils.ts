@@ -1,4 +1,4 @@
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { Contract, ethers } from 'ethers';
 import { type HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
@@ -12,7 +12,11 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 /// so that Hardhat can decode reverts and trace calls against these contracts.
 /// If the mock contract should be deployed to a fixed address, `hardhat_setCode` is used.
 /// Otherwise, ethers.js deploys it to a normal address.
-export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MockArtifact) => {
+export const deployMockContractFromArtifact = async (
+  hre: HardhatRuntimeEnvironment,
+  artifact: MockArtifact,
+  constructorArgs: readonly unknown[] = []
+) => {
   const hardhatArtifact = await hre.artifacts.readArtifact(artifact.contractName);
 
   if (artifact.isFixed) {
@@ -22,7 +26,7 @@ export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironm
 
   const [signer] = await hre.ethers.getSigners();
   const factory = new hre.ethers.ContractFactory(hardhatArtifact.abi, hardhatArtifact.bytecode, signer);
-  const contract = await factory.deploy();
+  const contract = await factory.deploy(...constructorArgs);
   await contract.waitForDeployment();
   return contract as Contract;
 };
@@ -43,8 +47,10 @@ const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvid
   // Get bytecode at ZK_VERIFIER_ADDRESS
   const bytecode = await provider.getCode(MOCKS_ZK_VERIFIER_ADDRESS);
 
-  // If bytecode is empty, we are on a testnet
-  const isTestnet = bytecode.length === 0;
+  // provider.getCode() (eth_getCode) returns the string "0x" -- never a zero-length string --
+  // when there is no contract deployed at the address, so a real "no bytecode" check must
+  // compare against that, not against string length 0.
+  const isTestnet = !bytecode || bytecode.length <= 2;
 
   // Log if we are on a testnet
   if (isTestnet) {
@@ -63,7 +69,7 @@ export const mock_getPlaintext = async (
 
   // Connect to MockTaskManager
   const taskManager = new ethers.Contract(
-    TASK_MANAGER_ADDRESS,
+    MOCKS_TASK_MANAGER_ADDRESS,
     ['function mockStorage(uint256) view returns (uint256)'],
     provider
   );
@@ -83,7 +89,7 @@ export const mock_getPlaintextExists = async (
 
   // Connect to MockTaskManager
   const taskManager = new ethers.Contract(
-    TASK_MANAGER_ADDRESS,
+    MOCKS_TASK_MANAGER_ADDRESS,
     ['function inMockStorage(uint256) view returns (bool)'],
     provider
   );

@@ -1,5 +1,5 @@
 import { STAGING_TESTS, stagingViemChain } from './stagingRedirect';
-import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
+import { FheTypes, verifyDecryptResult, createCofheConfigBase, getTaskManagerAddress } from '@/core';
 import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
@@ -241,6 +241,8 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
         },
       ] as const;
 
+      const taskManagerAddress = await getTaskManagerAddress(publicClient);
+
       for (const sample of samples) {
         const sdkResult = await verifyDecryptResult(sample.handle, sample.cleartext, sample.signature, publicClient);
 
@@ -248,7 +250,7 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
           'function verifyDecryptResultSafe(uint256 ctHash, uint256 cleartext, bytes signature) view returns (bool)',
         ]);
         const tmResult = await publicClient.readContract({
-          address: TASK_MANAGER_ADDRESS,
+          address: taskManagerAddress,
           abi: verifyDecryptResultSafeAbi,
           functionName: 'verifyDecryptResultSafe',
           args: [sample.handle, sample.cleartext, sample.signature],

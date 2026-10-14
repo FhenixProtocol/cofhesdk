@@ -241,7 +241,8 @@ The plugin deploys these core contracts automatically on every `network.connect(
 
 | Contract               | Address                                      | Description                                             |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| `MockTaskManager`      | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL                      |
+| `MockCoFHEAddressBook` | `0xC0F4e00E531a2B086492Ae3DCC1515038307196b` | Resolves the TaskManager for FHE.sol (`getTm(1)`)       |
+| `MockTaskManager`      | `0x0000000000000000000000000000000000005000` | Coordinates FHE operations and ACL                      |
 | `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager |
 | `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                 |
 | `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network              |

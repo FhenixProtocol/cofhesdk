@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 import { MOCK_GAS_CONSUMED_TOPIC } from '@cofhe/hardhat-3-plugin';
 
 describe('Adjusted Gas', async () => {
@@ -93,7 +93,7 @@ describe('Adjusted Gas — audit regressions', async () => {
       gasUsed: 1_000n,
       logs: [
         {
-          address: TASK_MANAGER_ADDRESS,
+          address: MOCKS_TASK_MANAGER_ADDRESS,
           topics: [MOCK_GAS_CONSUMED_TOPIC],
           data: `0x${5_000n.toString(16).padStart(64, '0')}`,
         },
