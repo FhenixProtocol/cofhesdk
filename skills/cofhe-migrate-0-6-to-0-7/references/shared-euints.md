@@ -1,7 +1,8 @@
 # Sharing encrypted values between contracts (`sharedEuintXX`)
 
-0.2.x introduces one `sharedEuintXX` type per encrypted type. Two specific shapes have to move onto
-it — and the inclusion rule is narrower than "crosses a contract boundary", so apply it literally:
+`@fhenixprotocol/cofhe-contracts` 0.2.0 introduces one `sharedEuintXX` type per encrypted type.
+Two specific shapes have to move onto it — and the inclusion rule is narrower than "crosses a
+contract boundary", so apply it literally:
 
 > **In scope:** `public` / `external` **parameters that another contract passes**, and `euint*` > **returned from `public` / `external` non-`view` functions**.
 >
@@ -313,6 +314,12 @@ no ACL access to — it can record or forward it but not compute on it. Moving t
 the protocol wants, or may quietly hand a counterparty something it was never meant to read. It is
 a design decision: surface it, do not apply it.
 
+> **Except when the interface already decided.** `fhenix-confidential-contracts` 0.4.0 declares
+> `IERC7984Receiver.onConfidentialTransferReceived` as `(…, sharedEuint64 amount, …) returns
+(sharedEbool)`. A project implementing that interface has no choice to make — match it, then
+> report what the receiver can now read. See
+> [confidential-tokens.md](confidential-tokens.md).
+
 The outbound `ebool` has no such ambiguity — the callback is handing a value back to its caller, and
 the caller consumes it with `receiveEboolFromCall`.
 
@@ -375,9 +382,12 @@ requires the requester to already be allowed, and in production that comes from 
 
 ## Requirements
 
-- `@fhenixprotocol/cofhe-contracts` **0.2.0-beta.3 or later**. The types and helpers are absent
-  from `0.2.0-beta.1`; a project pinned there fails to compile with
-  `Identifier not found or not unique: sharedEuint64`.
+- `@fhenixprotocol/cofhe-contracts` **0.2.0** (stable). The types and helpers are absent from
+  `0.2.0-beta.1`; a project pinned there fails to compile with
+  `Identifier not found or not unique: sharedEuint64`. `0.2.0-beta.3` has them, but pin the stable
+  `0.2.0` — and make sure only one copy resolves, or the same type name from two copies of
+  `FHE.sol` produces mismatch errors that read like nonsense
+  ([environment.md](environment.md)).
 - An ACL and TaskManager deployment carrying `shareCtHash` / `receiveCtHash`. Live on CoFHE
   staging and the host chain; the mocks in `@cofhe/mock-contracts` 0.7.0 support it locally.
   Against a deployment that predates it, the share call reverts.

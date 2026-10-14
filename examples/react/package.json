@@ -1,18 +1,19 @@
 {
   "name": "@cofhe/example-react",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite --force",
     "build": "vite build",
     "build-check": "tsc && vite build",
+    "check:types": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
     "@cofhe/react": "workspace:*",
     "@cofhe/sdk": "workspace:*",
-    "@tanstack/react-query": "5.90.7",
+    "@tanstack/react-query": "5.100.10",
     "@tanstack/react-query-devtools": "5.91.2",
     "clsx": "2.1.1",
     "react": "18.3.1",

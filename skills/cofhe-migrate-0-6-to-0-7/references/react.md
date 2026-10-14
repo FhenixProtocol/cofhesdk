@@ -157,6 +157,29 @@ These landed alongside the rename and change runtime behaviour without any compi
   delegated ACP no longer hijacks the issuer's own active ACP. `getOrCreateSharingACP` opts in via
   `activate: true`.
 
+## Unshield-claim hooks — a shape change, not a rename
+
+Only for apps using confidential tokens. The hook names are unchanged, so nothing here shows up as a
+missing identifier; read [confidential-tokens.md](confidential-tokens.md) §7 for the contract-side
+reasons.
+
+- **`useCofheTokenClaimable` no longer has a plaintext amount to read.** The claim struct's
+  `requestedAmount` is gone, so the hook decrypts each pending claim under the holder's ACP to
+  produce `claimableAmount`, and reports **`undecryptedCount`** for the ones it could not read.
+  Undecryptable claims stay in the list on purpose. A UI that assumed an always-available figure
+  needs an "amount unknown" state, and `undecryptedCount > 0` is the signal for it — most often a
+  missing or expired ACP rather than an error.
+- **`claimableCount` is the readiness signal, not `decryptedAmount`.** `getUserClaims` returns only
+  unclaimed claims, and every one carries `decryptedAmount == 0`. Any app-side
+  `decryptedAmount > 0n` test is dead logic that reports "pending" forever.
+- **A hand-rolled claim submission must submit `claim.id` and decrypt `claim.ctHash`.** Two
+  different `Hex` values, both required. `useCofheTokenClaimUnshielded` /
+  `getCofheTokenClaimUnshieldedCallArgs` already do this; anything bypassing them needs checking,
+  because the selector is unchanged and a swap fails only on chain.
+- **Any locally declared claim-struct ABI must be updated** to `(bytes32 id, address to, bytes32
+ctHash, uint64 decryptedAmount, bool claimed)`. Both shapes are five static slots, so an old
+  declaration decodes without complaint and yields misaligned nonsense.
+
 ## Find them
 
 ```bash
@@ -165,6 +188,10 @@ grep -rnE 'useCofhe(ActivePermit|AllPermits|RemovePermit|SelectPermit|CreatePerm
 
 # bare-array useCofheEncrypt calls
 grep -rnE 'encrypt(InputsAsync)?\(\s*\[' --include='*.ts' --include='*.tsx' .
+
+# claim surface - none of these are compiler-caught
+grep -rnE 'requestedAmount|decryptedAmount\s*[>!=]|claimUnshielded|getUserClaims' \
+  --include='*.ts' --include='*.tsx' .
 ```
 
 ## Verify

@@ -8,6 +8,7 @@ import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
 import type { CofheDecryptMeta } from '@/meta';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 
 // ============================================================================
 // Unified Confidential Balance Hook
@@ -16,8 +17,16 @@ import type { CofheDecryptMeta } from '@/meta';
 type UseConfidentialTokenBalanceInput = {
   /** Token from token list */
   token?: ConfidentialToken;
-  /** Account address (optional, defaults to connected account) */
+  /**
+   * Account whose balance to read. Inside a `<CofheACPScope>`, or with `acp`, it defaults to that
+   * ACP issuer; otherwise the balance is read only when an account is given.
+   */
   accountAddress?: Address;
+  /**
+   * Decrypt with this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>`
+   * or the active ACP. The active ACP is not changed.
+   */
+  acp?: CofheACPInput;
   /** Display decimals for formatting (default: 5) */
   displayDecimals?: number;
   /**
@@ -45,6 +54,8 @@ type UseConfidentialTokenBalanceResult = {
   isDecryptError: boolean;
   /** A balance is shown but the read that produced it is currently failing (stale). */
   isValueStale: boolean;
+  /** The balance is outside the decrypt ACP SNAPSHOT share, so it is never decrypted. */
+  isOutOfScope: boolean;
 };
 
 /**
@@ -55,10 +66,13 @@ type UseConfidentialTokenBalanceResult = {
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
 export function useCofheTokenDecryptedBalance(
-  { token, accountAddress, displayDecimals = 5, meta }: UseConfidentialTokenBalanceInput,
+  { token, accountAddress, displayDecimals = 5, meta, acp }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
+  // A scoped balance is the ACP issuer balance: that is the data the ACP can decrypt.
+  const decryptACP = useCofheEffectiveACP({ acp });
+  const account = accountAddress ?? (decryptACP.scoped ? decryptACP.issuer : undefined);
 
   const contractConfig =
     token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
@@ -74,13 +88,15 @@ export function useCofheTokenDecryptedBalance(
     isDecryptError,
     isValueStale,
     isKnownZero,
+    isOutOfScope,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
       abi: contractConfig?.abi,
       functionName: contractConfig?.functionName,
-      args: accountAddress ? [accountAddress] : undefined,
+      args: account ? [account] : undefined,
       requiresACP: true,
+      acp,
     },
     {
       readQueryOptions: {
@@ -120,5 +136,6 @@ export function useCofheTokenDecryptedBalance(
     isReadError,
     isDecryptError,
     isValueStale,
+    isOutOfScope,
   };
 }

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { type ACP } from '@cofhe/sdk/acps';
-import { useCofheActiveACP, useCofheAllACPs } from '../useCofheACPs';
+import { useCofheActiveACP, useCofheACPs } from '../useCofheACPs';
 import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 import { useCofheNavigateToCreateACP } from './useCofheNavigateToCreateACP';
 import { usePortalModals, usePortalNavigation } from '@/stores';
@@ -10,7 +10,7 @@ export type ACPStatus = 'active' | 'valid' | 'expired';
 export type ACPActionId = 'generate' | 'delegate' | 'import';
 
 export const useACPsList = () => {
-  const allACPs = useCofheAllACPs();
+  const allACPs = useCofheACPs();
   const activeACP = useCofheActiveACP();
   const { navigateTo } = usePortalNavigation();
   const { openModal } = usePortalModals();

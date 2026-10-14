@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 
 describe('Set Log Ops', async () => {
   const { viem, cofhe } = await network.connect();
@@ -13,7 +13,7 @@ describe('Set Log Ops', async () => {
 
   const getLogOps = () =>
     publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS,
+      address: MOCKS_TASK_MANAGER_ADDRESS,
       abi: logOpsAbi,
       functionName: 'logOps',
     });
