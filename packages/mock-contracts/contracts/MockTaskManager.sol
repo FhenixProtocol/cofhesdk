@@ -210,8 +210,17 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setSecurityZones(int32 minSZ, int32 maxSZ) external onlyOwner {
-    securityZoneMin = minSZ;
-    securityZoneMax = maxSZ;
+    _setSecurityZones(minSZ, maxSZ);
+  }
+
+  /// @dev Same check as the real task manager's `_setSecurityZones`, the one write path for the bounds.
+  ///      Without it `setSecurityZones(2, 1)` would be stored here while the real task manager reverts.
+  function _setSecurityZones(int32 newMin, int32 newMax) private {
+    if (newMin > newMax) {
+      revert InvalidSecurityZone(newMin, newMin, newMax);
+    }
+    securityZoneMin = newMin;
+    securityZoneMax = newMax;
   }
 
   function isInitialized() public view returns (bool) {
@@ -800,17 +809,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
-    if (securityZone < securityZoneMin) {
-      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
-    }
-    securityZoneMax = securityZone;
+    _setSecurityZones(securityZoneMin, securityZone);
   }
 
   function setSecurityZoneMin(int32 securityZone) external onlyOwner {
-    if (securityZone > securityZoneMax) {
-      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
-    }
-    securityZoneMin = securityZone;
+    _setSecurityZones(securityZone, securityZoneMax);
   }
 
   function setACLContract(address _aclAddress) external onlyOwner {
