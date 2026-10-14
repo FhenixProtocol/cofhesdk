@@ -1,4 +1,5 @@
 import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
+import { decodeShareMetadata, shareAppKey, verifyShareLabels } from '@/acps';
 
 import { createStore } from 'zustand/vanilla';
 import { type Hex, type PublicClient, type WalletClient } from 'viem';
@@ -50,6 +51,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // Share registry resolution: explicit `acp.sharingRegistry` config wins,
   // otherwise the address the chain's ACL serves.
+  /** `{ appKey }` of `config.acp.app`, for the shares this client creates, posts and lists; `{}` without an app. */
+  const withAppKey = (): { appKey?: `0x${string}` } =>
+    opts.config.acp?.app == null ? {} : { appKey: shareAppKey(opts.config.acp.app) };
+
   const _resolveSharingRegistry = async (publicClient: PublicClient, chainId: number): Promise<`0x${string}`> => {
     const configured = opts.config.acp?.sharingRegistry?.[chainId];
     if (configured != null) return configured;
@@ -254,7 +259,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const { publicClient, walletClient } = clients ?? connectStore.getState();
       const chainId = await publicClient!.getChainId();
       return acps.createSharing(
-        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, chainId),
+        await acps.applyACPDefaultsFromChain({ ...withAppKey(), ...options }, opts.config.acp, publicClient!, chainId),
         publicClient!,
         walletClient!
       );
@@ -262,9 +267,9 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     importShared: async (options: ImportSharedACPOptions | string, importOptions = {}) => {
       _requireConnected();
-      const { activate, ...clients } = importOptions;
+      const { activate, name, ...clients } = importOptions;
       const { publicClient, walletClient } = clients.publicClient ? clients : connectStore.getState();
-      return acps.importShared(options, publicClient!, walletClient!, { activate });
+      return acps.importShared(options, publicClient!, walletClient!, { activate, name });
     },
 
     // Get or create methods (require connection)
@@ -288,7 +293,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.getOrCreateSharingACP(
         publicClient!,
         walletClient!,
-        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, _chainId),
+        await acps.applyACPDefaultsFromChain({ ...withAppKey(), ...options }, opts.config.acp, publicClient!, _chainId),
         _chainId,
         _account
       );
@@ -320,12 +325,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     },
 
     // On-chain sharing (require connection + config.acp.sharingRegistry)
-    shareOnChain: async (acp) => {
+    shareOnChain: async (acp, options) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.shareOnChain(acp, walletClient!, sharingRegistry);
+      return acps.shareOnChain(acp, walletClient!, sharingRegistry, { ...withAppKey(), ...options });
     },
 
     getIncomingShares: async () => {
@@ -334,7 +339,28 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const chainId = await publicClient!.getChainId();
       const account = walletClient!.account!.address;
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.getIncomingShares(publicClient!, sharingRegistry, account);
+      return acps.getIncomingShares(publicClient!, sharingRegistry, account, withAppKey());
+    },
+
+    getShareFromChain: async (shareId) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return acps.getShareFromChain(publicClient!, sharingRegistry, shareId);
+    },
+
+    verifyShareLabels: async (share, options) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      if (share.metadata == null || share.metadata === '0x') return null;
+      return verifyShareLabels({
+        labels: decodeShareMetadata(share.metadata, share.handles),
+        handles: share.handles,
+        issuer: share.issuer,
+        publicClient: publicClient!,
+        verify: options?.verify,
+      });
     },
 
     importFromChain: async (share, options) => {

@@ -6,7 +6,7 @@ import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js'
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
-import { acps, type ImportActivationOptions } from './acps.js';
+import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
@@ -19,7 +19,9 @@ import type {
   RecipientACP,
   SelfACP,
   IncomingShare,
+  LabelledShare,
 } from 'acps/types.js';
+import type { ShareLabelCheck, ShareLabelVerifyMode } from 'acps/share-metadata/verify.js';
 
 // CLIENT
 
@@ -77,9 +79,10 @@ export type CofheClientACPsClients = {
 
 /**
  * Options for `importShared`. `activate: false` stores the imported acp without making it the active
- * one (default `true`). Clients default to the connected ones; pass both to override.
+ * one (default `true`). `name` names it (default "Shared by 0x1234…abcd"). Clients default to the
+ * connected ones; pass both to override.
  */
-export type CofheClientImportSharedOptions = ImportActivationOptions &
+export type CofheClientImportSharedOptions = ImportSharedOptions &
   (CofheClientACPsClients | { publicClient?: undefined; walletClient?: undefined });
 
 export type CofheClientACPs = {
@@ -121,12 +124,27 @@ export type CofheClientACPs = {
    */
   checkAccess: (acp: ACP, handle?: bigint | `0x${string}`) => Promise<ACPAccessStatus>;
 
-  /** Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `acp.sharingRegistry`). */
-  shareOnChain: (acp: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
-  /** Importable shares addressed to the connected account (unexpired, not revoked). */
+  /**
+   * Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `acp.sharingRegistry`),
+   * optionally with the labels of its handles (`options.labels`, one per handle) or an encoded blob.
+   */
+  shareOnChain: (acp: ACP, options?: ShareOnChainOptions) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
+  /** Importable shares addressed to the connected account (unexpired, not revoked), with their metadata. */
   getIncomingShares: () => Promise<IncomingShare[]>;
+  /** One share by id, as posted; null when unknown or removed. */
+  getShareFromChain: (shareId: `0x${string}`) => Promise<IncomingShare | null>;
+  /**
+   * Check a share's labels against the chain, index for index with its handles, as far as
+   * `verify` says (default 'all'). Takes a share read from the registry or an acp imported from
+   * exported JSON (or the issuer's sharing acp). Null for a share without metadata. Throws on a
+   * malformed blob.
+   */
+  verifyShareLabels: (
+    share: LabelledShare,
+    options?: { verify?: ShareLabelVerifyMode }
+  ) => Promise<ShareLabelCheck[] | null>;
   /** Import a share read from the registry: sign as recipient, store and (unless `activate: false`) activate. */
-  importFromChain: (share: IncomingShare, options?: ImportActivationOptions) => Promise<RecipientACP>;
+  importFromChain: (share: IncomingShare, options?: ImportSharedOptions) => Promise<RecipientACP>;
   /** Recipient-side: remove a share from the registry (after import, or to decline). */
   dismissShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
   /** Issuer-side: retract a pending share from the registry. */

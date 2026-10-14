@@ -1,10 +1,11 @@
 import type { ArtifactManager } from 'hardhat/types/artifacts';
 import type { PublicClient, WalletClient } from 'viem';
-import { createTestClient, custom } from 'viem';
+import { createTestClient, custom, encodeFunctionData } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import {
+  ACPShareRegistryArtifact,
   MockACLArtifact,
   MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
@@ -159,7 +160,12 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   log('vv', 'Default revoker contract set in ACL', 2);
 
   // 5c. ACP: on-chain hand-off for sharing ACPs
-  const acpShareRegistryAddress = await deployVariable(ctx, 'ACPShareRegistry', []);
+  // The production contract (upgradeable): behind a proxy, initialized with the deployer as admin
+  const acpShareRegistryImpl = await deployVariable(ctx, 'ACPShareRegistry', []);
+  const acpShareRegistryAddress = await deployVariable(ctx, 'MockERC1967Proxy', [
+    acpShareRegistryImpl,
+    encodeFunctionData({ abi: ACPShareRegistryArtifact.abi, functionName: 'initialize', args: [account] }),
+  ]);
   logDeployment('ACPShareRegistry', acpShareRegistryAddress);
   await ctx.walletClient.writeContract({
     address: aclAddress,

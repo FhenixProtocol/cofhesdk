@@ -57,6 +57,9 @@ const contracts: Array<{ name: string; fixedAddress?: string }> = [
   {
     name: 'ACPShareRegistry',
   },
+  {
+    name: 'MockERC1967Proxy',
+  },
 ];
 
 function inspect(contract: string, field: string): any {
