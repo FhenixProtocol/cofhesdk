@@ -5,7 +5,7 @@ description: How the ACP share registry stores a share, what posting costs, how 
 
 # Share registry internals
 
-This page is for readers who write their own registry client or label encoder, or want to know what [sharing on-chain](/sdk/acp#sharing-on-chain) costs. Using shares and labels through the SDK needs none of it.
+This page describes the share registry the SDK uses underneath [sharing on-chain](/sdk/acp#sharing-on-chain): how it stores a share, what posting costs, how a label is checked, and the byte layout of the labels. Sharing and labelling through `client.acp` needs none of it. Unless you write your own registry client or label encoder, or build sharing features the SDK does not offer, you should not need to work with any of this directly.
 
 ## How the registry keeps a share
 
