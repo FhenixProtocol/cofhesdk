@@ -244,7 +244,6 @@ describe('ACPShareRegistry', () => {
     await registry.connect(bob).share(p, '0x');
     expect(await registry.isShareValid(await shareIdOf(p))).to.equal(false);
   });
-});
 
   // ----------------------------------------------------- pagination
 
@@ -267,4 +266,5 @@ describe('ACPShareRegistry', () => {
     expect(all.shareIds.length).to.equal(5);
     expect(await registry.MAX_SHARES_PAGE()).to.equal(256n);
   });
+});
 
