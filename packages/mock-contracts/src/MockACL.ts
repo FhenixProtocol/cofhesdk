@@ -12,19 +12,6 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'TASK_MANAGER_ADDRESS_',
-      inputs: [],
-      outputs: [
-        {
-          name: '',
-          type: 'address',
-          internalType: 'address',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
       name: 'allow',
       inputs: [
         {
@@ -165,12 +152,12 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'checkPermitValidity',
+      name: 'checkPermissionValidity',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -188,14 +175,29 @@ export const MockACLArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -230,6 +232,19 @@ export const MockACLArtifact = {
       inputs: [],
       outputs: [],
       stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'defaultRevokerContract',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      stateMutability: 'view',
     },
     {
       type: 'function',
@@ -417,9 +432,9 @@ export const MockACLArtifact = {
       name: 'isAllowedWithPermission',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -437,14 +452,29 @@ export const MockACLArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -503,6 +533,104 @@ export const MockACLArtifact = {
       stateMutability: 'view',
     },
     {
+      type: 'function',
+      name: 'receiveCtHash',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'expectedSharer',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'receiver',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setDefaultRevokerContract',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setShareRegistry',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setTaskManager',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareCtHash',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'sharer',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'receiver',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareRegistry',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
       type: 'event',
       name: 'AllowedForDecryption',
       inputs: [
@@ -511,6 +639,25 @@ export const MockACLArtifact = {
           type: 'uint256[]',
           indexed: false,
           internalType: 'uint256[]',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'DefaultRevokerContractUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
         },
       ],
       anonymous: false,
@@ -547,6 +694,44 @@ export const MockACLArtifact = {
       anonymous: false,
     },
     {
+      type: 'event',
+      name: 'ShareRegistryUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'TaskManagerUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
       type: 'error',
       name: 'AlreadyDelegated',
       inputs: [],
@@ -566,6 +751,27 @@ export const MockACLArtifact = {
       type: 'error',
       name: 'InvalidShortString',
       inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'InvalidTaskManagerAddress',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotShared',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'receiver',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
     },
     {
       type: 'error',
@@ -611,6 +817,22 @@ export const MockACLArtifact = {
           name: 'str',
           type: 'string',
           internalType: 'string',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'UnexpectedSharer',
+      inputs: [
+        {
+          name: 'expected',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'actual',
+          type: 'address',
+          internalType: 'address',
         },
       ],
     },

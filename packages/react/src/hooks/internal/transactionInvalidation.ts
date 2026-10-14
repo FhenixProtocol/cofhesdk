@@ -4,14 +4,11 @@ import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
 import { QueryClient } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { Address } from 'viem';
-import { constructCofheReadContractQueryForInvalidation } from '../useCofheReadContract';
+import { checksummedOr, constructCofheReadContractQueryForInvalidation } from '../useCofheReadContract';
 import { constructUnshieldClaimsQueryKeyForInvalidation } from '../useCofheTokenClaimable';
 import type { ConfidentialToken } from '../useCofheTokenLists';
-import {
-  constructPublicTokenBalanceQueryKeyForInvalidation,
-  getPublicTokenBalanceSource,
-} from '../useCofheTokenPublicBalance';
-import { constructTokenAllowanceQueryKeyForInvalidation } from '../useTokenAllowance';
+import { getPublicTokenBalanceSource } from '../useCofheTokenPublicBalance';
+import { normalizeInvalidationTarget } from '../useCofheWriteContract';
 
 export function invalidateConfidentialTokenBalanceQueries(
   token: ConfidentialToken,
@@ -53,17 +50,14 @@ export function invalidatePublicTokenBalanceQueries(
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
 ) {
-  const tokenBalanceQueryKey = constructPublicTokenBalanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    accountAddress,
-  });
+  // The same plain descriptor a `useCofheWriteContract` caller would declare — the tracker
+  // has no key vocabulary of its own. Args are checksummed to meet the hooks' canonical form.
+  const filters = normalizeInvalidationTarget(
+    { chainId, address: tokenAddress, functionName: 'balanceOf', args: [checksummedOr(accountAddress)] },
+    chainId
+  );
 
-  cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
-
-  const filters = {
-    queryKey: tokenBalanceQueryKey,
-  } as const;
+  cofheLogger.log('Invalidating public token balance read contract queries for token:', filters.queryKey);
 
   if (!blockHashToBeAwareOf) {
     queryClient.invalidateQueries(filters);
@@ -109,14 +103,15 @@ export function invalidateTokenAllowanceQueries(
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
 ) {
-  const queryKey = constructTokenAllowanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    ownerAddress,
-    spenderAddress,
-  });
-
-  const filters = { queryKey } as const;
+  const filters = normalizeInvalidationTarget(
+    {
+      chainId,
+      address: tokenAddress,
+      functionName: 'allowance',
+      args: [checksummedOr(ownerAddress), checksummedOr(spenderAddress)],
+    },
+    chainId
+  );
 
   if (!blockHashToBeAwareOf) {
     queryClient.invalidateQueries(filters);

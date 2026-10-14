@@ -6,6 +6,7 @@ import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { formatTokenAmount } from '@/utils/format';
+import { getConfidentialDecimals } from '@/types/token';
 import { useMemo } from 'react';
 import { useCofheTokenClaimUnshielded } from '@/hooks';
 import { cn } from '@/utils';
@@ -31,7 +32,7 @@ export function ClaimableTokens() {
       .filter(([_tokenAddress, summary]) => {
         const token = byLower.get(_tokenAddress.toLowerCase());
         if (!token) return false;
-        return summary.claimableAmount > 0n;
+        return summary.hasClaimable;
       })
       .map(([tokenAddress, summary]) => {
         const token = byLower.get(tokenAddress.toLowerCase());
@@ -70,7 +71,7 @@ export function ClaimableTokens() {
           {rows.map(({ token, claimableAmount }) => {
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
-            const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
+            const formatted = formatTokenAmount(claimableAmount, getConfidentialDecimals(token), 5).formatted;
             const isClaimingThis = isClaimingByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
 
             return (

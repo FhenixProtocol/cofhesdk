@@ -15,7 +15,10 @@
  *
  * Env (loaded from root .env):
  *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN,
- *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC
+ *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC,
+ *   TEST_STAGING_ENABLED (set to "true" to include CoFHE Staging)
+ *   STAGING_RPC_URL (override the staging host chain RPC)
+ *   STAGING_FUNDER_KEY (auto-tops-up the staging deployer with 1 ETH if it drops below 0.1 ETH)
  *
  * Requires: forge, cast (Foundry)
  */
@@ -31,6 +34,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
 const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.json');
+const STAGING_REGISTRY_PATH = resolve(__dirname, 'src/stagingTestChainRegistry.json');
 
 // ── .env ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +58,20 @@ const TESTNET_CHAINS = [
   { id: 84532, label: 'Base Sepolia', rpcEnv: 'BASE_SEPOLIA_RPC_URL', rpc: 'https://sepolia.base.org' },
   { id: 421614, label: 'Arbitrum Sepolia', rpcEnv: 'ARBITRUM_SEPOLIA_RPC_URL', rpc: 'https://sepolia-rollup.arbitrum.io/rpc' },
 ];
+
+// Shares a chain ID with LOCALCOFHE_CHAIN (same devnet genesis, hosted remotely) —
+// use a distinct registry key so their deployments.json entries don't collide.
+const STAGING_CHAIN = {
+  id: 420105,
+  label: 'CoFHE Staging',
+  rpcEnv: 'STAGING_RPC_URL',
+  rpc: 'https://staging-hostchain-v1.sw-dom.co',
+  registryKey: '420105-staging',
+  // Staging resets periodically and drains the deployer account; auto-top-up from this
+  // funder key rather than failing outright when the deployer dips below MIN_BALANCE_ETH.
+  funderKeyEnv: 'STAGING_FUNDER_KEY',
+  fundAmountEth: '1',
+};
 
 const LOCALCOFHE_CHAIN = {
   id: 420105,
@@ -152,13 +170,18 @@ function parseArgs() {
 loadEnv();
 const args = parseArgs();
 
-const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
+const ALL_CHAINS = [
+  ...TESTNET_CHAINS,
+  ...(process.env.TEST_STAGING_ENABLED === 'true' ? [STAGING_CHAIN] : []),
+  LOCALCOFHE_CHAIN,
+];
 const HARDHAT_MOCK_RPC = 'http://127.0.0.1:8546';
 const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
 const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001';
 const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002';
-const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
+const COFHE_ADDRESS_BOOK_ADDRESS = '0xC0F4e00E531a2B086492Ae3DCC1515038307196b';
+const MOCKS_TASK_MANAGER_ADDRESS = '0x0000000000000000000000000000000000005000';
 const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
   '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
 const MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY =
@@ -204,10 +227,29 @@ function getAccountAddress(privateKey) {
 const MIN_BALANCE_ETH = 0.1;
 const underfunded = [];
 
+function tryAutoFund(chain, rpc, address, balanceEth) {
+  const funderKeyEnv = chain.funderKeyEnv;
+  if (!funderKeyEnv || !process.env[funderKeyEnv]) return null;
+
+  const amount = chain.fundAmountEth || '1';
+  console.log(
+    `\n  ${yellow(bold('Auto-funding'))} ${chain.label} deployer ${address} (${balanceEth} ETH < ${MIN_BALANCE_ETH}) — sending ${amount} ETH from ${funderKeyEnv}...`
+  );
+  try {
+    run(`cast send ${address} --value ${amount}ether --private-key $${funderKeyEnv} --rpc-url ${rpc}`);
+  } catch (e) {
+    console.error(`  ${red('Auto-funding failed:')} ${e.message}`);
+    return null;
+  }
+  return getBalanceEther(rpc, address);
+}
+
 const fundingSections = [];
 const fundingSectionsByEnv = new Map();
 
 for (const chain of ALL_CHAINS) {
+  // respect --chains: don't balance-gate chains we aren't setting up
+  if (args.chains && !args.chains.includes(chain.id)) continue;
   const pkEnvName = getPrivateKeyEnvName(chain);
   let section = fundingSectionsByEnv.get(pkEnvName);
 
@@ -226,9 +268,18 @@ for (const chain of ALL_CHAINS) {
     continue;
   }
 
-  const bal = getBalanceEther(rpc, section.address);
+  let bal = getBalanceEther(rpc, section.address);
+  let parsed = parseFloat(bal);
+
+  if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
+    const funded = tryAutoFund(chain, rpc, section.address, bal);
+    if (funded != null) {
+      bal = funded;
+      parsed = parseFloat(bal);
+    }
+  }
+
   section.entries.push({ label: chain.label, output: `${colorBalance(bal)} ETH` });
-  const parsed = parseFloat(bal);
   if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
     underfunded.push({ label: chain.label, address: section.address, balance: bal });
   }
@@ -267,7 +318,8 @@ console.log(`\nMock accounts on Hardhat (${bold('deployMocks')}):`);
 console.log(`  Owner / deployer          ${bold(hardhatMockAddress)}  ${hardhatMockOutput}`);
 console.log(`  Decrypt result signer     ${bold(mockDecryptSignerAddress)}  ${mockDecryptSignerOutput}`);
 console.log(`  ZK verifier signer        ${bold(mockZkVerifierSignerAddress)}  ${mockZkVerifierSignerOutput}`);
-console.log(`  Fixed contracts           TaskManager ${TASK_MANAGER_ADDRESS}`);
+console.log(`  Fixed contracts           MockCoFHEAddressBook ${COFHE_ADDRESS_BOOK_ADDRESS}`);
+console.log(`                            MockTaskManager ${MOCKS_TASK_MANAGER_ADDRESS}`);
 console.log(`                            MockZkVerifier ${MOCKS_ZK_VERIFIER_ADDRESS}`);
 console.log(`                            MockThresholdNetwork ${MOCKS_THRESHOLD_NETWORK_ADDRESS}`);
 console.log('  SimpleTest                deployed explicitly where tests need it');
@@ -301,6 +353,7 @@ run('forge build');
 
 const registry = readRegistry();
 let changed = false;
+let deploymentFailed = false;
 
 const targets = args.chains
   ? args.chains.map((id) => ALL_CHAINS.find((c) => c.id === id) || (() => { throw new Error(`Unknown chain ${id}`); })())
@@ -316,7 +369,7 @@ for (const contract of CONTRACTS) {
     const rpc = process.env[chain.rpcEnv] || chain.rpc;
     const pkEnvName = getPrivateKeyEnvName(chain);
     const pkValue = process.env[pkEnvName];
-    const key = String(chain.id);
+    const key = chain.registryKey || String(chain.id);
     const entry = registry[contract][key];
     let action, reason;
 
@@ -359,6 +412,7 @@ for (const contract of CONTRACTS) {
       changed = true;
     } catch (err) {
       console.error(`    FAILED: ${err.message}`);
+      deploymentFailed = true;
     }
   }
 }
@@ -366,8 +420,13 @@ for (const contract of CONTRACTS) {
 if (changed) {
   writeRegistry(registry);
   console.log(`\nRegistry updated: ${REGISTRY_PATH}`);
-} else {
+} else if (!deploymentFailed) {
   console.log('\nAll deployments up to date.');
+}
+
+if (deploymentFailed) {
+  console.error('\nOne or more deployments failed.');
+  process.exit(1);
 }
 
 // ── Primary test chain initialization ───────────────────────────────────────
@@ -471,6 +530,79 @@ function initializePrimaryChain() {
 }
 
 initializePrimaryChain();
+
+
+function initializeStagingChain() {
+  if (process.env.TEST_STAGING_ENABLED !== 'true') return;
+
+  const contractAddress = registry['SimpleTest']?.[STAGING_CHAIN.registryKey]?.address;
+  if (!contractAddress) {
+    console.log(`\nStaging chain: no SimpleTest deployment, skipping value initialization`);
+    return;
+  }
+
+  let stagingReg;
+  try { stagingReg = JSON.parse(readFileSync(STAGING_REGISTRY_PATH, 'utf8')); } catch { stagingReg = {}; }
+  const initPkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
+  const initializedBy = run(`cast wallet address --private-key $${initPkEnvName}`).trim().toLowerCase();
+  const deployedAt = registry['SimpleTest'][STAGING_CHAIN.registryKey].deployedAt;
+  const needsInit = !stagingReg.chainId
+    || stagingReg.contractAddress !== contractAddress
+    || stagingReg.deploymentTimestamp !== deployedAt
+    || (stagingReg.initializedBy || '').toLowerCase() !== initializedBy;
+
+  if (!needsInit) {
+    console.log(`\nStaging chain: values already initialized`);
+    return;
+  }
+
+  if (args.dryRun) {
+    console.log(`\nStaging chain: [dry-run] would initialize values`);
+    return;
+  }
+
+  const rpc = process.env[STAGING_CHAIN.rpcEnv] || STAGING_CHAIN.rpc;
+  const pkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
+
+  console.log(`\nInitializing staging chain values on ${STAGING_CHAIN.label}...`);
+
+  console.log(`  setValueTrivial(${PRIVATE_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', String(PRIVATE_VALUE));
+  const privateCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const privateHandle = castCall(rpc, contractAddress, 'getValue()');
+
+  console.log(`  setPublicValueTrivial(${PUBLIC_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', String(PUBLIC_VALUE));
+  const publicCtHash = castCall(rpc, contractAddress, 'publicValueHash()');
+  const publicHandle = castCall(rpc, contractAddress, 'publicValue()');
+
+  console.log(`  addValueTrivial(${ADD_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'addValueTrivial(uint256)', String(ADD_VALUE));
+  const addedCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const addedHandle = castCall(rpc, contractAddress, 'getValue()');
+
+  const newStagingReg = {
+    chainId: STAGING_CHAIN.id,
+    initializedBy,
+    contractAddress,
+    deploymentTimestamp: deployedAt,
+    privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
+    publicValue: { value: PUBLIC_VALUE, ctHash: publicCtHash, handle: publicHandle },
+    addedValue: {
+      value: PRIVATE_VALUE + ADD_VALUE,
+      addend: ADD_VALUE,
+      expectedSum: PRIVATE_VALUE + ADD_VALUE,
+      ctHash: addedCtHash,
+      handle: addedHandle,
+    },
+    initializedAt: new Date().toISOString(),
+  };
+
+  writeFileSync(STAGING_REGISTRY_PATH, JSON.stringify(newStagingReg, null, 2) + '\n');
+  console.log(`  Staging test chain registry updated: ${STAGING_REGISTRY_PATH}`);
+}
+
+initializeStagingChain();
 
 // ── Write SimpleTest.sol abi ────────────────────────────────────────────────
 

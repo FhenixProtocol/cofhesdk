@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useInternalQueries } from '@/providers';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { getTaskManagerAddress } from '@cofhe/sdk';
 
 function abortError(message = 'Aborted') {
   const err = new Error(message);
@@ -80,6 +80,7 @@ export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
         queryKey: ['decryptionResult', chainId, ct] as const,
         queryFn: async ({ signal }: { signal: AbortSignal }) => {
           if (!publicClient) throw new Error('PublicClient is required');
+          const taskManagerAddress = await getTaskManagerAddress(publicClient, chainId);
 
           // Keep the query in-flight until the decryption result is available.
           // This way `isFetching` reflects the real "waiting for decryption" period.
@@ -88,7 +89,7 @@ export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
             // If the transport batches, these should go in one JSON-RPC batch.
             const [res, block] = await Promise.allSettled([
               publicClient.readContract({
-                address: TASK_MANAGER_ADDRESS,
+                address: taskManagerAddress,
                 abi: TASK_MANAGER_ABI,
                 functionName: 'getDecryptResultSafe',
                 args: [BigInt(ct)],

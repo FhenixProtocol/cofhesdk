@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ArrowBackIcon, KeyboardArrowRightIcon } from '@/components/Icons';
-import { isAddress, maxUint128 } from 'viem';
+import { isAddress, maxUint128, maxUint64 } from 'viem';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
@@ -8,6 +8,7 @@ import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
+import { getConfidentialDecimals } from '@/types/token';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheTokensWithExistingEncryptedBalances, type ConfidentialToken } from '@/hooks';
@@ -97,11 +98,9 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
   const handleSend = async () => {
     assert(isAddress(recipientAddress), 'Recipient address is not valid');
 
-    // Check if amount exceeds uint128 max value (2^128 - 1)
-    // Convert amount to token's smallest unit (considering decimals)
-    const amountWei = unitToWei(amount, token.decimals);
-    // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
-    assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
+    const amountWei = unitToWei(amount, getConfidentialDecimals(token));
+    const maxConfidentialAmount = token.extensions.fhenix.confidentialValueType === 'uint128' ? maxUint128 : maxUint64;
+    assert(amountWei <= maxConfidentialAmount, 'Amount exceeds maximum supported confidential value');
     assert(account, 'Sender account is required');
 
     // Use the token transfer hook to send encrypted tokens

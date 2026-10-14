@@ -2,12 +2,13 @@
 /* solhint-disable one-contract-per-file */
 pragma solidity >=0.8.25 <0.9.0;
 
-import { MockACL, Permission } from './MockACL.sol';
+import { MockACL } from './MockACL.sol';
+import { ACP } from './Permissioned.sol';
 // import {PlaintextsStorage} from "./PlaintextsStorage.sol";
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import { MockCoFHE } from './MockCoFHE.sol';
-import { ITaskManager, FunctionId, Utils, EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
+import { ITaskManager, FunctionId, Utils, UnsignedEncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 
 error DecryptionResultNotReady(uint256 ctHash);
 // Input validation errors
@@ -248,6 +249,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Signer address for decrypt result verification (threshold network's signing key)
   address public decryptResultSigner;
 
+  // Counter mixed into generated random seeds, as in the real task manager
+  uint256 private randomCounter;
+
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
 
@@ -262,22 +266,63 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return true;
   }
 
-  function sendEventCreated(uint256 ctHash, string memory operation, uint256[] memory inputs) private {
-    if (inputs.length == 1 || opIs(operation, FunctionId.cast)) {
+  error OnlySelf();
+
+  function sendEventCreated(
+    uint256 ctHash,
+    FunctionId funcId,
+    string memory operation,
+    uint256[] memory inputs
+  ) private {
+    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
+
+    if (arity == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
-
-      // NOTE: MOCK
-      MOCK_unaryOperation(ctHash, operation, inputs[0]);
-    } else if (inputs.length == 2) {
+    } else if (arity == 2) {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], 0);
-
-      // NOTE: MOCK
-      MOCK_twoInputOperation(ctHash, operation, inputs[0], inputs[1]);
     } else {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+    }
 
-      // NOTE: MOCK
-      MOCK_threeInputOperation(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+    // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
+    // task manager, so (under forge, when enabled) it runs with gas metering paused; when
+    // metered (hardhat) its cost is reported via MockGasConsumed instead.
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
+    if (mode != MockGasMode.PAUSED_BY_MOCK) {
+      // MEASURE, or the caller's test already paused metering (nothing of ours to leak
+      // on revert in either case).
+      _mockDispatch(ctHash, funcId, inputs, arity);
+      _mockGasTrackEnd(mode, startGas);
+      return;
+    }
+
+    // External self-call so a revert inside the mock op can be caught and gas metering
+    // resumed before bubbling the original error - otherwise the paused state leaks into
+    // the rest of the test and every later call reports ~0 gas. The extra call itself
+    // runs unmetered.
+    try this.MOCK_dispatchOperation(ctHash, funcId, inputs, arity) {
+      _mockGasTrackEnd(mode, startGas);
+    } catch (bytes memory err) {
+      _mockGasTrackEnd(mode, startGas);
+      assembly ('memory-safe') {
+        revert(add(err, 0x20), mload(err))
+      }
+    }
+  }
+
+  /// @dev Trampoline for `sendEventCreated`'s try/catch; not part of the mocked interface.
+  function MOCK_dispatchOperation(uint256 ctHash, FunctionId funcId, uint256[] calldata inputs, uint8 arity) external {
+    if (msg.sender != address(this)) revert OnlySelf();
+    _mockDispatch(ctHash, funcId, inputs, arity);
+  }
+
+  function _mockDispatch(uint256 ctHash, FunctionId funcId, uint256[] memory inputs, uint8 arity) private {
+    if (arity == 1) {
+      MOCK_unaryOperation(ctHash, funcId, inputs[0]);
+    } else if (arity == 2) {
+      MOCK_twoInputOperation(ctHash, funcId, inputs[0], inputs[1]);
+    } else {
+      MOCK_threeInputOperation(ctHash, funcId, inputs[0], inputs[1], inputs[2]);
     }
   }
 
@@ -298,12 +343,18 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     //     );
     // }
 
-    // NOTE: MOCK
+    // NOTE: MOCK - the real task manager only emits a task event here and the result lands
+    // in a later transaction; storing it synchronously is mock-only work. Only the cheap
+    // existence check runs before the tracked block (so an InputNotInMockStorage revert
+    // can't leak paused gas metering); the read itself is mock-only and stays inside.
+    MOCK_verifyKeyInStorage(ctHash);
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
     _decryptResultReady[ctHash] = true;
     _decryptResult[ctHash] = _get(ctHash);
 
     uint64 asyncOffset = uint64((block.timestamp % 10) + 1);
     _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp) + asyncOffset;
+    _mockGasTrackEnd(mode, startGas);
   }
 
   function getDecryptResult(uint256 ctHash) public view returns (uint256) {
@@ -398,9 +449,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
-  function validateInputs(uint256[] memory encryptedHashes, FunctionId funcId) internal view {
-    string memory functionName = Utils.functionIdToString(funcId);
-
+  function validateInputs(
+    uint256[] memory encryptedHashes,
+    FunctionId funcId,
+    string memory functionName
+  ) internal view {
     if (encryptedHashes.length == 0) {
       if (!isPlaintextOperation(funcId)) {
         revert InvalidOperationInputs(functionName);
@@ -431,6 +484,32 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     validateFunctionInputTypes(funcId, functionName, encryptedHashes);
   }
 
+  /// @dev Same checks as the real task manager: the plaintext must fit the target type and the
+  ///      security zone must be in range. Without them `FHE.asEuint8(256)` would be stored masked
+  ///      to 0 here while the real task manager reverts.
+  function validateTrivialEncryptInputs(uint256[] memory extraInputs) internal view {
+    uint256 securityZone = extraInputs[2];
+    if (securityZone > uint256(int256(type(int32).max)) || !isValidSecurityZone(int32(int256(securityZone)))) {
+      revert InvalidSecurityZone(int32(int256(securityZone)), securityZoneMin, securityZoneMax);
+    }
+
+    uint256 value = extraInputs[0];
+    uint256 toType = extraInputs[1];
+    uint256 max;
+    if (toType == Utils.EUINT8_TFHE) max = type(uint8).max;
+    else if (toType == Utils.EUINT16_TFHE) max = type(uint16).max;
+    else if (toType == Utils.EUINT32_TFHE) max = type(uint32).max;
+    else if (toType == Utils.EUINT64_TFHE) max = type(uint64).max;
+    else if (toType == Utils.EUINT128_TFHE) max = type(uint128).max;
+    else if (toType == Utils.EADDRESS_TFHE) max = type(uint160).max;
+    else if (toType == Utils.EBOOL_TFHE) max = 1;
+    else return;
+
+    if (value > max) {
+      revert InvalidInputForFunction('trivialEncrypt', uint8(toType));
+    }
+  }
+
   function validateSelectInputs(uint256[] memory encryptedHashes) internal pure {
     if (encryptedHashes.length != 3) {
       revert InvalidInputsAmount('select', encryptedHashes.length, 3);
@@ -454,19 +533,23 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
+    string memory operation = Utils.functionIdToString(funcId);
     uint256 inputsLength = encryptedHashes.length + extraInputs.length;
     if (inputsLength > 3) {
-      revert TooManyInputs(Utils.functionIdToString(funcId), inputsLength, 3);
+      revert TooManyInputs(operation, inputsLength, 3);
     }
 
-    validateInputs(encryptedHashes, funcId);
+    validateInputs(encryptedHashes, funcId, operation);
+    if (funcId == FunctionId.trivialEncrypt) {
+      validateTrivialEncryptInputs(extraInputs);
+    }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
     int32 securityZone = getSecurityZone(funcId, encryptedHashes, extraInputs);
     uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, funcId);
 
     acl.allowTransient(ctHash, msg.sender, address(this));
-    sendEventCreated(ctHash, Utils.functionIdToString(funcId), inputs);
+    sendEventCreated(ctHash, funcId, operation, inputs);
 
     return ctHash;
   }
@@ -556,26 +639,53 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
-  function verifyInput(EncryptedInput memory input, address sender) external returns (uint256) {
-    int32 securityZone = int32(uint32(input.securityZone));
-
+  /// @notice Verify a batch of encrypted inputs that share a single signature.
+  /// @dev The verifier signs the whole batch with one signature over
+  ///      keccak256(h_0 || h_1 || ... || h_n), where each h_i is the same
+  ///      per-input message hash defined by `inputMessageHash`:
+  ///      keccak256(ctHash || utype || securityZone || sender || chainid || contractAddress).
+  ///      `contractAddress` (the caller of this function) binds the batch to the specific
+  ///      consuming contract, matching cofhe-contracts#77.
+  ///      Inputs are processed in order; the returned hashes line up with `inputs`.
+  ///      This is the sole verification path - the real FHE.sol library routes single
+  ///      inputs through here too (as a one-element batch), so there's no separate
+  ///      single-item `verifyInput` entry point to keep in sync.
+  /// @param inputs The encrypted inputs to verify (no per-input signature -
+  ///        the batch is authenticated by the single `signature` argument).
+  /// @param sender The account the inputs are bound to.
+  /// @param signature The single ECDSA signature covering the whole batch.
+  /// @return appendedHashes The metadata-appended ct hashes, in input order.
+  function batchVerifyInputs(
+    UnsignedEncryptedInput[] memory inputs,
+    address sender,
+    bytes memory signature
+  ) external returns (uint256[] memory) {
+    uint256 len = inputs.length;
     // When signer is set to 0 address we skip this logic to be able to support debug use cases.
     // In debug use cases we assume that the verifier is not necessarily running.
     if (verifierSigner != address(0)) {
-      if (!isValidSecurityZone(securityZone)) {
-        revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
+      for (uint256 i = 0; i < len; i++) {
+        int32 securityZone = int32(uint32(inputs[i].securityZone));
+        if (!isValidSecurityZone(securityZone)) {
+          revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
+        }
       }
 
-      address signer = extractSigner(input, sender);
+      address signer = extractBatchSigner(inputs, sender, msg.sender, signature);
       if (signer != verifierSigner) {
         revert InvalidSigner(signer, verifierSigner);
       }
     }
 
-    uint256 appendedHash = TMCommon.appendMetadata(input.ctHash, securityZone, input.utype, false);
+    uint256[] memory appendedHashes = new uint256[](len);
+    for (uint256 i = 0; i < len; i++) {
+      int32 securityZone = int32(uint32(inputs[i].securityZone));
+      uint256 appendedHash = TMCommon.appendMetadata(inputs[i].ctHash, securityZone, inputs[i].utype, false);
+      acl.allowTransient(appendedHash, msg.sender, address(this));
+      appendedHashes[i] = appendedHash;
+    }
 
-    acl.allowTransient(appendedHash, msg.sender, address(this));
-    return appendedHash;
+    return appendedHashes;
   }
 
   function allow(uint256 ctHash, address account) external {
@@ -583,7 +693,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allow(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
+      MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
     }
   }
 
@@ -592,7 +702,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowGlobal(ctHash, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowGlobal', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
     }
   }
 
@@ -601,7 +711,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowTransient(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowTransient', ctHash, account);
+      MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
     }
   }
 
@@ -612,7 +722,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowForDecryption(hashes, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowForDecryption', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
     }
   }
 
@@ -623,11 +733,55 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return acl.isAllowed(ctHash, account);
   }
 
-  function extractSigner(EncryptedInput memory input, address sender) private view returns (address) {
-    bytes memory combined = abi.encodePacked(input.ctHash, input.utype, input.securityZone, sender, block.chainid);
-    bytes32 expectedHash = keccak256(combined);
+  function shareCtHash(uint256 ctHash, address receiver) external {
+    acl.shareCtHash(ctHash, msg.sender, receiver);
 
-    address signer = ECDSA.recover(expectedHash, input.signature);
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.share', ctHash, receiver);
+  }
+
+  function receiveCtHash(uint256 ctHash, address expectedSharer) external {
+    acl.receiveCtHash(ctHash, expectedSharer, msg.sender);
+
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.receive', ctHash, expectedSharer);
+  }
+
+  /// @dev Per-input message hash used by batch verification:
+  ///      keccak256(ctHash || utype || securityZone || sender || chainid || contractAddress).
+  ///      `contractAddress` binds the input to the specific contract that consumes it
+  ///      (the caller of `batchVerifyInputs`), matching cofhe-contracts#77 -
+  ///      without this, a signed input observed on-chain could be replayed into any other
+  ///      contract, which would then obtain an ACL allowance over the ciphertext.
+  function inputMessageHash(
+    uint256 ctHash,
+    uint8 utype,
+    uint8 securityZone,
+    address sender,
+    address contractAddress
+  ) private view returns (bytes32) {
+    return keccak256(abi.encodePacked(ctHash, utype, securityZone, sender, block.chainid, contractAddress));
+  }
+
+  /// @dev Recover the signer of a batch from the single signature over
+  ///      keccak256(h_0 || h_1 || ... || h_n), where each h_i is `inputMessageHash`.
+  function extractBatchSigner(
+    UnsignedEncryptedInput[] memory inputs,
+    address sender,
+    address contractAddress,
+    bytes memory signature
+  ) private view returns (address) {
+    bytes memory concatenatedHashes;
+    for (uint256 i = 0; i < inputs.length; i++) {
+      concatenatedHashes = abi.encodePacked(
+        concatenatedHashes,
+        inputMessageHash(inputs[i].ctHash, inputs[i].utype, inputs[i].securityZone, sender, contractAddress)
+      );
+    }
+
+    bytes32 batchHash = keccak256(concatenatedHashes);
+
+    address signer = ECDSA.recover(batchHash, signature);
 
     if (signer == address(0)) {
       revert InvalidSignature();
@@ -683,15 +837,50 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     aggregator = _aggregatorAddress;
   }
 
-  function isAllowedWithPermission(Permission memory permission, uint256 handle) public view returns (bool) {
-    return acl.isAllowedWithPermission(permission, handle);
+  /// @notice ACP scope-checked access, forwarded to the ACL.
+  function isAllowedWithPermission(ACP memory acp, uint256 handle) public view returns (bool) {
+    return acl.isAllowedWithPermission(acp, handle);
   }
 
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
-    // Mock implementation: just return a pseudo-random hash based on seed
-    return uint256(keccak256(abi.encode(returnType, seed, securityZone, block.timestamp)));
+    if (!isValidSecurityZone(securityZone)) {
+      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
+    }
+
+    if (seed == 0) {
+      seed = uint256(
+        keccak256(
+          abi.encodePacked(blockhash(block.number - 1), block.timestamp, randomCounter, block.chainid, securityZone)
+        )
+      );
+      unchecked {
+        randomCounter++;
+      }
+    }
+
+    // Same handle derivation as the real task manager: msg.sender is part of the preimage.
+    uint256[] memory inputs = new uint256[](2);
+    inputs[0] = seed;
+    inputs[1] = uint256(uint160(msg.sender));
+
+    uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, FunctionId.random);
+    acl.allowTransient(ctHash, msg.sender, address(this));
+    emit TaskCreated(
+      ctHash,
+      Utils.functionIdToString(FunctionId.random),
+      seed,
+      uint256(uint32(securityZone)),
+      inputs[1]
+    );
+
+    // NOTE: MOCK - the real task manager leaves the value to the coprocessor; store one here.
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
+    _set(ctHash, uint256(keccak256(abi.encode(ctHash))));
+    _mockGasTrackEnd(mode, startGas);
+
+    return ctHash;
   }
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {

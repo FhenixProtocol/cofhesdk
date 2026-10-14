@@ -53,6 +53,12 @@ type BaseTransaction = {
 type TokenTransaction = BaseTransaction & {
   token: ConfidentialToken;
   tokenAmount: bigint;
+  /**
+   * Decimals `tokenAmount` is denominated in: public-side decimals for Shield/Approve,
+   * confidential-side decimals for Unshield/Claim/ShieldSend. Absent on entries persisted
+   * before this field existed - fall back to `token.decimals`.
+   */
+  tokenAmountDecimals?: number;
 };
 
 type ShieldingTransaction = TokenTransaction & {

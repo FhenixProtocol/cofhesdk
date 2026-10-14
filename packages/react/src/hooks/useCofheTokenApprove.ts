@@ -1,6 +1,7 @@
 import type { Address } from 'viem';
 import type { ConfidentialToken } from './useCofheTokenLists.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
+import { getPublicDecimals } from '@/types/token';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import { hasExtras, useCofheWriteContract, type useCofheWriteContractOptions } from './useCofheWriteContract.js';
 
@@ -42,6 +43,7 @@ export function useCofheTokenApprove(writeMutationOptions?: UseCofheTokenApprove
         hash,
         token,
         tokenAmount,
+        tokenAmountDecimals: getPublicDecimals(token),
         chainId: token.chainId,
         actionType: TransactionActionType.Approve,
         account,

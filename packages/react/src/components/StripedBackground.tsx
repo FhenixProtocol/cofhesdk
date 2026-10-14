@@ -42,13 +42,13 @@ export function StripedBackground({
   );
 }
 
-type PermitStripedProps = {
+type ACPStripedProps = {
   variant: 'self' | 'sharing' | 'recipient' | 'error' | 'warning';
   className?: string;
   children?: React.ReactNode;
 };
 
-const PermitStripedVariantColors: Record<PermitStripedProps['variant'], string> = {
+const ACPStripedVariantColors: Record<ACPStripedProps['variant'], string> = {
   self: 'text-blue-500',
   sharing: 'text-green-500',
   recipient: 'text-purple-500',
@@ -56,7 +56,7 @@ const PermitStripedVariantColors: Record<PermitStripedProps['variant'], string> 
   warning: 'text-yellow-500',
 };
 
-const PermitStripedVariantOpacities: Record<PermitStripedProps['variant'], string> = {
+const ACPStripedVariantOpacities: Record<ACPStripedProps['variant'], string> = {
   self: 'opacity-15',
   sharing: 'opacity-15',
   recipient: 'opacity-15',
@@ -64,9 +64,9 @@ const PermitStripedVariantOpacities: Record<PermitStripedProps['variant'], strin
   warning: 'opacity-30',
 };
 
-export const PermitStripedBackground = ({ variant, className, children }: PermitStripedProps) => {
-  const color = PermitStripedVariantColors[variant];
-  const opacity = PermitStripedVariantOpacities[variant];
+export const ACPStripedBackground = ({ variant, className, children }: ACPStripedProps) => {
+  const color = ACPStripedVariantColors[variant];
+  const opacity = ACPStripedVariantOpacities[variant];
   return (
     <StripedBackground stripeColor="currentColor" className={cn(color, opacity, className)}>
       {children}

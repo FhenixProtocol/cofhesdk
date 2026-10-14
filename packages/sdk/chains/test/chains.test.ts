@@ -1,20 +1,38 @@
 import { describe, it, expect } from 'vitest';
-import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getChainByName } from '../index.js';
+import {
+  sepolia,
+  arbSepolia,
+  baseSepolia,
+  ethereum,
+  arbitrum,
+  hardhat,
+  chains,
+  getChainById,
+  getChainByName,
+} from '../index.js';
 
 describe('Chains', () => {
   it('should export all chains', () => {
-    expect(Object.keys(chains)).toHaveLength(5);
+    expect(Object.keys(chains)).toHaveLength(8);
     expect(chains).toHaveProperty('sepolia');
     expect(chains).toHaveProperty('arbSepolia');
     expect(chains).toHaveProperty('baseSepolia');
+    expect(chains).toHaveProperty('ethereum');
+    expect(chains).toHaveProperty('arbitrum');
     expect(chains).toHaveProperty('hardhat');
     expect(chains).toHaveProperty('localcofhe');
+    expect(chains).toHaveProperty('stagingCofhe');
   });
 
   it('should have correct chain configurations', () => {
     expect(sepolia.id).toBe(11155111);
     expect(sepolia.name).toBe('Sepolia');
     expect(sepolia.environment).toBe('TESTNET');
+
+    expect(ethereum.id).toBe(1);
+    expect(ethereum.environment).toBe('MAINNET');
+    expect(arbitrum.id).toBe(42161);
+    expect(arbitrum.environment).toBe('MAINNET');
 
     expect(hardhat.id).toBe(31337);
     expect(hardhat.name).toBe('Hardhat');
@@ -23,6 +41,8 @@ describe('Chains', () => {
 
   it('should find chains by ID', () => {
     expect(getChainById(11155111)).toBe(sepolia);
+    expect(getChainById(1)).toBe(ethereum);
+    expect(getChainById(42161)).toBe(arbitrum);
     expect(getChainById(31337)).toBe(hardhat);
     expect(getChainById(999999)).toBeUndefined();
   });
@@ -30,12 +50,14 @@ describe('Chains', () => {
   it('should find chains by name', () => {
     expect(getChainByName('sepolia')).toBe(sepolia);
     expect(getChainByName('Sepolia')).toBe(sepolia);
+    expect(getChainByName('ethereum')).toBe(ethereum);
+    expect(getChainByName('arbitrum')).toBe(arbitrum);
     expect(getChainByName('hardhat')).toBe(hardhat);
     expect(getChainByName('nonexistent')).toBeUndefined();
   });
 
   it('should validate chain properties', () => {
-    const allChains = [sepolia, arbSepolia, baseSepolia, hardhat];
+    const allChains = [sepolia, arbSepolia, baseSepolia, ethereum, arbitrum, hardhat];
 
     allChains.forEach((chain) => {
       expect(typeof chain.id).toBe('number');

@@ -1,21 +1,23 @@
-export * from './permits';
+export * from './acps';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheClient } from './useCofheClient';
 export { useCofheConnect } from './useCofheConnect';
 export { useCofheConnection, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection';
 export { useCofheEnabled, type UseCofheEnabledOptions, type UseCofheEnabledResult } from './useCofheEnabled';
+export { useCofheTaskManagerAddress } from './useCofheTaskManagerAddress';
 export { useCofheEncrypt } from './useCofheEncrypt';
-export {
-  useCofheActivePermit,
-  useCofheAllPermits,
-  useCofheRemovePermit,
-  useCofheSelectPermit,
-} from './useCofhePermits';
+export { useCofheActiveACP, useCofheACPs, useCofheAllACPs, useCofheRemoveACP, useCofheSelectACP } from './useCofheACPs';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
+  type UseCofheReadContractsResult,
+  type UseCofheReadContractsQueryOptions,
 } from './useCofheReadContracts';
 export { useCofheSimulateWriteContract } from './useCofheSimulateWriteContract';
 export { useCofheStatuses } from './useCofheStatuses';
@@ -24,7 +26,12 @@ export {
   type TokenApproveExtras,
   type UseCofheTokenApproveOptions,
 } from './useCofheTokenApprove';
-export { useCofheTokenClaimable, useCofheTokenClaims, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
+export {
+  useCofheTokenClaimable,
+  useCofheTokenClaims,
+  type UnshieldClaim,
+  type UnshieldClaimsSummary,
+} from './useCofheTokenClaimable';
 export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
@@ -47,7 +54,7 @@ export {
   type ClaimableAmountByTokenAddress,
   type UnshieldClaimsSummaryByTokenAddress,
 } from './useCofheTokensClaimable';
-export { getCofheTokenShieldCallArgs, useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
+export { getCofheTokenShieldCallArgs, useCofheTokenShield } from './useCofheTokenShield';
 export {
   useCofheTokensWithExistingEncryptedBalances,
   type UseCofheTokensWithExistingBalancesInput,

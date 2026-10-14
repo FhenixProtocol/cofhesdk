@@ -14,12 +14,18 @@ function resolveMockContractsOutDir(): string {
   return resolve(mockPkgJson, '..', 'out');
 }
 
+/** Contracts whose source file name differs from the contract name. */
+const CONTRACT_SOURCE_FILES: Record<string, string> = {
+  MockACP: 'ACP.sol',
+};
+
 export function createFoundryArtifactReader() {
   const outDir = resolveMockContractsOutDir();
 
   return {
     async readArtifact(contractName: string) {
-      const artifactPath = resolve(outDir, `${contractName}.sol`, `${contractName}.json`);
+      const sourceFile = CONTRACT_SOURCE_FILES[contractName] ?? `${contractName}.sol`;
+      const artifactPath = resolve(outDir, sourceFile, `${contractName}.json`);
       const artifact = JSON.parse(readFileSync(artifactPath, 'utf8'));
       return {
         contractName,

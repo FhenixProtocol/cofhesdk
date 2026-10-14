@@ -230,7 +230,6 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
 
       // Is array of encrypted return types
       if (internalTypeSize != null) {
-        console.log('array of encrypted return types', internalTypeHead, internalTypeSize, value);
         return transformArrayOfEncryptedReturnTypesToReturnTypes(internalTypeHead, internalTypeSize, value as string[]);
       }
     }
@@ -238,20 +237,39 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
     // Tuple but not an encrypted return type (recursive case)
     if (typeHead === 'tuple') {
       if ('components' in param && Array.isArray(param.components)) {
-        const valueObj = value as Record<string, unknown>;
-        const result: Record<string, unknown> = {};
+        const components = param.components;
 
-        param.components.forEach((component) => {
-          const componentName = component.name;
-          if (componentName) {
-            const componentValue = valueObj[componentName];
-            if (componentValue !== undefined) {
-              result[componentName] = processParameter(component, componentValue);
+        const processTuple = (tupleValue: unknown): unknown => {
+          const valueObj = tupleValue as Record<string, unknown>;
+          const result: Record<string, unknown> = {};
+
+          components.forEach((component) => {
+            const componentName = component.name;
+            if (componentName) {
+              const componentValue = valueObj[componentName];
+              if (componentValue !== undefined) {
+                result[componentName] = processParameter(component, componentValue);
+              }
             }
-          }
-        });
+          });
 
-        return result;
+          return result;
+        };
+
+        // `tuple[]` / `tuple[N]`: transform each element as its own tuple. Treating the
+        // array itself as one tuple would look up named components on the array object,
+        // find none, and collapse the whole result to `{}`.
+        if (typeSize != null) {
+          if (!Array.isArray(value)) {
+            throw new Error(`Expected an array value for ${param.type}`);
+          }
+          if (typeSize !== '' && parseInt(typeSize) !== value.length) {
+            throw new Error(`Array size mismatch: ${typeSize} !== ${value.length}`);
+          }
+          return value.map(processTuple);
+        }
+
+        return processTuple(value);
       }
 
       return value;

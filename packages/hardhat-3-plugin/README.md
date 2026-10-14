@@ -36,18 +36,20 @@ export default defineConfig({
 
   // Optional cofhe config (all values shown are their defaults)
   cofhe: {
-    gasWarning: true, // warn when mock ops report higher gas than real FHE
-    logMocks: true, // enable mock contract event logging
+    gasWarning: false, // warn when mock ops report higher gas than real FHE
+    gasSummary: false, // print a per-method adjusted-gas summary after `hardhat test`
+    logMocks: false, // enable mock contract event logging
   },
 });
 ```
 
 ### Config options
 
-| Option       | Type      | Default | Description                                                                              |
-| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------- |
-| `gasWarning` | `boolean` | `true`  | Print a warning after mock deployment reminding that mock gas costs differ from live FHE |
-| `logMocks`   | `boolean` | `true`  | Enable event-based logging inside mock contracts                                         |
+| Option       | Type      | Default | Description                                                                                       |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `gasWarning` | `boolean` | `false` | Print a warning after mock deployment reminding that mock gas costs differ from live FHE          |
+| `gasSummary` | `boolean` | `false` | Print a per-method gas summary after `hardhat test`, with mock-only overhead excluded (see below) |
+| `logMocks`   | `boolean` | `false` | Enable event-based logging inside mock contracts                                                  |
 
 ---
 
@@ -114,7 +116,7 @@ await client.connect(publicClient, walletClient);
 
 ### `cofhe.createClientWithBatteries(walletClient?)`
 
-Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-permit so it can decrypt encrypted FHE variables out of the box.
+Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-acp so it can decrypt encrypted FHE variables out of the box.
 
 ```typescript
 // Uses the first account in the connection automatically:
@@ -124,6 +126,40 @@ const client = await cofhe.createClientWithBatteries();
 const [walletClient] = await viem.getWalletClients();
 const client = await cofhe.createClientWithBatteries(walletClient);
 ```
+
+---
+
+### `cofhe.getAdjustedGasUsed(receipt)` / `cofhe.getAdjustedGasBreakdown(receipt)`
+
+Mock transactions consume more gas than they would on a real CoFHE network, because the off-chain FHE work is replicated on-chain. The mock task manager measures that overhead and emits a `MockGasConsumed(uint256)` event per block of mock-only work, letting the plugin report corrected numbers:
+
+```typescript
+const hash = await myContract.write.doFheThings();
+const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+// Gas usage excluding mock overhead — an estimate of real-network cost.
+const adjusted = cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt (no RPC calls). On a real network the receipt carries no mock events, so `adjustedGasUsed` equals `gasUsed` — the same code works everywhere.
+
+With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`:
+
+```
+[COFHE-MOCKS] Gas summary — adjusted ≈ cost excluding mock-only overhead
+┌──────────────────┬──────────────────────────┬───────┬─────────────────┬────────────────────┬───────────────┐
+│ Contract         │ Method                   │ Calls │ Avg gas (mocks) │ Avg gas (adjusted) │ Mock overhead │
+├──────────────────┼──────────────────────────┼───────┼─────────────────┼────────────────────┼───────────────┤
+│ MyFHEContract    │ doFheThings()            │ 9     │ 146,199         │ 109,595            │ 25%           │
+└──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
+```
+
+Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
+
+The summary table is collected per test worker at process exit and reconstructed from chain history: transactions rolled back by snapshots won't appear, and it is best-effort after forced exits (`process.exit`, Ctrl+C) — use `getAdjustedGasUsed(receipt)` inside tests for exact per-transaction numbers.
 
 ---
 
@@ -205,7 +241,8 @@ The plugin deploys these core contracts automatically on every `network.connect(
 
 | Contract               | Address                                      | Description                                             |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| `MockTaskManager`      | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL                      |
+| `MockCoFHEAddressBook` | `0xC0F4e00E531a2B086492Ae3DCC1515038307196b` | Resolves the TaskManager for FHE.sol (`getTm(1)`)       |
+| `MockTaskManager`      | `0x0000000000000000000000000000000000005000` | Coordinates FHE operations and ACL                      |
 | `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager |
 | `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                 |
 | `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network              |
@@ -241,14 +278,18 @@ describe('Encrypted counter', async () => {
   it('encrypts, stores, and decrypts a uint32', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
 
-    // Encrypt
-    const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
+    // Encrypt - returns [hash, signature]: one hash per input, plus the shared batch signature.
+    // setConsumingContract binds the signature to the contract that will consume it.
+    const [hash, signature] = await client
+      .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
 
-    // Store on-chain via SimpleTest
+    // Store on-chain via SimpleTest (batch entry point takes an array plus the signature)
     await walletClient.writeContract({
       ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
+      functionName: 'setValueBatch',
+      args: [[hash], signature],
     });
 
     const ctHash = (await publicClient.readContract({

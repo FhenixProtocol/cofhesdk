@@ -7,15 +7,17 @@ export {
   getCofheTokenClaimUnshieldedCallArgs,
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
-  useCofheActivePermit,
-  useCofheAllPermits,
+  useCofheActiveACP,
+  useCofheACPs,
+  useCofheAllACPs,
   useCofheClient,
   useCofheConnection,
   useCofheEnabled,
+  useCofheTaskManagerAddress,
   useCofheEncrypt,
   useCofhePublicClient,
-  useCofheRemovePermit,
-  useCofheSelectPermit,
+  useCofheRemoveACP,
+  useCofheSelectACP,
   useCofheSimulateWriteContract,
   useCofheStatuses,
   useCofheTokenClaimable,
@@ -62,6 +64,45 @@ export {
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+export { useCofheDecrypt } from '@/hooks/useCofheDecrypt';
+export {
+  CofheACPScope,
+  useCofheACPScope,
+  useCofheACPStatus,
+  type CofheACPInput,
+  type CofheACPScopeValue,
+  type CofheACPStatus,
+} from '@/hooks/useCofheACPScope';
+export {
+  useCofheIncomingShares,
+  useCofheShareOnChain,
+  useCofheImportShared,
+  useCofheRemoveShare,
+  useCofheRevokeACP,
+} from '@/hooks/acps/useOnChainSharing';
+export {
+  useCofheReadContract,
+  constructCofheReadContractQueryForInvalidation,
+  type UseCofheReadContractResult,
+  type UseCofheReadContractQueryOptions,
+} from '@/hooks/useCofheReadContract';
+export {
+  useCofheReadContracts,
+  type CofheReadContractsContract,
+  type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
+  type UseCofheReadContractsResult,
+  type UseCofheReadContractsQueryOptions,
+} from '@/hooks/useCofheReadContracts';
+export {
+  type useCofheWriteContractOptions,
+  type CofheWriteInvalidationTarget,
+  type CofheWriteInvalidates,
+  type CofheReadInvalidationDescriptor,
+} from '@/hooks/useCofheWriteContract';
 
 // Utils
 export {
@@ -112,8 +153,8 @@ export type {
 
 export { createCofheClient } from '@cofhe/sdk/web';
 
-export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
-export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
+export { useCofheCreateACP } from '@/hooks/acps/useCofheCreateACP';
+export { useCofheNavigateToCreateACP } from '@/hooks/acps/useCofheNavigateToCreateACP';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CofheFloatingButtonProvider, sortCofheStatuses } from './components/index';
 export { COFHE_STATUS_IDS, CofheStatusActionIntents } from './components/CofheFloatingButton/types';
@@ -122,6 +163,8 @@ export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
 export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
 export type { ConfidentialToken } from './types/token';
+export { getConfidentialDecimals, getPublicDecimals, getPublicSymbol } from './types/token';
+export { scaleAmount, quantizeAmount } from './utils/format';
 
 export type { CofheDecryptMeta, CofheQueryMeta } from './meta';
 
@@ -133,7 +176,7 @@ export type {
   UseCofheDecryptionActivityOptions,
   FetchStageState,
   DecryptStageState,
-  PermitState,
+  ACPState,
 } from '@/hooks/useCofheDecryptionActivity';
 
 export { useInternalQueryClient } from './providers/index';
@@ -162,7 +205,6 @@ export {
   invalidateQueriesWithContext,
   withInvalidationContext,
   findMatchingInvalidationContext,
-  consumeInvalidationContext,
   type InvalidationContextQueryFilters,
   type QueryFunctionWithInvalidationContext,
 } from './utils/invalidationContext';

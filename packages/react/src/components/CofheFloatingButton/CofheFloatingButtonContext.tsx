@@ -2,7 +2,7 @@ import { type ReactNode, createContext, useContext } from 'react';
 import type { FloatingButtonPosition } from './types';
 import { useCofheContext } from '../../providers';
 import { useTrackPendingTransactions } from '@/hooks/useTrackPendingTransactions';
-import { useWatchPermitStatus } from '@/hooks/useWatchPermitStatus';
+import { useWatchACPStatus } from '@/hooks/useWatchACPStatus';
 import { useWatchClaimablesStatus } from '@/hooks/useWatchClaimablesStatus';
 
 export type TokenListMode = 'view' | 'select';
@@ -29,7 +29,7 @@ export const CofheFloatingButtonProvider: React.FC<CofheFloatingButtonProviderPr
   const isTopSide = effectivePosition.includes('top');
 
   useTrackPendingTransactions();
-  useWatchPermitStatus();
+  useWatchACPStatus();
   useWatchClaimablesStatus();
 
   return (

@@ -10,7 +10,7 @@ test/
   hardhat-3-plugin-test/       # HH3 plugin integration tests
 
 packages/sdk/
-  core/test/                   # unit tests for core SDK logic (decrypt, encrypt, permits, etc.)
+  core/test/                   # unit tests for core SDK logic (decrypt, encrypt, acps, etc.)
   node/test/                   # node-specific tests + inherited tests against real chains
   web/test/                    # web-specific tests + inherited tests against real chains
 ```
@@ -28,12 +28,12 @@ Every test package separates tests into two categories:
 | Category | Tests | Examples |
 |---|---|---|
 | **Local** | Functionality specific to that package | Plugin logging, mock deployment, error decoding, client utils |
-| **Inherited** | Underlying SDK behavior exercised through the package's entry point | Encrypt, decrypt, permits, client creation, connection |
+| **Inherited** | Underlying SDK behavior exercised through the package's entry point | Encrypt, decrypt, acps, client creation, connection |
 
 Inherited tests verify that the SDK works correctly regardless of how it is consumed. The same logical assertions apply whether the SDK runs inside a Hardhat plugin, a Node.js process, or a browser. Local tests cover package-specific surface area that has no equivalent elsewhere.
 
 In practice:
-- `test/hardhat-3-plugin-test/test/inherited.test.ts` — SDK encrypt/decrypt/permits running through the HH3 plugin.
+- `test/hardhat-3-plugin-test/test/inherited.test.ts` — SDK encrypt/decrypt/acps running through the HH3 plugin.
 - `test/hardhat-3-plugin-test/test/deploy-mocks.test.ts` — local: plugin-specific mock deployment logic.
 - `packages/sdk/node/test/inherited.test.ts` — SDK inherited tests via `@cofhe/sdk/node`.
 - `packages/sdk/node/test/client.test.ts` — local: node-specific client behavior.
@@ -98,7 +98,7 @@ ClientFactory ──► runInheritedSuite(chainConfig, factory) ◄── TestCh
 - **`ClientFactory`**: Wraps `createCofheConfig` + `createCofheClient` — differs only by import path (`@cofhe/sdk/node` vs `@cofhe/sdk/web`).
 - **`TestChainConfig`**: Data object per chain: viem chain, CofheChain, RPC URL, `enabled` flag, `setup(factory) → TestContext`.
 - **`TestContext`**: Contains `cofheClient`, `publicClient`, two wallet clients (Bob + Alice), accounts, deployed `contractAddress`, `chainId`.
-- **`runInheritedSuite()`**: All test logic. Covers client creation, connection, encrypt, self permit, sharing permit, decrypt-for-view, decrypt-for-tx.
+- **`runInheritedSuite()`**: All test logic. Covers client creation, connection, encrypt, self acp, sharing acp, decrypt-for-view, decrypt-for-tx.
 
 ### Supported chains
 

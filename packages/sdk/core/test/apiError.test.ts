@@ -14,10 +14,10 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
   const cases: Array<[string, CofheErrorCode]> = [
     ['bad_request', CofheErrorCode.BadRequest],
     ['unknown_chain', CofheErrorCode.UnknownChain],
-    ['permit_malformed', CofheErrorCode.PermitMalformed],
-    ['permit_denied', CofheErrorCode.PermitDenied],
-    ['permit_expired', CofheErrorCode.PermitExpired],
-    ['permit_invalid', CofheErrorCode.PermitInvalid],
+    ['acp_malformed', CofheErrorCode.ACPMalformed],
+    ['acp_denied', CofheErrorCode.ACPDenied],
+    ['acp_expired', CofheErrorCode.ACPExpired],
+    ['acp_invalid', CofheErrorCode.ACPInvalid],
     ['not_publicly_allowed', CofheErrorCode.NotPubliclyAllowed],
     ['ct_not_found', CofheErrorCode.CtNotFound],
     ['unsupported_security_zone', CofheErrorCode.UnsupportedSecurityZone],
@@ -25,10 +25,10 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
     ['internal_error', CofheErrorCode.InternalError],
     ['signing_failed', CofheErrorCode.SigningFailed],
     ['ct_source_error', CofheErrorCode.CtSourceError],
-    ['permit_verifier_error', CofheErrorCode.PermitVerifierError],
+    ['acp_verifier_error', CofheErrorCode.ACPVerifierError],
     ['ct_source_timeout', CofheErrorCode.CtSourceTimeout],
-    ['permit_verifier_timeout', CofheErrorCode.PermitVerifierTimeout],
-    ['permit_required', CofheErrorCode.PermitRequired],
+    ['acp_verifier_timeout', CofheErrorCode.ACPVerifierTimeout],
+    ['acp_required', CofheErrorCode.ACPRequired],
     ['seal_failed', CofheErrorCode.SealFailed],
   ];
 
@@ -47,18 +47,26 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
       CofheErrorCode.SealOutputFailed
     );
   });
+
+  it('falls back for a code that only exists on Object.prototype', () => {
+    for (const inherited of ['toString', 'constructor', 'valueOf', 'hasOwnProperty']) {
+      expect(mapApiErrorCodeToCofheErrorCode(inherited, CofheErrorCode.DecryptFailed)).toBe(
+        CofheErrorCode.DecryptFailed
+      );
+    }
+  });
 });
 
 describe('parseApiErrorResponseBody', () => {
   it('reads error and error_message from a well-formed body', async () => {
     const response = makeResponse({
       status: 401,
-      json: async () => ({ error: 'permit_expired', error_message: 'permit has expired' }),
+      json: async () => ({ error: 'acp_expired', error_message: 'acp has expired' }),
     });
 
     await expect(parseApiErrorResponseBody(response)).resolves.toEqual({
-      apiErrorCode: 'permit_expired',
-      errorMessage: 'permit has expired',
+      apiErrorCode: 'acp_expired',
+      errorMessage: 'acp has expired',
     });
   });
 

@@ -2,6 +2,7 @@ import type { Address } from 'viem';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { type ConfidentialToken } from '@/hooks/useCofheTokenLists';
+import { getPublicSymbol } from '@/types/token';
 import { TokenBalanceView } from './TokenBalanceView';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
@@ -46,7 +47,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
   const {
     data: { formatted: confidentialBalanceFormatted } = {},
     isFetching: isFetchingConfidential,
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
   } = useCofheTokenDecryptedBalance({
     token,
     accountAddress: effectiveAccountAddress,
@@ -57,7 +58,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
     <TokenBalanceView
       className={className}
       size={size}
-      hidden={disabledDueToMissingValidPermit}
+      hidden={disabledDueToMissingValidACP}
       isFetching={isFetchingConfidential}
       formattedBalance={confidentialBalanceFormatted}
       symbol={showSymbol ? token?.symbol : undefined}
@@ -87,7 +88,7 @@ export const CofheTokenPublicBalance: React.FC<TokenBalanceProps> = ({
       size={size}
       isFetching={isFetchingPublic}
       formattedBalance={publicBalanceFormatted}
-      symbol={showSymbol ? token?.symbol : undefined}
+      symbol={showSymbol && token ? getPublicSymbol(token) : undefined}
     />
   );
 };

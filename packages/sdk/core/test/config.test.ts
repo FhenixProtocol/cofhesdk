@@ -72,12 +72,12 @@ describe('createCofheConfigBase', () => {
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
   });
 
-  it('defaultPermitExpiration', () => {
-    expectInvalidConfigItem('defaultPermitExpiration', 'not-a-number');
-    expectInvalidConfigItem('defaultPermitExpiration', null);
+  it('defaultACPExpiration', () => {
+    expectInvalidConfigItem('defaultACPExpiration', 'not-a-number');
+    expectInvalidConfigItem('defaultACPExpiration', null);
 
-    expectValidConfigItem('defaultPermitExpiration', 5, 5);
-    expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
+    expectValidConfigItem('defaultACPExpiration', 5, 5);
+    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 30);
   });
 
   it('fheKeyStorage', async () => {
@@ -162,6 +162,22 @@ describe('createCofheConfigBase', () => {
     expectValidConfigItem('useWorkers', undefined, true); // defaults to true
   });
 
+  it('tfheThreads', () => {
+    expectInvalidConfigItem('tfheThreads', 'not-a-setting');
+    expectInvalidConfigItem('tfheThreads', null);
+    expectInvalidConfigItem('tfheThreads', true);
+    expectInvalidConfigItem('tfheThreads', 0);
+    expectInvalidConfigItem('tfheThreads', -4);
+    expectInvalidConfigItem('tfheThreads', 2.5);
+    expectInvalidConfigItem('tfheThreads', {});
+
+    expectValidConfigItem('tfheThreads', 'auto', 'auto');
+    expectValidConfigItem('tfheThreads', false, false);
+    expectValidConfigItem('tfheThreads', 1, 1);
+    expectValidConfigItem('tfheThreads', 4, 4);
+    expectValidConfigItem('tfheThreads', undefined, 'auto'); // defaults to 'auto'
+  });
+
   it('should get config item', () => {
     const config: CofheInputConfig = {
       supportedChains: [sepolia],
@@ -238,5 +254,25 @@ describe('Config helper functions', () => {
       });
       expect(() => getThresholdNetworkUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
     });
+  });
+});
+
+describe('createCofheConfigBase - stale key rejection', () => {
+  const validBaseConfig: CofheInputConfig = { supportedChains: [] };
+
+  it('rejects the pre-ACP defaultPermitExpiration and names its replacement', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, defaultPermitExpiration: 60 } as unknown as CofheInputConfig)
+    ).toThrow(/`defaultPermitExpiration` is now `defaultACPExpiration`/);
+  });
+
+  it('rejects unknown keys instead of silently stripping them', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, notARealKey: true } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
+  it('still accepts a valid config', () => {
+    expect(() => createCofheConfigBase({ ...validBaseConfig, defaultACPExpiration: 60 })).not.toThrow();
   });
 });

@@ -1,4 +1,4 @@
-import { type Permission } from '@/permits';
+import { type ACPPublic } from '@/acps';
 
 import { CofheError, CofheErrorCode } from '../error';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
@@ -68,20 +68,20 @@ function assertTnDecryptResponseV1(value: unknown): TnDecryptResponseV1 {
 export async function tnDecryptV1(
   ctHash: bigint | string,
   chainId: number,
-  permission: Permission | null,
+  acp: ACPPublic | null,
   thresholdNetworkUrl: string
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: Permission;
+    acp?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
-  if (permission) {
-    body.permit = permission;
+  if (acp) {
+    body.acp = acp;
   }
 
   let response: Response;

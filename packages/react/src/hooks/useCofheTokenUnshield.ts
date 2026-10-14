@@ -3,7 +3,7 @@ import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { buildTokenUnshieldCallArgs } from '../constants/tokenTypeConfig.js';
-import { assertTokenOperationSupported, isTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, getConfidentialDecimals, isTokenOperationSupported } from '@/types/token';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -120,6 +120,7 @@ function useCofheTokenUnshieldMutation(
         hash,
         token: input.token,
         tokenAmount: input.amount,
+        tokenAmountDecimals: getConfidentialDecimals(input.token),
         chainId,
         actionType: TransactionActionType.Unshield,
         account,

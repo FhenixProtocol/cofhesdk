@@ -9,7 +9,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
-import { Permission, MockPermissioned } from './Permissioned.sol';
+import { MockPermissioned, ACP } from './Permissioned.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
@@ -35,10 +35,10 @@ contract MockThresholdNetwork {
   function queryDecrypt(
     uint256 ctHash,
     uint256,
-    Permission memory permission
+    ACP memory acp
   ) public view returns (bool allowed, string memory error, uint256) {
     bool isAllowed;
-    try mockAcl.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
@@ -92,12 +92,12 @@ contract MockThresholdNetwork {
   function querySealOutput(
     uint256 ctHash,
     uint256,
-    Permission memory permission
+    ACP memory acp
   ) public view returns (bool allowed, string memory error, bytes32) {
-    if (permission.sealingKey == bytes32(0)) revert SealingKeyMissing();
+    if (acp.sealingKey == bytes32(0)) revert SealingKeyMissing();
 
     bool isAllowed;
-    try mockAcl.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
@@ -112,16 +112,16 @@ contract MockThresholdNetwork {
     if (!isAllowed) return (false, 'NotAllowed', bytes32(0));
 
     uint256 value = mockTaskManager.mockStorage(ctHash);
-    return (true, '', seal(value, permission.sealingKey));
+    return (true, '', seal(value, acp.sealingKey));
   }
 
   // DECRYPT FOR TX
 
-  function _isAllowedWithPermit(
+  function _isAllowedWithACP(
     uint256 ctHash,
-    Permission memory permission
+    ACP memory acp
   ) internal view returns (bool isAllowed, string memory error) {
-    try mockTaskManager.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockTaskManager.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       return (false, reason);
@@ -135,7 +135,7 @@ contract MockThresholdNetwork {
     return (true, '');
   }
 
-  function _isAllowedWithoutPermit(uint256 ctHash) internal view returns (bool isAllowed, string memory error) {
+  function _isAllowedWithoutACP(uint256 ctHash) internal view returns (bool isAllowed, string memory error) {
     try mockAcl.globalAllowed(ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
@@ -150,27 +150,27 @@ contract MockThresholdNetwork {
     return (true, '');
   }
 
-  /// @notice Decrypt a ciphertext for a transaction using a permit.
-  function decryptForTxWithPermit(
+  /// @notice Decrypt a ciphertext for a transaction using an ACP.
+  function decryptForTxWithACP(
     uint256 ctHash,
-    Permission memory permission
+    ACP memory acp
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
-    if (permission.issuer == address(0)) {
+    if (acp.issuer == address(0)) {
       return (false, 'PermissionMissing', 0);
     }
 
-    (bool isAllowed, string memory err) = _isAllowedWithPermit(ctHash, permission);
+    (bool isAllowed, string memory err) = _isAllowedWithACP(ctHash, acp);
     if (!isAllowed) return (false, err, 0);
 
     uint256 value = mockTaskManager.mockStorage(ctHash);
     return (true, '', value);
   }
 
-  /// @notice Decrypt a ciphertext for a transaction using global allowance (no permit).
-  function decryptForTxWithoutPermit(
+  /// @notice Decrypt a ciphertext for a transaction using global allowance (no acp).
+  function decryptForTxWithoutACP(
     uint256 ctHash
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
-    (bool isAllowed, string memory err) = _isAllowedWithoutPermit(ctHash);
+    (bool isAllowed, string memory err) = _isAllowedWithoutACP(ctHash);
     if (!isAllowed) return (false, err, 0);
 
     uint256 value = mockTaskManager.mockStorage(ctHash);

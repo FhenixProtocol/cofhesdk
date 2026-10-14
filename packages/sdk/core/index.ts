@@ -12,7 +12,7 @@ export type {
 } from './debug.js';
 
 // Configuration (base implementations)
-export { createCofheConfigBase, getCofheConfigItem } from './config.js';
+export { createCofheConfigBase, getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
 export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
 
 // Types
@@ -21,7 +21,7 @@ export type {
   CofheClient as CofheClient,
   CofheClientParams as CofheClientParams,
   CofheClientConnectionState as CofheClientConnectionState,
-  CofheClientPermits as CofheClientPermits,
+  CofheClientACPs as CofheClientACPs,
 } from './clientTypes.js';
 
 export type {
@@ -40,18 +40,8 @@ export type {
   EncryptableAddress,
   // Encrypted types
   EncryptedNumber,
-  EncryptedItemInput,
-  EncryptedBoolInput,
-  EncryptedUint8Input,
-  EncryptedUint16Input,
-  EncryptedUint32Input,
-  EncryptedUint64Input,
-  EncryptedUint128Input,
-  EncryptedAddressInput,
-  EncryptedItemInputs,
-  EncryptableToEncryptedItemInputMap,
   FheTypeValue,
-  // Hash-plus-proof external types
+  // Batch-verified external hash + signature types
   ExternalBoolHash,
   ExternalUint8Hash,
   ExternalUint16Hash,
@@ -72,6 +62,9 @@ export type {
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
   EncryptStepCallbackContext,
+  // tfhe init types
+  TfheInitializer,
+  TfheThreadsSetting,
 } from './types.js';
 export {
   FheTypes,
@@ -81,7 +74,6 @@ export {
   isEncryptableItem,
   EncryptStep,
   isLastEncryptionStep,
-  assertCorrectEncryptedItemInput,
 } from './types.js';
 
 // Error handling
@@ -98,6 +90,7 @@ export type { KeysStorage, KeysStore } from './keyStore.js';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
+export type { EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 export { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';
@@ -113,7 +106,9 @@ export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
 // Consts (contract addresses, serialized size limits)
 export {
-  TASK_MANAGER_ADDRESS,
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
@@ -122,6 +117,9 @@ export {
   TFHE_RS_ZK_MAX_BITS,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from './consts.js';
+
+// Task Manager resolution (CoFHEAddressBook)
+export { getTaskManagerAddress } from './taskManager.js';
 
 // Decrypt result verification
 export { verifyDecryptResult } from './decrypt/verifyDecryptResult.js';

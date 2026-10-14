@@ -4,11 +4,39 @@ import { type MockArtifact } from './types';
 export const MockTaskManagerArtifact = {
   contractName: 'MockTaskManager',
   isFixed: true,
-  fixedAddress: '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9',
+  fixedAddress: '0x0000000000000000000000000000000000005000',
   abi: [
     {
       type: 'constructor',
       inputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'MOCK_dispatchOperation',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'funcId',
+          type: 'uint8',
+          internalType: 'enum FunctionId',
+        },
+        {
+          name: 'inputs',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'arity',
+          type: 'uint8',
+          internalType: 'uint8',
+        },
+      ],
+      outputs: [],
       stateMutability: 'nonpayable',
     },
     {
@@ -138,6 +166,52 @@ export const MockTaskManagerArtifact = {
         },
       ],
       outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'batchVerifyInputs',
+      inputs: [
+        {
+          name: 'inputs',
+          type: 'tuple[]',
+          internalType: 'struct UnsignedEncryptedInput[]',
+          components: [
+            {
+              name: 'ctHash',
+              type: 'uint256',
+              internalType: 'uint256',
+            },
+            {
+              name: 'securityZone',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'utype',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+          ],
+        },
+        {
+          name: 'sender',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'signature',
+          type: 'bytes',
+          internalType: 'bytes',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+      ],
       stateMutability: 'nonpayable',
     },
     {
@@ -397,9 +471,9 @@ export const MockTaskManagerArtifact = {
       name: 'isAllowedWithPermission',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -417,14 +491,29 @@ export const MockTaskManagerArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -505,6 +594,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'mockGasExcluded',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'mockStorage',
       inputs: [
         {
@@ -563,6 +665,24 @@ export const MockTaskManagerArtifact = {
           name: 'signatures',
           type: 'bytes[]',
           internalType: 'bytes[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'receiveCtHash',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'expectedSharer',
+          type: 'address',
+          internalType: 'address',
         },
       ],
       outputs: [],
@@ -641,6 +761,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'setMockGasExcluded',
+      inputs: [
+        {
+          name: '_mockGasExcluded',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'setSecurityZoneMax',
       inputs: [
         {
@@ -689,6 +822,24 @@ export const MockTaskManagerArtifact = {
       inputs: [
         {
           name: 'signer',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareCtHash',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'receiver',
           type: 'address',
           internalType: 'address',
         },
@@ -842,52 +993,6 @@ export const MockTaskManagerArtifact = {
       stateMutability: 'view',
     },
     {
-      type: 'function',
-      name: 'verifyInput',
-      inputs: [
-        {
-          name: 'input',
-          type: 'tuple',
-          internalType: 'struct EncryptedInput',
-          components: [
-            {
-              name: 'ctHash',
-              type: 'uint256',
-              internalType: 'uint256',
-            },
-            {
-              name: 'securityZone',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'utype',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'signature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-          ],
-        },
-        {
-          name: 'sender',
-          type: 'address',
-          internalType: 'address',
-        },
-      ],
-      outputs: [
-        {
-          name: '',
-          type: 'uint256',
-          internalType: 'uint256',
-        },
-      ],
-      stateMutability: 'nonpayable',
-    },
-    {
       type: 'event',
       name: 'DecryptionResult',
       inputs: [
@@ -908,6 +1013,19 @@ export const MockTaskManagerArtifact = {
           type: 'address',
           indexed: true,
           internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'MockGasConsumed',
+      inputs: [
+        {
+          name: 'gas',
+          type: 'uint256',
+          indexed: false,
+          internalType: 'uint256',
         },
       ],
       anonymous: false,
@@ -1220,6 +1338,11 @@ export const MockTaskManagerArtifact = {
           internalType: 'address',
         },
       ],
+    },
+    {
+      type: 'error',
+      name: 'OnlySelf',
+      inputs: [],
     },
     {
       type: 'error',

@@ -3,7 +3,7 @@
 This repo contains the full toolkit for interacting with Fhenix's CoFHE coprocessor.
 The repo is split into the following packages:
 
-- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/permits`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
+- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/acps`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
 - `@cofhe/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
 - `@cofhe/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
 - `@cofhe/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
@@ -26,7 +26,7 @@ This Turborepo includes the following:
 
 ### Apps and Packages
 
-- `@cofhe/sdk`: Core SDK with adapters, permits, node, and web subpath exports.
+- `@cofhe/sdk`: Core SDK with adapters, acps, node, and web subpath exports.
 - `@cofhe/react`: React bindings and components built on top of the core SDK.
 - `@cofhe/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
 - `@cofhe/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
@@ -100,7 +100,11 @@ See [Working with the npm registry](https://docs.github.com/en/packages/working-
 
 # Migration
 
-Type `CofheInUint8` -> `EncryptedUint8Input`
+`cofheClient.encryptInputs(...).execute()` returns `[...hashes, signature]` — one `external*` handle
+per input followed by a single signature authenticating the whole batch — replacing the old
+per-item `CofheInUint8`/`EncryptedUint8Input` structs. `setConsumingContract(address)` is required
+before `execute()`. See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0), or run
+the [migration skill](skills/cofhe-migrate-0-6-to-0-7) against your project.
 
 # Changes
 
