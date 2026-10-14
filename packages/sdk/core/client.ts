@@ -293,7 +293,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.getOrCreateSharingACP(
         publicClient!,
         walletClient!,
-        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, _chainId),
+        await acps.applyACPDefaultsFromChain({ ...withAppKey(), ...options }, opts.config.acp, publicClient!, _chainId),
         _chainId,
         _account
       );
