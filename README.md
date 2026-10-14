@@ -11,7 +11,7 @@ This repository contains the tooling for interacting with Fhenix's CoFHE coproce
 - `@cofhe/hardhat-plugin` — Hardhat 2 integration for deploying and using the mock stack.
 - `@cofhe/hardhat-3-plugin` — Hardhat 3 integration.
 - `@cofhe/foundry-plugin` — Foundry helpers for CoFHE contract tests.
-- `@cofhe/site` — documentation site.
+- `@cofhe/site` — documentation site (not published to npm).
 
 The repository also contains shared TypeScript and ESLint configuration packages under `packages/`.
 
@@ -57,7 +57,7 @@ Run the documentation site locally with:
 pnpm docs
 ```
 
-The main Fhenix developer documentation is available at [docs.fhenix.zone](https://docs.fhenix.zone/).
+The SDK documentation is published at [cofhesdk.fhenix.io](https://cofhesdk.fhenix.io). For CoFHE itself and the `FHE.sol` contract library, see [cofhe-docs.fhenix.zone](https://cofhe-docs.fhenix.zone).
 
 ## Examples
 
@@ -79,7 +79,7 @@ Create a changeset for package changes with:
 pnpm changeset
 ```
 
-Documentation-only changes may not require a package version bump; follow the conventions used by existing pull requests when deciding whether to add a changeset.
+Add a changeset only when a published package changes. Changes to docs, `@cofhe/site`, the examples, or the private config packages don't need one. Keep the changeset short and written for consumers of the package, and call out breaking changes.
 
 ## Notes
 
