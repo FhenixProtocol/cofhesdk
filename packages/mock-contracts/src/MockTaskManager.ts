@@ -1314,6 +1314,11 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'error',
+      name: 'LengthMismatch',
+      inputs: [],
+    },
+    {
+      type: 'error',
       name: 'OnlyAggregatorAllowed',
       inputs: [
         {
