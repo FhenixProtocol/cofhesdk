@@ -59,6 +59,22 @@ test('fnStructContainsEncryptedInput should have parameter type [ContainsEncrypt
   assertType<preTransform>([{ value: 1n, encryptedInput: 1n }]);
 });
 
+test('fnUnnamedTupleContainsEncryptedInput uses positional tuple types', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnUnnamedTupleContainsEncryptedInput'>;
+  assertType<args>([[1n, hash32], signature]);
+
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnUnnamedTupleContainsEncryptedInput'>;
+  assertType<preTransform>([[1n, 1n]]);
+});
+
+test('fnMixedNameTupleArrayContainsEncryptedInput stays positional when any component is unnamed', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnMixedNameTupleArrayContainsEncryptedInput'>;
+  assertType<args>([[[1n, hash32]], signature]);
+
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnMixedNameTupleArrayContainsEncryptedInput'>;
+  assertType<preTransform>([[[1n, 1n]]]);
+});
+
 test('fnStructArrayContainsEncryptedInput should have parameter type [ContainsEncryptedInput[], bytes]', () => {
   type args = CofheInputArgs<typeof TestABI, 'fnStructArrayContainsEncryptedInput'>;
   assertType<args>([[{ value: 1n, encryptedInput: hash32 }], signature]);

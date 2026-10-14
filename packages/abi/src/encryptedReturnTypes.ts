@@ -17,6 +17,7 @@ import {
   type UnionToTuple,
   type ContractReturnType,
   extractArrayParameterType,
+  tupleComponentsAreNamed,
 } from './utils';
 
 type FirstCofheReturnValue<T> = [T] extends [void]
@@ -240,20 +241,28 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
         const components = param.components;
 
         const processTuple = (tupleValue: unknown): unknown => {
-          const valueObj = tupleValue as Record<string, unknown>;
-          const result: Record<string, unknown> = {};
+          if (tupleComponentsAreNamed(components)) {
+            const valueObj = tupleValue as Record<string, unknown>;
+            const result: Record<string, unknown> = {};
 
-          components.forEach((component) => {
-            const componentName = component.name;
-            if (componentName) {
-              const componentValue = valueObj[componentName];
-              if (componentValue !== undefined) {
-                result[componentName] = processParameter(component, componentValue);
+            components.forEach((component) => {
+              const componentName = component.name;
+              if (componentName) {
+                const componentValue = valueObj[componentName];
+                if (componentValue !== undefined) {
+                  result[componentName] = processParameter(component, componentValue);
+                }
               }
-            }
-          });
+            });
 
-          return result;
+            return result;
+          }
+
+          if (!Array.isArray(tupleValue)) {
+            throw new Error('Expected an array value for tuple with unnamed components');
+          }
+
+          return components.map((component, index) => processParameter(component, tupleValue[index]));
         };
 
         // `tuple[]` / `tuple[N]`: transform each element as its own tuple. Treating the

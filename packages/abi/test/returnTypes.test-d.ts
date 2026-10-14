@@ -79,6 +79,22 @@ test('fnReturnEncryptedStruct should have return type ContainsEncryptedResult', 
   assertType<postTransform>({ value: 1n, encryptedResult: 1n });
 });
 
+test('fnReturnUnnamedEncryptedTuple should have a positional return type', () => {
+  type args = CofheReturnType<typeof TestABI, 'fnReturnUnnamedEncryptedTuple'>;
+  assertType<args>([1n, euint32]);
+
+  type postTransform = CofheReturnTypePostTransform<typeof TestABI, 'fnReturnUnnamedEncryptedTuple'>;
+  assertType<postTransform>([1n, 1n]);
+});
+
+test('fnReturnMixedNameEncryptedTupleArray stays positional when any component is unnamed', () => {
+  type args = CofheReturnType<typeof TestABI, 'fnReturnMixedNameEncryptedTupleArray'>;
+  assertType<args>([[1n, euint32]]);
+
+  type postTransform = CofheReturnTypePostTransform<typeof TestABI, 'fnReturnMixedNameEncryptedTupleArray'>;
+  assertType<postTransform>([[1n, 1n]]);
+});
+
 test('fnReturnAllEncrypted should have return type (euint8, euint16, euint32, euint64, euint128, ebool, eaddress)', () => {
   type args = CofheReturnType<typeof TestABI, 'fnReturnAllEncrypted'>;
   assertType<args>([euint8, euint16, euint32, euint64, euint128, ebool, eaddress]);

@@ -342,6 +342,54 @@ export const TestABI = [
   },
   {
     type: 'function',
+    name: 'fnReturnUnnamedEncryptedTuple',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          {
+            name: '',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: '',
+            type: 'bytes32',
+            internalType: 'euint32',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'fnReturnMixedNameEncryptedTupleArray',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: '',
+            type: 'bytes32',
+            internalType: 'euint32',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'fnReturnNoEncrypted',
     inputs: [],
     outputs: [
@@ -369,6 +417,64 @@ export const TestABI = [
           },
           {
             name: 'encryptedInput',
+            type: 'bytes32',
+            internalType: 'externalEuint32',
+          },
+        ],
+      },
+      {
+        name: 'inputProof',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'fnUnnamedTupleContainsEncryptedInput',
+    inputs: [
+      {
+        name: 'values',
+        type: 'tuple',
+        components: [
+          {
+            name: '',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: '',
+            type: 'bytes32',
+            internalType: 'externalEuint32',
+          },
+        ],
+      },
+      {
+        name: 'inputProof',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'fnMixedNameTupleArrayContainsEncryptedInput',
+    inputs: [
+      {
+        name: 'values',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: '',
             type: 'bytes32',
             internalType: 'externalEuint32',
           },

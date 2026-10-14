@@ -186,6 +186,15 @@ export function extractArrayParameterType<T extends string | undefined>(type: T)
   return [head as T, size === '' ? '' : size];
 }
 
+/**
+ * Matches the tuple-shape rule used by `CofheAbiComponentsToPrimitiveType`:
+ * tuples are objects only when every component has a name. Otherwise they are
+ * represented positionally as arrays.
+ */
+export function tupleComponentsAreNamed(components: readonly AbiParameter[]): boolean {
+  return components.length > 0 && components.every((component) => component.name != null && component.name !== '');
+}
+
 type AbiItem = AbiConstructor | AbiError | AbiEvent | AbiFallback | AbiFunction | AbiReceive;
 
 export function isAbiFunction(item: AbiItem | unknown): item is AbiFunction {

@@ -94,6 +94,24 @@ describe('transformEncryptedReturnTypes', () => {
   });
 });
 
+describe('transformEncryptedReturnTypes: unnamed tuple components', () => {
+  it('should preserve a single unnamed tuple as a positional array', () => {
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnUnnamedEncryptedTuple', [1n, '0x1']);
+    expect(result).toEqual([1n, { ctHash: '0x1', utype: FheTypes.Uint32 }]);
+  });
+
+  it('should preserve tuples with any unnamed component as positional arrays', () => {
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnMixedNameEncryptedTupleArray', [
+      [1n, '0x1'],
+      [2n, '0x2'],
+    ]);
+    expect(result).toEqual([
+      [1n, { ctHash: '0x1', utype: FheTypes.Uint32 }],
+      [2n, { ctHash: '0x2', utype: FheTypes.Uint32 }],
+    ]);
+  });
+});
+
 // Struct-array returns (`tuple[]` / `tuple[N]`) — e.g. a batch getter returning
 // `Order[]`. The regression: the array itself was processed as one tuple, so the
 // named-component lookups found nothing and the result collapsed to `{}`.
