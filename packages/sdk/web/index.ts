@@ -14,6 +14,7 @@ import {
   fheTypeToString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
+import { fromHexString } from '../core/utils.js';
 
 // Import web-specific storage (internal use only)
 import { createSsrStorage, createWebStorage } from './storage.js';
@@ -115,16 +116,6 @@ function requireTfhe(): typeof import('tfhe') {
   }
   return tfheModule;
 }
-
-/**
- * Utility to convert the hex string key to a Uint8Array for use with tfhe
- */
-const fromHexString = (hexString: string): Uint8Array => {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
-  if (!arr) return new Uint8Array();
-  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
-};
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
   return requireTfhe().TfheCompactPublicKey.safe_deserialize(

@@ -30,6 +30,9 @@ const buildDecryptResultHash = (ctHash: bigint, cleartext: bigint, chainId: numb
  *
  * The recovered signer must equal the on-chain configured `decryptResultSigner`.
  *
+ * Fails closed: if the chain has no `decryptResultSigner` set (zero address), this returns `false`.
+ * The on-chain `verifyDecryptResult` instead accepts any signature in that case.
+ *
  * This mirrors the TaskManager decrypt-result hash format:
  * `keccak256(abi.encodePacked(result, encType, chainId, ctHash))`
  *
@@ -52,7 +55,7 @@ export async function verifyDecryptResult(
     args: [],
   });
 
-  if (isAddressEqual(expectedSigner, zeroAddress)) return true;
+  if (isAddressEqual(expectedSigner, zeroAddress)) return false;
 
   const ctHash = BigInt(handle);
   const messageHash = buildDecryptResultHash(ctHash, cleartext, chainId);

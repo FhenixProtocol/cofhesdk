@@ -1314,11 +1314,6 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'error',
-      name: 'NotImplemented',
-      inputs: [],
-    },
-    {
-      type: 'error',
       name: 'OnlyAggregatorAllowed',
       inputs: [
         {
