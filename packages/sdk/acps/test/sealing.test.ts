@@ -34,6 +34,14 @@ describe('seal / unsealWithPrivateKey', () => {
     expect(unsealWithPrivateKey(pair.privateKey.slice(2), sealed)).toBe(value);
   });
 
+  it('accepts uppercase hex keys', () => {
+    const pair = GenerateSealingKey();
+    const value = BigInt(7);
+
+    const sealed = seal(value, `0x${pair.publicKey.slice(2).toUpperCase()}`);
+    expect(unsealWithPrivateKey(`0x${pair.privateKey.slice(2).toUpperCase()}`, sealed)).toBe(value);
+  });
+
   it('should throw error for invalid public key in seal', () => {
     expect(() => {
       seal(BigInt(12345), 'invalid');
@@ -47,6 +55,21 @@ describe('seal / unsealWithPrivateKey', () => {
     expect(() => {
       unsealWithPrivateKey('deadbeef', sealed);
     }).toThrow('Private key must be of length 64');
+  });
+
+  it('rejects a correct-length public key with non-hex characters instead of sealing to a zeroed key', () => {
+    expect(() => {
+      seal(BigInt(12345), 'z'.repeat(64));
+    }).toThrow('Public key must contain only hex characters');
+  });
+
+  it('rejects a correct-length private key with non-hex characters in unseal', () => {
+    const pair = GenerateSealingKey();
+    const sealed = seal(BigInt(1), pair.publicKey);
+
+    expect(() => {
+      unsealWithPrivateKey(`0x${'z'.repeat(64)}`, sealed);
+    }).toThrow('Private key must contain only hex characters');
   });
 
   it('should throw error for invalid value in seal', () => {

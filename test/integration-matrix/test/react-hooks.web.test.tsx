@@ -44,6 +44,7 @@ import {
   CofheProvider,
   createCofheConfig,
   constructCofheReadContractQueryForInvalidation,
+  findMatchingInvalidationContext,
   invalidateQueriesWithContext,
   useCofheReadContract,
   useCofheWriteContract,
@@ -173,6 +174,22 @@ function SimpleStorageApp({
   );
 }
 
+/**
+ * For each cached read under `prefix`: the block its next fetch would wait for, keyed by the
+ * read's args — e.g. `{ '1': '0xabc…', '2': undefined }` (`undefined` = no wait).
+ */
+function watermarksUnder(queryClient: QueryClient, prefix: readonly unknown[]) {
+  return Object.fromEntries(
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map((query) => [
+        String(query.queryKey[prefix.length]),
+        findMatchingInvalidationContext<{ blockHashToBeAwareOf: Hash }>(query.queryKey).context?.blockHashToBeAwareOf,
+      ])
+  );
+}
+
 afterEach(() => {
   useInvalidationContextStore.setState({ byKey: {} });
 });
@@ -216,7 +233,7 @@ const describeOnAnvil = SIMPLE_STORAGE_ADDRESS ? describe : describe.skip;
 
 describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes useCofheReadContract (Anvil)', () => {
   it('a mined write invalidates the declared read, which refetches gated on the mined block', async () => {
-    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({ invalidates: [{ address: contractAddress, functionName: 'getValue' }], writeValue: 777n });
 
     // The app connects and loads its read: exactly one fetch.
@@ -237,8 +254,11 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     // ...gated on exactly one probe that the serving node knows the mined block (and no others).
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
     expect(recorder.countBlockHashProbes()).toBe(1);
-    // The invalidation context is one-shot — consumed by the refetch that used it.
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The watermark outlives its delivery: the read is still covered by the mined block, so any
+    // later fetch of it stays gated too.
+    expect(Object.values(watermarksUnder(queryClient, valueReadKey(contractAddress)))).toStrictEqual([
+      receipt.blockHash,
+    ]);
   }, 180_000);
 
   it('without `invalidates` the read stays stale until invalidated manually', async () => {

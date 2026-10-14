@@ -2,7 +2,9 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import {
-  TASK_MANAGER_ADDRESS,
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
@@ -21,10 +23,33 @@ describe('Deploy Mocks', async () => {
   const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
   const zeroBytes32 = `0x${'00'.repeat(32)}` as const;
 
+  it('MockCoFHEAddressBook is deployed at the address FHE.sol resolves through', async () => {
+    const { address } = cofhe.mocks.MockCoFHEAddressBook;
+    assert.equal(address.toLowerCase(), COFHE_ADDRESS_BOOK_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
+  });
+
   it('MockTaskManager is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockTaskManager;
-    assert.equal(address.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
+    assert.equal(address.toLowerCase(), MOCKS_TASK_MANAGER_ADDRESS.toLowerCase());
     assert.ok(await hasCode(publicClient, address));
+  });
+
+  it('MockCoFHEAddressBook resolves TASK_MANAGER_ID to MockTaskManager', async () => {
+    const tm = await publicClient.readContract({
+      ...cofhe.mocks.MockCoFHEAddressBook,
+      functionName: 'getTm',
+      args: [TASK_MANAGER_ID],
+    });
+    assert.equal(tm.toLowerCase(), MOCKS_TASK_MANAGER_ADDRESS.toLowerCase());
+  });
+
+  it('MockACL is bound to MockTaskManager', async () => {
+    const tm = await publicClient.readContract({
+      ...cofhe.mocks.MockACL,
+      functionName: 'getTaskManagerAddress',
+    });
+    assert.equal(tm.toLowerCase(), MOCKS_TASK_MANAGER_ADDRESS.toLowerCase());
   });
 
   it('MockTaskManager is initialized and has decryptResultSigner configured', async () => {
@@ -100,7 +125,7 @@ describe('Deploy Mocks', async () => {
       ...cofhe.mocks.MockThresholdNetwork,
       functionName: 'mockTaskManager',
     });
-    assert.equal(tmFromThreshold.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
+    assert.equal(tmFromThreshold.toLowerCase(), MOCKS_TASK_MANAGER_ADDRESS.toLowerCase());
 
     const aclFromThreshold = await publicClient.readContract({
       ...cofhe.mocks.MockThresholdNetwork,

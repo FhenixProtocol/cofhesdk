@@ -1,4 +1,5 @@
 export * from './types';
+export * from './MockCoFHEAddressBook';
 export * from './MockTaskManager';
 export * from './MockACL';
 export * from './ACPTimestampRevoker';
@@ -7,6 +8,7 @@ export * from './MockZkVerifier';
 export * from './MockThresholdNetwork';
 export type {
   MockACL,
+  MockCoFHEAddressBook,
   MockTaskManager,
   MockThresholdNetwork,
   MockZkVerifier,
