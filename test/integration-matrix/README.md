@@ -92,6 +92,7 @@ scripts/
 test/
   matrix.test.ts             # Node runner for inherited suite — @cofhe/sdk/node
   matrix.web.test.ts         # Web runner for inherited suite — @cofhe/sdk/web
+  acp-share-flow.test.ts     # on-chain share flow with a labelled value, every chain (registry from config or the chain's ACL)
   flexible.test.ts           # Node runner for flexible suite
   flexible.web.test.ts       # Web runner for flexible suite
   react-hooks.web.test.tsx   # @cofhe/react useCofheWriteContract + useCofheReadContract invalidation, browser-only
