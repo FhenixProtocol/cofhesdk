@@ -2,4 +2,4 @@
 '@cofhe/react': patch
 ---
 
-`CofheProvider` now rejects `config` and `cofheClient` when they are supplied together. The props are mutually exclusive at the type level, and untyped JavaScript callers receive a clear runtime error instead of creating separate configuration and client sources.
+**Breaking:** `CofheProvider` takes either `config` or `cofheClient`, not both. Passing both is a type error and throws at render. To use a pre-created client, pass `cofheClient` alone; the provider takes the React settings from the config the client was created with (`createCofheClient(config)`). `CofheProviderProps` is now a union type, so extend it with `type MyProps = CofheProviderProps & { … }` instead of an `interface … extends`.
