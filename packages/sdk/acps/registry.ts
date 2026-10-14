@@ -37,6 +37,9 @@ export const ACP_SHARE_REGISTRY_ABI = parseAbi([
   'function share(ACP calldata acp, bytes calldata metadata) external returns (bytes32)',
   'function removeShare(bytes32 shareId) external',
   'function sharesFor(address recipient) external view returns (bytes32[] shareIds, ShareHeader[] headers)',
+  'function sharesForCount(address recipient) external view returns (uint256)',
+  'function sharesForPage(address recipient, uint256 offset, uint256 limit) external view returns (bytes32[] shareIds, ShareHeader[] headers)',
+  'function MAX_SHARES_PAGE() external view returns (uint256)',
   'function getShare(bytes32 shareId) external view returns (ShareHeader memory)',
   'function isShareValid(bytes32 shareId) external view returns (bool)',
   'event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata)',
@@ -213,6 +216,31 @@ export const readSharesFor = async (
  * One share by id, read from its event; null when the registry has no such share (unknown or
  * removed). Throws, with the reason, when the registry lists it but its event could not be read.
  */
+
+/**
+ * One page of importable shares for `recipient` (unexpired, not revoked), read from their events.
+ * Use when `sharesFor` may truncate a large inbox (`MAX_SHARES_PAGE`).
+ */
+export const readSharesForPage = async (
+  publicClient: PublicClient,
+  registry: Address,
+  recipient: Address,
+  offset: bigint,
+  limit: bigint
+): Promise<PostedShares> => {
+  const [shareIds, headers] = await publicClient.readContract({
+    address: registry,
+    abi: ACP_SHARE_REGISTRY_ABI,
+    functionName: 'sharesForPage',
+    args: [recipient, offset, limit],
+  });
+  return readPostedShares(
+    publicClient,
+    registry,
+    shareIds.map((shareId, i) => ({ shareId, header: headers[i] }))
+  );
+};
+
 export const readShare = async (
   publicClient: PublicClient,
   registry: Address,

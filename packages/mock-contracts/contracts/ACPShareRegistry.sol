@@ -166,32 +166,61 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         emit ShareRemoved(recipient, issuer, shareId);
     }
 
-    /// @notice The importable shares addressed to `recipient` — unexpired and not revoked —
-    ///         as their ids and headers, index for index. Dead entries stay in storage until
-    ///         removed but are filtered here.
+    /// @notice Max live shares returned by `sharesFor` / one `sharesForPage` call.
+    /// @dev Caps O(n) iteration so spam-filled inboxes cannot grief discovery gas.
+    uint256 public constant MAX_SHARES_PAGE = 256;
+
+    /// @notice First page of importable shares for `recipient` (unexpired, not revoked).
+    /// @dev Equivalent to `sharesForPage(recipient, 0, MAX_SHARES_PAGE)`.
     function sharesFor(
         address recipient
     ) external view returns (bytes32[] memory shareIds, ShareHeader[] memory headers) {
+        return sharesForPage(recipient, 0, MAX_SHARES_PAGE);
+    }
+
+    /// @notice Number of currently importable (live) shares for `recipient`.
+    function sharesForCount(address recipient) external view returns (uint256 count) {
+        ACPShareRegistryStorage storage $ = _getStorage();
+        EnumerableSet.Bytes32Set storage ids = $.shareIdsFor[recipient];
+        uint256 len = ids.length();
+        for (uint256 i = 0; i < len; i++) {
+            if (_isValid($.headers[ids.at(i)])) count++;
+        }
+    }
+
+    /// @notice Page of importable shares for `recipient`, skipping `offset` live entries.
+    /// @dev `limit` is clamped to `MAX_SHARES_PAGE`. Dead (expired/revoked) entries are skipped
+    ///      and do not count toward `offset` / `limit`.
+    function sharesForPage(
+        address recipient,
+        uint256 offset,
+        uint256 limit
+    ) public view returns (bytes32[] memory shareIds, ShareHeader[] memory headers) {
+        if (limit > MAX_SHARES_PAGE) limit = MAX_SHARES_PAGE;
+
         ACPShareRegistryStorage storage $ = _getStorage();
         EnumerableSet.Bytes32Set storage ids = $.shareIdsFor[recipient];
         uint256 len = ids.length();
 
-        // single pass: allocate for the maximum, fill with valid shares only
-        shareIds = new bytes32[](len);
-        headers = new ShareHeader[](len);
+        shareIds = new bytes32[](limit);
+        headers = new ShareHeader[](limit);
+        uint256 skipped = 0;
         uint256 live = 0;
-        for (uint256 i = 0; i < len; i++) {
+
+        for (uint256 i = 0; i < len && live < limit; i++) {
             bytes32 shareId = ids.at(i);
             ShareHeader storage header = $.headers[shareId];
-            if (_isValid(header)) {
-                shareIds[live] = shareId;
-                headers[live] = header;
-                live++;
+            if (!_isValid(header)) continue;
+            if (skipped < offset) {
+                skipped++;
+                continue;
             }
+            shareIds[live] = shareId;
+            headers[live] = header;
+            live++;
         }
 
-        // truncate the memory arrays' length to the live count (shrink-only)
-        if (live < len) {
+        if (live < limit) {
             assembly {
                 mstore(shareIds, live)
                 mstore(headers, live)

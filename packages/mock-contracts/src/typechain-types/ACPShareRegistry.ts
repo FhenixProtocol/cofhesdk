@@ -94,6 +94,7 @@ export interface ACPShareRegistryInterface extends Interface {
   getFunction(
     nameOrSignature:
       | 'DEFAULT_ADMIN_ROLE'
+      | 'MAX_SHARES_PAGE'
       | 'UPGRADER_ROLE'
       | 'UPGRADE_INTERFACE_VERSION'
       | 'getRoleAdmin'
@@ -108,6 +109,8 @@ export interface ACPShareRegistryInterface extends Interface {
       | 'revokeRole'
       | 'share'
       | 'sharesFor'
+      | 'sharesForCount'
+      | 'sharesForPage'
       | 'supportsInterface'
       | 'upgradeToAndCall'
   ): FunctionFragment;
@@ -124,6 +127,7 @@ export interface ACPShareRegistryInterface extends Interface {
   ): EventFragment;
 
   encodeFunctionData(functionFragment: 'DEFAULT_ADMIN_ROLE', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'MAX_SHARES_PAGE', values?: undefined): string;
   encodeFunctionData(functionFragment: 'UPGRADER_ROLE', values?: undefined): string;
   encodeFunctionData(functionFragment: 'UPGRADE_INTERFACE_VERSION', values?: undefined): string;
   encodeFunctionData(functionFragment: 'getRoleAdmin', values: [BytesLike]): string;
@@ -138,10 +142,13 @@ export interface ACPShareRegistryInterface extends Interface {
   encodeFunctionData(functionFragment: 'revokeRole', values: [BytesLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'share', values: [ACPStruct, BytesLike]): string;
   encodeFunctionData(functionFragment: 'sharesFor', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'sharesForCount', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'sharesForPage', values: [AddressLike, BigNumberish, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'supportsInterface', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'upgradeToAndCall', values: [AddressLike, BytesLike]): string;
 
   decodeFunctionResult(functionFragment: 'DEFAULT_ADMIN_ROLE', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'MAX_SHARES_PAGE', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'UPGRADER_ROLE', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'UPGRADE_INTERFACE_VERSION', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'getRoleAdmin', data: BytesLike): Result;
@@ -156,6 +163,8 @@ export interface ACPShareRegistryInterface extends Interface {
   decodeFunctionResult(functionFragment: 'revokeRole', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'share', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'sharesFor', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'sharesForCount', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'sharesForPage', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'upgradeToAndCall', data: BytesLike): Result;
 }
@@ -303,6 +312,8 @@ export interface ACPShareRegistry extends BaseContract {
 
   DEFAULT_ADMIN_ROLE: TypedContractMethod<[], [string], 'view'>;
 
+  MAX_SHARES_PAGE: TypedContractMethod<[], [bigint], 'view'>;
+
   UPGRADER_ROLE: TypedContractMethod<[], [string], 'view'>;
 
   UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], 'view'>;
@@ -340,6 +351,19 @@ export interface ACPShareRegistry extends BaseContract {
     'view'
   >;
 
+  sharesForCount: TypedContractMethod<[recipient: AddressLike], [bigint], 'view'>;
+
+  sharesForPage: TypedContractMethod<
+    [recipient: AddressLike, offset: BigNumberish, limit: BigNumberish],
+    [
+      [string[], ACPShareRegistry.ShareHeaderStructOutput[]] & {
+        shareIds: string[];
+        headers: ACPShareRegistry.ShareHeaderStructOutput[];
+      },
+    ],
+    'view'
+  >;
+
   supportsInterface: TypedContractMethod<[interfaceId: BytesLike], [boolean], 'view'>;
 
   upgradeToAndCall: TypedContractMethod<[newImplementation: AddressLike, data: BytesLike], [void], 'payable'>;
@@ -347,6 +371,7 @@ export interface ACPShareRegistry extends BaseContract {
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
   getFunction(nameOrSignature: 'DEFAULT_ADMIN_ROLE'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'MAX_SHARES_PAGE'): TypedContractMethod<[], [bigint], 'view'>;
   getFunction(nameOrSignature: 'UPGRADER_ROLE'): TypedContractMethod<[], [string], 'view'>;
   getFunction(nameOrSignature: 'UPGRADE_INTERFACE_VERSION'): TypedContractMethod<[], [string], 'view'>;
   getFunction(nameOrSignature: 'getRoleAdmin'): TypedContractMethod<[role: BytesLike], [string], 'view'>;
@@ -374,6 +399,17 @@ export interface ACPShareRegistry extends BaseContract {
   ): TypedContractMethod<[acp: ACPStruct, metadata: BytesLike], [string], 'nonpayable'>;
   getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<
     [recipient: AddressLike],
+    [
+      [string[], ACPShareRegistry.ShareHeaderStructOutput[]] & {
+        shareIds: string[];
+        headers: ACPShareRegistry.ShareHeaderStructOutput[];
+      },
+    ],
+    'view'
+  >;
+  getFunction(nameOrSignature: 'sharesForCount'): TypedContractMethod<[recipient: AddressLike], [bigint], 'view'>;
+  getFunction(nameOrSignature: 'sharesForPage'): TypedContractMethod<
+    [recipient: AddressLike, offset: BigNumberish, limit: BigNumberish],
     [
       [string[], ACPShareRegistry.ShareHeaderStructOutput[]] & {
         shareIds: string[];

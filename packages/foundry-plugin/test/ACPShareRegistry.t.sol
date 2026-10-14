@@ -47,4 +47,19 @@ contract ACPShareRegistryTest is CofheTest {
     assertEq(headers[0].blockNumber, block.number);
     assertTrue(acpShareRegistry.isShareValid(shareId));
   }
+
+  function testSharesForPage() public {
+    for (uint256 i = 0; i < 3; i++) {
+      ACP memory acp = sampleAcp();
+      acp.revokerData = i + 1;
+      vm.prank(ISSUER);
+      acpShareRegistry.share(acp, hex'03');
+    }
+    assertEq(acpShareRegistry.sharesForCount(RECIPIENT), 3);
+    (bytes32[] memory page0,) = acpShareRegistry.sharesForPage(RECIPIENT, 0, 2);
+    assertEq(page0.length, 2);
+    (bytes32[] memory page1,) = acpShareRegistry.sharesForPage(RECIPIENT, 2, 2);
+    assertEq(page1.length, 1);
+    assertEq(acpShareRegistry.MAX_SHARES_PAGE(), 256);
+  }
 }

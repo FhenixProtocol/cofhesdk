@@ -25,6 +25,19 @@ export const ACPShareRegistryArtifact = {
     },
     {
       type: 'function',
+      name: 'MAX_SHARES_PAGE',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'UPGRADER_ROLE',
       inputs: [],
       outputs: [
@@ -344,6 +357,91 @@ export const ACPShareRegistryArtifact = {
           name: 'recipient',
           type: 'address',
           internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'shareIds',
+          type: 'bytes32[]',
+          internalType: 'bytes32[]',
+        },
+        {
+          name: 'headers',
+          type: 'tuple[]',
+          internalType: 'struct ACPShareRegistry.ShareHeader[]',
+          components: [
+            {
+              name: 'issuer',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'expiration',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'recipient',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'blockNumber',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'revokerContract',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'revokerData',
+              type: 'uint256',
+              internalType: 'uint256',
+            },
+          ],
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'sharesForCount',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'count',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'sharesForPage',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'offset',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'limit',
+          type: 'uint256',
+          internalType: 'uint256',
         },
       ],
       outputs: [
