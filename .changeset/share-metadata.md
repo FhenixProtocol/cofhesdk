@@ -7,46 +7,21 @@
 '@cofhe/foundry-plugin': minor
 ---
 
-Share labels. A SNAPSHOT share can now say where each shared value came from, and the recipient can check that against the chain. To carry the labels, the on-chain share registry moves to a new layout.
-
-**Breaking:**
-
-- **Registry ABI.** `share(acp, metadata)` stores only a share header (issuer, expiration, recipient, revoker, block). The full ACP and the metadata go in the `Shared` event, where the share id is now an indexed topic. `sharesFor` returns `(shareIds, headers)` and `getShare` returns a header. `ACP_SHARE_REGISTRY_ABI` changes to match. Code that calls the registry directly must follow these changes. Code that goes through `client.acp` needs no change.
-- **The ACP name is no longer shared.** `export()` doesn't write `name`, and `SharedACP` has no `name` field. `importShared` ignores a `name` in the JSON. By default the imported ACP is named after its issuer ("Shared by 0x1234…abcd"). To set it, use `importShared(share, { name })` or `importFromChain(share, { name })`. On-chain shares never carried a name.
-- **Mocks.** They now need Solidity 0.8.25 or later and `@openzeppelin/contracts-upgradeable`, which is a new peer dependency of the Hardhat plugin. Foundry users add its remapping.
+ACPs sharing SNAPSHOTs (ctHashes rather than live data) can use the new on-chain ACP Sharing Registry `metadata` field to cite the origin of the snapshotted data (contract address + view-function / event), and the recipient can verify it on-chain. [Docs](https://cofhesdk.fhenix.io/sdk/acp#labelling-a-snapshot-share)
 
 **@cofhe/sdk**
 
-- Each shared handle can have a label that says where its value came from. There are two kinds:
-  - a value read from a contract, e.g. `balanceOf(issuer)` on a token at block N;
-  - a value emitted in an event, e.g. the amount of a `Transfer` in a given transaction.
-- `client.acp.createSharing({ ..., labels })` encodes the labels onto the sharing ACP as `metadata`. Both ways of handing over the share then carry them:
-
-  - `shareOnChain(acp)` posts them;
-  - `export()` writes them into the JSON as `SharedACP.metadata` (optional).
-
-  `importShared` and `importFromChain` keep them on the recipient ACP. To post other labels on-chain, use `shareOnChain(acp, { labels })`.
-
-- `client.acp.verifyShareLabels(share, { verify: 'all' | 'events' | 'none' })` checks the labels against the chain, and `describeShareMetadata(share, abis)` turns them into function and event names with their params. Both take a share from the registry or an imported ACP, and return `null` for a share without labels.
-- `getIncomingShares` reads the headers, then the events, with one single-block `getLogs` per block. A share whose event the node cannot serve yet is left out and appears on a later read; it never fails the rest (`readSharesFor` lists it as `unreadable`). `IncomingShare` gains `metadata`. New `client.acp.getShareFromChain(shareId)` reads one share.
-- `createCofheConfig({ acp: { app: 'explorer.fhenix.io' } })` marks every share the client creates with the app's key (`keccak256` of the name, kept in the share metadata), and `getIncomingShares` then lists only the shares posted for that app. `IncomingShare.appKey` exposes the key; `shareAppKey(app)` computes it.
-- `@cofhe/sdk/acps` also exports:
-  - `encodeShareMetadata`, `decodeShareMetadata`;
-  - `verifyShareLabel(s)`, `describeShareLabels`;
-  - `viewFunctionLabel` (any view function, from its ABI; an argument equal to the share issuer's address is stored as "the issuer", without the address), `eventLogLabel`, `UNLABELLED`;
-  - `ERC7984_ABI`: the `confidentialBalanceOf` read and `ConfidentialTransfer` event, one definition for the presets and for apps;
-  - `readSharesFor`, `readShare`, `readPostedShares`;
-  - the `LabelledShare` type.
+- `createSharing({ labels })`, `shareOnChain(acp, { labels | metadata })`; labels travel in `export()` / `importShared` as `SharedACP.metadata`.
+- New `client.acp.verifyShareLabels`, `client.acp.getShareFromChain`, and `describeShareMetadata`. `IncomingShare` gains `metadata` and `appKey`.
+- New `acp.app` config option: shares are tagged with the app's key and `getIncomingShares` lists only that app's shares ([docs](https://cofhesdk.fhenix.io/sdk/acp#mark-shares-for-your-app)).
+- `@cofhe/sdk/acps` exports the metadata codec, label builders (`viewFunctionLabel`, `eventLogLabel`, `UNLABELLED`), verifiers, registry readers, `shareAppKey` and `ERC7984_ABI`.
 
 **@cofhe/react**
 
-- `useCofheShareLabels(share, { verify, abis })` describes a share's labels right away and fills in each label's check as the chain answers.
-- `useCofheShareOnChain` takes `{ acp, labels }` or `{ acp, metadata }` as well as a bare ACP.
-- The floating button's inbox shows each share's labels and their checks, with the contract's address and the decoded arguments. A contract is named only when it is one of the app's tokens; any other shows as an unknown contract, since "verified" proves the contract returned the handle, not that the contract is a token. The import form passes the name through `importShared`'s `name` option.
-- The inbox and the token configs take `confidentialBalanceOf` from the SDK's `ERC7984_ABI` instead of keeping their own copies.
+- New `useCofheShareLabels`. `useCofheShareOnChain` accepts `{ acp, labels | metadata }`.
+- The inbox shows each share's labels and their verification. [Docs](https://cofhesdk.fhenix.io/react/acp#share-labels)
 
 **Mocks and plugins**
 
-- The ACP contracts in the mocks are cofhe-contracts' own. `ACPShareRegistry.sol`, `ACPTimestampRevoker.sol` and `Permissioned.sol` are copied verbatim from a pinned cofhe-contracts commit (`contracts/cofhe-contracts.json`). Build and test fail if a copy is edited, and `pnpm update:cofhe-contracts <commit>` refreshes the copies.
-- `MockPermissioned` moves to `MockPermissioned.sol` and now builds on the real `PermissionedUpgradeable`.
-- The plugins deploy the share registry behind `MockERC1967Proxy`, as the upgradeable production contract, with the deployer as admin.
+- `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` are copied verbatim from a pinned cofhe-contracts commit (`pnpm update:cofhe-contracts <commit>`). The share registry is deployed behind `MockERC1967Proxy`.
+- Mocks now need Solidity ≥0.8.25 and `@openzeppelin/contracts-upgradeable` (new Hardhat plugin peer dependency; Foundry users add its remapping).
