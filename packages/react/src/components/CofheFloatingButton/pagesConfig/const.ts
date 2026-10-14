@@ -1,16 +1,17 @@
 import type { FC } from 'react';
 import {
   ActivityPage,
-  GeneratePermitPage,
+  GenerateACPPage,
   MainPage,
-  PermitsListPage,
+  ACPsListPage,
   SendPage,
   SettingsPage,
   TokenInfoPage,
   DebugPage,
   ShieldPageV2,
-  DelegatePermitPage,
-  ImportPermitPage,
+  DelegateACPPage,
+  ImportACPPage,
+  IncomingSharesPage,
 } from '../pages';
 import { FloatingButtonPage } from './types';
 import { PortfolioPage } from '../pages/PortfolioPage';
@@ -23,10 +24,11 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Send]: SendPage,
   [FloatingButtonPage.Shield]: ShieldPageV2,
   [FloatingButtonPage.Activity]: ActivityPage,
-  [FloatingButtonPage.Permits]: PermitsListPage,
-  [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
-  [FloatingButtonPage.DelegatePermits]: DelegatePermitPage,
-  [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
+  [FloatingButtonPage.ACPs]: ACPsListPage,
+  [FloatingButtonPage.GenerateACPs]: GenerateACPPage,
+  [FloatingButtonPage.DelegateACPs]: DelegateACPPage,
+  [FloatingButtonPage.ReceiveACPs]: ImportACPPage,
+  [FloatingButtonPage.IncomingShares]: IncomingSharesPage,
   [FloatingButtonPage.Debug]: DebugPage,
   [FloatingButtonPage.Portfolio]: PortfolioPage,
   [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,

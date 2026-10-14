@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/hardhat-plugin",
-  "version": "0.6.1",
+  "version": "0.8.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -21,7 +21,9 @@
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint \"src/**/*.ts*\"",
     "check:types": "tsc --noEmit",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
@@ -47,13 +49,14 @@
     "prettier": "3.2.5",
     "prettier-plugin-solidity": "1.4.3",
     "tsup": "8.0.2",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "vitest": "3.2.4"
   },
   "peerDependencies": {
     "hardhat": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "ethers": "^5.0.0 || ^6.0.0",
-    "@fhenixprotocol/cofhe-contracts": ">=0.1.4",
+    "@fhenixprotocol/cofhe-contracts": ">=1.0.0",
     "@openzeppelin/contracts": "^5.0.0"
   },
   "peerDependenciesMeta": {

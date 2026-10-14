@@ -2,11 +2,13 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { type ConfidentialToken } from './useCofheTokenLists';
+import { getConfidentialDecimals } from '@/types/token';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
 import type { CofheDecryptMeta } from '@/meta';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 
 // ============================================================================
 // Unified Confidential Balance Hook
@@ -15,8 +17,16 @@ import type { CofheDecryptMeta } from '@/meta';
 type UseConfidentialTokenBalanceInput = {
   /** Token from token list */
   token?: ConfidentialToken;
-  /** Account address (optional, defaults to connected account) */
+  /**
+   * Account whose balance to read. Inside a `<CofheACPScope>`, or with `acp`, it defaults to that
+   * ACP issuer; otherwise the balance is read only when an account is given.
+   */
   accountAddress?: Address;
+  /**
+   * Decrypt with this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>`
+   * or the active ACP. The active ACP is not changed.
+   */
+  acp?: CofheACPInput;
   /** Display decimals for formatting (default: 5) */
   displayDecimals?: number;
   /**
@@ -37,13 +47,15 @@ type UseConfidentialTokenBalanceResult = {
   isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
-  disabledDueToMissingValidPermit: boolean;
+  disabledDueToMissingValidACP: boolean;
   /** The on-chain ctHash read is currently failing. */
   isReadError: boolean;
   /** The decryption's latest outcome is an error; any stale decrypted value is withheld from `data`. */
   isDecryptError: boolean;
   /** A balance is shown but the read that produced it is currently failing (stale). */
   isValueStale: boolean;
+  /** The balance is outside the decrypt ACP SNAPSHOT share, so it is never decrypted. */
+  isOutOfScope: boolean;
 };
 
 /**
@@ -54,10 +66,13 @@ type UseConfidentialTokenBalanceResult = {
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
 export function useCofheTokenDecryptedBalance(
-  { token, accountAddress, displayDecimals = 5, meta }: UseConfidentialTokenBalanceInput,
+  { token, accountAddress, displayDecimals = 5, meta, acp }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
+  // A scoped balance is the ACP issuer balance: that is the data the ACP can decrypt.
+  const decryptACP = useCofheEffectiveACP({ acp });
+  const account = accountAddress ?? (decryptACP.scoped ? decryptACP.issuer : undefined);
 
   const contractConfig =
     token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
@@ -68,18 +83,20 @@ export function useCofheTokenDecryptedBalance(
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
     isReadError,
     isDecryptError,
     isValueStale,
     isKnownZero,
+    isOutOfScope,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
       abi: contractConfig?.abi,
       functionName: contractConfig?.functionName,
-      args: accountAddress ? [accountAddress] : undefined,
-      requiresPermit: true,
+      args: account ? [account] : undefined,
+      requiresACP: true,
+      acp,
     },
     {
       readQueryOptions: {
@@ -93,7 +110,7 @@ export function useCofheTokenDecryptedBalance(
           if (typeof amountWei !== 'bigint') {
             throw new Error('Expected bigint from confidential decryption');
           }
-          return formatTokenAmount(amountWei, token.decimals, displayDecimals);
+          return formatTokenAmount(amountWei, getConfidentialDecimals(token), displayDecimals);
         },
       },
       meta: decryptMeta,
@@ -106,10 +123,11 @@ export function useCofheTokenDecryptedBalance(
   // any stale decrypted value: react-query keeps the last success across a failed refetch, so
   // returning it would render a faulted balance as if it were current. `data === undefined` then
   // unambiguously means "no trustworthy value" (pending or faulted).
-  const data = isKnownZero && token ? formatTokenAmount(0n, token.decimals, displayDecimals) : decryptedData;
+  const data =
+    isKnownZero && token ? formatTokenAmount(0n, getConfidentialDecimals(token), displayDecimals) : decryptedData;
 
   return {
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
 
     data: isDecryptError ? undefined : data,
 
@@ -118,5 +136,6 @@ export function useCofheTokenDecryptedBalance(
     isReadError,
     isDecryptError,
     isValueStale,
+    isOutOfScope,
   };
 }

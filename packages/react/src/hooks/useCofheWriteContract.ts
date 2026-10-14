@@ -1,17 +1,31 @@
-import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
+import type { QueryClient, QueryKey, UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import type {
   Abi,
   Account,
+  Address,
   Chain,
   ContractFunctionArgs,
   ContractFunctionName,
   Hash,
+  PublicClient,
+  TransactionReceipt,
   WalletClient,
   WriteContractParameters,
 } from 'viem';
 import { assert } from 'ts-essentials';
-import { useInternalMutation } from '../providers/index.js';
-import { useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
+import { useInternalMutation, useInternalQueryClient } from '../providers/index.js';
+import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
+import {
+  checksummedOr,
+  cofheReadKeyChainId,
+  cofheReadKeyPinnedTo,
+  constructCofheReadContractQueryForInvalidation,
+} from './useCofheReadContract';
+import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { invalidateQueriesWithContext, type InvalidationContextQueryFilters } from '../utils/invalidationContext';
+import { resolveReceiptBlockHash } from '../utils/resolveReceiptBlockHash';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
+import { cofheLogger } from '../utils/debug';
 
 type WalletWriteContractParamsAny = Parameters<WalletClient['writeContract']>[0];
 
@@ -32,17 +46,211 @@ export function hasExtras<TExtras>(
   );
 }
 
+/**
+ * The write a call site hands the hook: viem's `WriteContractParameters` with `chain` and `account`
+ * OPTIONAL. Both come from the connected wallet — `account` defaults to `walletClient.account` for
+ * the simulation and the broadcast, and `chain` only informs the simulation (the broadcast always
+ * goes to the wallet's own chain, see `mutationFn`). Instantiating viem's type with
+ * `Chain | undefined` / `Account | undefined` would make both fields REQUIRED, forcing every caller
+ * without a chain or account in hand into an `as never` cast — which also switches off the ABI's
+ * `functionName`/`args` checking for that call.
+ */
 export type WalletWriteContractParams<
   TAbi extends Abi | readonly unknown[],
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
   TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
   TChainOverride extends Chain | undefined = undefined,
-> = WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>;
+> = WriteContractParameters<TAbi, TFunctionName, TArgs, Chain, Account, TChainOverride>;
+
+/**
+ * Declarative invalidation target: the cofhe reads of one contract. `functionName` narrows it to
+ * the `useCofheReadContract` queries for that view function; `args` (with `functionName`) narrows
+ * further to the one exact call — e.g. `getOrder(orderId)` — leaving other args of the same
+ * function untouched. `chainId` defaults to the connected chain; a target on ANOTHER chain (a
+ * chain-pinned read) gets a plain refresh — that chain never sees the write's block, so there is
+ * nothing to be block-aware of.
+ */
+export type CofheReadInvalidationDescriptor = {
+  address: Address;
+  functionName?: string;
+  /** Exact-call narrowing; only meaningful together with `functionName` (ignored without it). */
+  args?: readonly unknown[];
+  chainId?: number;
+};
+
+/**
+ * A read-query target to refresh after a successful write: an `{ address, functionName?, args? }`
+ * descriptor for cofhe contract reads, a raw query key (matched as a prefix, e.g. built with
+ * `constructCofheReadContractQueryForInvalidation`), or full `InvalidateQueries` filters with a
+ * required `queryKey` and an optional `targetChainId` — the chain serving the reads under it, for
+ * keys the hook cannot place on a chain itself (see `InvalidationContextQueryFilters`).
+ */
+export type CofheWriteInvalidationTarget = CofheReadInvalidationDescriptor | QueryKey | InvalidationContextQueryFilters;
+
+/**
+ * The `invalidates` option: a fixed list of targets, or — when the targets depend on the outcome
+ * of the write — a function of the mined receipt (e.g. reading an id out of the event logs).
+ */
+export type CofheWriteInvalidates =
+  | readonly CofheWriteInvalidationTarget[]
+  | ((receipt: TransactionReceipt) => readonly CofheWriteInvalidationTarget[]);
 
 export type useCofheWriteContractOptions<TExtras = unknown> = Omit<
   UseMutationOptions<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown>,
   'mutationFn'
->;
+> & {
+  /**
+   * Read queries to invalidate after the write is mined, e.g.
+   * `invalidates: [{ address: token, functionName: 'balanceOf' }]` — or, when the targets are only
+   * known from the outcome, a function of the mined receipt:
+   * `invalidates: (receipt) => [{ address, functionName: 'getOrder', args: [idFrom(receipt.logs)] }]`.
+   * Invalidation fires once the transaction is MINED (not when the hash is returned) and carries
+   * the mined block's hash as invalidation context, so the triggered refetches wait until the
+   * serving RPC node knows that block before trusting its state (see
+   * `invalidateQueriesWithContext`). Mined means mined: a REVERTED transaction invalidates too —
+   * it still sits in a real block, burned gas and advanced the nonce, so reads like an ETH balance
+   * are stale either way; refetches of state the revert did not touch are cheap same-value no-ops.
+   * The wait runs in the background — the mutation still resolves with the tx hash as soon as the
+   * transaction is sent.
+   *
+   * The SENDER's native balance (the ETH-sentinel pseudo-read) never needs declaring: every mined
+   * tx burned gas from it, so it is invalidated implicitly after every write — declared targets
+   * or none.
+   */
+  invalidates?: CofheWriteInvalidates;
+};
+
+function isQueryKeyTarget(target: CofheWriteInvalidationTarget): target is QueryKey {
+  return Array.isArray(target);
+}
+
+function trimTrailingUndefined(queryKey: readonly unknown[]): readonly unknown[] {
+  let end = queryKey.length;
+  while (end > 0 && queryKey[end - 1] === undefined) end -= 1;
+  return queryKey.slice(0, end);
+}
+
+/**
+ * Turn one invalidation target (descriptor, raw key, or filters) into query filters, carrying the
+ * chain the target belongs to as `targetChainId` when it is known: a descriptor's own `chainId`
+ * (else the connected chain), the chain segment of a cofhe read key, or the `targetChainId` given
+ * on filters. Exported for internal reuse — the pending-transaction tracker speaks the same
+ * descriptor grammar instead of keeping key vocabulary of its own.
+ */
+export function normalizeInvalidationTarget(
+  target: CofheWriteInvalidationTarget,
+  connectedChainId: number | undefined
+): InvalidationContextQueryFilters {
+  if (isQueryKeyTarget(target)) return { queryKey: target, exact: false, targetChainId: cofheReadKeyChainId(target) };
+  if ('queryKey' in target) {
+    return { ...target, targetChainId: target.targetChainId ?? cofheReadKeyChainId(target.queryKey) };
+  }
+
+  const targetChainId = target.chainId ?? connectedChainId;
+  return {
+    // Trailing undefined segments (an omitted functionName) would only match queries carrying
+    // that exact undefined segment; trimmed, the prefix matches every read of the contract.
+    // With `args`, the serialized args segment extends the prefix so it matches exactly one
+    // call of the function — the same serialization the read key uses.
+    queryKey: trimTrailingUndefined([
+      ...constructCofheReadContractQueryForInvalidation({
+        cofheChainId: targetChainId,
+        address: target.address,
+        functionName: target.functionName,
+      }),
+      ...(target.functionName != null && target.args != null ? [serializeBigintRecursively(target.args)] : []),
+    ]),
+    exact: false,
+    targetChainId,
+  };
+}
+
+/**
+ * Where a mined block's watermark goes for one target — dirty every declared target, gate only
+ * the ones on the chain where the block exists:
+ * - a target on the mined chain gates its whole key;
+ * - the bare cofhe prefix `['cofheReadContract']`, which spans every chain, gates the mined chain's
+ *   slice of it;
+ * - a target on another chain, or of unknown chain, or when the mined chain itself is unknown,
+ *   gets no watermark (`undefined`): a plain refresh. A wrong watermark stalls reads for the whole
+ *   wait window; a plain refresh only forgoes the gate.
+ */
+export function blockAwareWatermarkKey(
+  filters: InvalidationContextQueryFilters,
+  minedChainId: number | undefined
+): QueryKey | undefined {
+  if (minedChainId === undefined) return undefined;
+  if (filters.targetChainId !== undefined) {
+    return filters.targetChainId === minedChainId ? filters.queryKey : undefined;
+  }
+  return cofheReadKeyPinnedTo(filters.queryKey, minedChainId);
+}
+
+async function invalidateOnceMined(params: {
+  publicClient: PublicClient;
+  queryClient: QueryClient;
+  txHash: Hash;
+  invalidates: CofheWriteInvalidates | undefined;
+  connectedChainId: number | undefined;
+}): Promise<void> {
+  const { publicClient, queryClient, txHash, invalidates, connectedChainId } = params;
+
+  try {
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    // Deliberately NO status check: a reverted tx is still mined — it burned gas and advanced
+    // the nonce in a real block, so declared reads (an ETH balance, a nonce-dependent view) are
+    // stale regardless of outcome. Targets the revert did not touch refetch to the same value.
+    // No abort signal on purpose: invalidation is cache-global work — the tx mined,
+    // so it must complete even if the writing component unmounts. The resolver's
+    // own maxWaitMs bound is the safety against a permanent background poll.
+    const resolvedReceipt = await resolveReceiptBlockHash(receipt, publicClient);
+    const { blockHash } = resolvedReceipt;
+
+    const declared = typeof invalidates === 'function' ? invalidates(resolvedReceipt) : invalidates ?? [];
+    const filters = declared.map((target) => normalizeInvalidationTarget(target, connectedChainId));
+
+    // Every mined tx burned gas from the SENDER, so their native balance — the ETH-sentinel
+    // pseudo-read — is stale on ANY outcome; it is invalidated implicitly, declared nowhere.
+    // Guarded on a mounted match so the no-native-read case stays a true no-op (the context
+    // stash is unconditional and would otherwise linger unconsumed). Recipients of value
+    // transfers are app knowledge — the caller declares those like any other target.
+    const nativeFilters = normalizeInvalidationTarget(
+      {
+        address: ETH_ADDRESS_LOWERCASE as Address,
+        functionName: 'balanceOf',
+        args: [checksummedOr(resolvedReceipt.from)],
+      },
+      connectedChainId
+    );
+    if (queryClient.getQueryCache().findAll({ queryKey: nativeFilters.queryKey, exact: false }).length > 0) {
+      filters.push(nativeFilters);
+    }
+
+    // Dirty every declared target, gate only the ones on the chain where the block exists.
+    // Block-awareness only means something on the chain the tx was mined on: a target on another
+    // chain (a chain-pinned read) would wait for a block hash its chain never produces, so it gets
+    // a plain refresh instead — and so does a target whose chain is unknown, since a wrong
+    // watermark costs a full wait window and a plain refresh only forgoes the gate.
+    const minedChainId = publicClient.chain?.id ?? connectedChainId;
+    await Promise.all(
+      filters.map((queryFilters) => {
+        const watermarkKey = blockAwareWatermarkKey(queryFilters, minedChainId);
+        if (!watermarkKey) {
+          const { targetChainId: _targetChainId, ...plainFilters } = queryFilters;
+          return queryClient.invalidateQueries(plainFilters);
+        }
+        return invalidateQueriesWithContext(
+          queryClient,
+          queryFilters,
+          { blockHashToBeAwareOf: blockHash },
+          { watermarkKey }
+        );
+      })
+    );
+  } catch (error) {
+    cofheLogger.warn('Failed to invalidate read queries after write transaction', { txHash, error });
+  }
+}
 
 /**
  * Low-level mutation hook: call `walletClient.writeContract`.
@@ -81,10 +289,29 @@ export function useCofheWriteContract<TExtras = unknown>(
 } {
   const walletClient = useCofheWalletClient();
   const publicClient = useCofhePublicClient();
+  const queryClient = useInternalQueryClient();
+  const cofheChainId = useCofheChainId();
+
+  const { invalidates, onSuccess, ...mutationOptions } = options ?? {};
 
   const mutation = useInternalMutation<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown>({
-    ...options,
-    mutationKey: options?.mutationKey ?? ['cofhe', 'walletWriteContract'],
+    ...mutationOptions,
+    mutationKey: mutationOptions.mutationKey ?? ['cofhe', 'walletWriteContract'],
+    onSuccess: (hash, ...rest) => {
+      if (publicClient) {
+        // Background: invalidation waits for the tx to mine; the mutation result is the hash.
+        // Runs even with nothing declared — the implicit sender-native-balance target applies
+        // to every mined tx.
+        void invalidateOnceMined({
+          publicClient,
+          queryClient,
+          txHash: hash,
+          invalidates,
+          connectedChainId: cofheChainId,
+        });
+      }
+      return onSuccess?.(hash, ...rest);
+    },
     mutationFn: async (variables) => {
       assert(walletClient, 'WalletClient is required to write to a contract');
       assert(publicClient, 'PublicClient is required to simulate contract before writing');

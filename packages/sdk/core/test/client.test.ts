@@ -6,6 +6,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from '../encrypt/encryptInputsBuilder.js';
 import { Encryptable } from '../types.js';
+import { acps } from '../acps.js';
 
 // Mock dependencies
 vi.mock('../keyStore', () => ({
@@ -383,7 +384,10 @@ describe('createCofheClientBase', () => {
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
       try {
-        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).execute();
+        await client
+          .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
+          .setConsumingContract('0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef')
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);
@@ -406,24 +410,64 @@ describe('createCofheClientBase', () => {
     });
   });
 
-  describe('permits', () => {
-    it('should expose permits', () => {
-      expect(client.permits).toBeDefined();
-      expect(client.permits).toHaveProperty('getSnapshot');
-      expect(client.permits).toHaveProperty('subscribe');
-      expect(client.permits).toHaveProperty('createSelf');
-      expect(client.permits).toHaveProperty('createSharing');
-      expect(client.permits).toHaveProperty('importShared');
-      expect(client.permits).toHaveProperty('getHash');
-      expect(client.permits).toHaveProperty('serialize');
-      expect(client.permits).toHaveProperty('deserialize');
-      expect(client.permits).toHaveProperty('getPermit');
-      expect(client.permits).toHaveProperty('getPermits');
-      expect(client.permits).toHaveProperty('getActivePermit');
-      expect(client.permits).toHaveProperty('getActivePermitHash');
-      expect(client.permits).toHaveProperty('removePermit');
-      expect(client.permits).toHaveProperty('selectActivePermit');
-      expect(client.permits).toHaveProperty('removeActivePermit');
+  describe('acps', () => {
+    it('should expose acps', () => {
+      expect(client.acp).toBeDefined();
+      expect(client.acp).toHaveProperty('getSnapshot');
+      expect(client.acp).toHaveProperty('subscribe');
+      expect(client.acp).toHaveProperty('createSelf');
+      expect(client.acp).toHaveProperty('createSharing');
+      expect(client.acp).toHaveProperty('importShared');
+      expect(client.acp).toHaveProperty('getHash');
+      expect(client.acp).toHaveProperty('serialize');
+      expect(client.acp).toHaveProperty('deserialize');
+      expect(client.acp).toHaveProperty('getACP');
+      expect(client.acp).toHaveProperty('getACPs');
+      expect(client.acp).toHaveProperty('getActiveACP');
+      expect(client.acp).toHaveProperty('getActiveACPHash');
+      expect(client.acp).toHaveProperty('removeACP');
+      expect(client.acp).toHaveProperty('selectActiveACP');
+      expect(client.acp).toHaveProperty('removeActiveACP');
+    });
+
+    describe('import activation', () => {
+      const share = { shareId: `0x${'0'.repeat(64)}` } as any;
+
+      it('importShared forwards activate with the connected clients', async () => {
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        await client.connect(publicClient, walletClient);
+        const spy = vi.spyOn(acps, 'importShared').mockResolvedValue({} as any);
+
+        await client.acp.importShared('{}', { activate: false });
+
+        expect(spy).toHaveBeenCalledWith('{}', publicClient, walletClient, { activate: false });
+        spy.mockRestore();
+      });
+
+      it('importShared still takes explicit clients, activating by default', async () => {
+        await client.connect(createMockPublicClient(), createMockWalletClient());
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        const spy = vi.spyOn(acps, 'importShared').mockResolvedValue({} as any);
+
+        await client.acp.importShared('{}', { publicClient, walletClient });
+
+        expect(spy).toHaveBeenCalledWith('{}', publicClient, walletClient, { activate: undefined });
+        spy.mockRestore();
+      });
+
+      it('importFromChain forwards activate', async () => {
+        const publicClient = createMockPublicClient();
+        const walletClient = createMockWalletClient();
+        await client.connect(publicClient, walletClient);
+        const spy = vi.spyOn(acps, 'importFromChain').mockResolvedValue({} as any);
+
+        await client.acp.importFromChain(share, { activate: false });
+
+        expect(spy).toHaveBeenCalledWith(share, publicClient, walletClient, { activate: false });
+        spy.mockRestore();
+      });
     });
   });
 });

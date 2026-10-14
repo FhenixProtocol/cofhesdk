@@ -43,15 +43,18 @@ describe('Contract and Error Decoding (hardhat is aware of mock contracts)', () 
       issuer: ZeroAddress,
       expiration: 0n,
       recipient: ZeroAddress,
-      validatorId: 0n,
-      validatorContract: ZeroAddress,
+      revokerData: 0n,
+      revokerContract: ZeroAddress,
+      scope: 0,
+      contracts: [],
+      handles: [],
       sealingKey: zeroPadBytes('0x', 32),
       issuerSignature: '0x',
       recipientSignature: '0x',
     };
 
     const iface = new Interface(MockACLArtifact.abi);
-    const calldata = iface.encodeFunctionData('checkPermitValidity', [expiredPermission]);
+    const calldata = iface.encodeFunctionData('checkPermissionValidity', [expiredPermission]);
 
     try {
       await hre.ethers.provider.call({ to: aclAddress, data: calldata });

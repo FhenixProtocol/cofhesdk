@@ -63,7 +63,7 @@ Auto-generated registry keyed by `[contractName][chainId]`. Committed so tests c
 
 ### `src/primaryTestChainRegistry.json`
 
-Pre-stored encrypted values on the primary test chain. Lets core SDK tests decrypt/verify/publish without performing on-chain encryption. Contains `privateValue` (permit-gated), `publicValue` (public), `addedValue` (FHE.add result).
+Pre-stored encrypted values on the primary test chain. Lets core SDK tests decrypt/verify/publish without performing on-chain encryption. Contains `privateValue` (acp-gated), `publicValue` (public), `addedValue` (FHE.add result).
 
 ### `src/env.ts`
 
@@ -72,3 +72,12 @@ Exports `TEST_PRIVATE_KEY`, `TEST_LOCALCOFHE_PRIVATE_KEY`, `PRIMARY_TEST_CHAIN`.
 ### `src/primaryTestChain.ts`
 
 Typed accessor for `primaryTestChainRegistry.json`. Exports the registry and `isPrimaryTestChainReady()` type guard — tests call this to fail fast with a clear message when setup hasn't been run.
+
+## Staging test-chain registry
+
+`src/stagingTestChainRegistry.json` holds the SimpleTest values initialized on the
+CoFHE staging chain (populated by `pnpm test:setup` when `TEST_STAGING_ENABLED=true`).
+The private values grant on-chain access to the account that initialized them, so the
+file records `initializedBy` and setup re-initializes whenever a different
+`TEST_PRIVATE_KEY` runs it — expect this file to churn between developers; that is
+by design, commit or discard freely.

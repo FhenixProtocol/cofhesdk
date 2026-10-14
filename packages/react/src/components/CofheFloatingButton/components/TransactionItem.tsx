@@ -76,7 +76,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction })
 
   const amountLabel =
     'token' in transaction
-      ? `${formatUnits(transaction.tokenAmount, transaction.token.decimals)} ${transaction.token.symbol}`
+      ? `${formatUnits(transaction.tokenAmount, transaction.tokenAmountDecimals ?? transaction.token.decimals)} ${transaction.token.symbol}`
       : null;
 
   const statusColorClass =

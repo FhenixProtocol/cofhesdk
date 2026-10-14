@@ -59,10 +59,18 @@ async function setupHardhat(factory: ClientFactory): Promise<TestContext> {
     transport: http(ANVIL_RPC),
   });
 
+  // ACP: created acps are revocable by default via the deployed timestamp validator
+  const acpValidator = inject('anvilAcpValidator') as `0x${string}` | undefined;
+  const acpShareRegistry = inject('anvilAcpShareRegistry') as `0x${string}` | undefined;
+
   const config = factory.createConfig({
     environment: 'hardhat',
     supportedChains: [hardhatCofheChain],
     mocks: { encryptDelay: 0 },
+    acp: {
+      ...(acpValidator ? { defaultRevoker: { 31337: acpValidator } } : {}),
+      ...(acpShareRegistry ? { sharingRegistry: { 31337: acpShareRegistry } } : {}),
+    },
     _internal: { zkvWalletClient },
   });
   const cofheClient = factory.createClient(config);

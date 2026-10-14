@@ -1,7 +1,7 @@
 {
   "name": "@cofhe/site",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.8.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -10,7 +10,7 @@
     "dev": "vocs dev",
     "lint": "eslint .",
     "check:snippets": "node scripts/typecheck-docs-snippets.mjs",
-    "check": "npm run lint && npm run typecheck:docs && npm run build",
+    "check": "npm run lint && npm run check:snippets && npm run build",
     "build": "vocs build",
     "preview": "vocs preview"
   },

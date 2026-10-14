@@ -1,6 +1,6 @@
 import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
 import { CofheError, CofheErrorCode } from '../error';
-import { type EncryptableItem, FheTypes } from '../types';
+import { type EncryptableItem, FheTypes, type TfheThreadsSetting } from '../types';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
 // ===== TYPES =====
@@ -29,6 +29,12 @@ export interface ZkProveWorkerRequest {
     data: any;
   }>;
   metadata: number[]; // Uint8Array serialized as array
+  /**
+   * Forwarded from `config.tfheThreads`. The worker applies it the first time it
+   * initialises tfhe — `initThreadPool` can only run once per wasm instance, so
+   * later requests carrying a different value have no effect.
+   */
+  tfheThreads?: TfheThreadsSetting;
 }
 
 /**
@@ -41,14 +47,19 @@ export interface ZkProveWorkerResponse {
   error?: string;
 }
 
-export type VerifyResultRaw = {
+export type VerifyBatchOutputRaw = {
   ct_hash: string;
+  ct_type: number;
+};
+
+export type VerifyBatchResultRaw = {
+  ciphertexts: VerifyBatchOutputRaw[];
   signature: string;
   recid: number;
 };
 
-export type VerifyResult = {
-  ct_hash: string;
+export type VerifyBatchResult = {
+  outputs: VerifyBatchOutputRaw[];
   signature: `0x${string}`;
 };
 
@@ -256,13 +267,14 @@ export const constructZkPoKMetadata = (accountAddr: string, securityZone: number
   return metadata;
 };
 
-export const zkVerify = async (
+export const zkVerifyBatch = async (
   verifierUrl: string,
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
-  chainId: number
-): Promise<VerifyResult[]> => {
+  chainId: number,
+  consumingContract: string
+): Promise<VerifyBatchResult> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
 
@@ -274,13 +286,14 @@ export const zkVerify = async (
     account_addr: address,
     security_zone: sz_byte[0],
     chain_id: chainId,
+    contract_address: consumingContract,
   };
 
   const body = JSON.stringify(payload);
 
   // Send request to verification server
   try {
-    const response = await fetch(`${verifierUrl}/verify`, {
+    const response = await fetch(`${verifierUrl}/verifyBatch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -293,34 +306,34 @@ export const zkVerify = async (
       const errorBody = await response.text();
       throw new CofheError({
         code: CofheErrorCode.ZkVerifyFailed,
-        message: `HTTP error! ZK proof verification failed - ${errorBody}`,
+        message: `HTTP error! ZK batch proof verification failed - ${errorBody}`,
       });
     }
 
-    const json = (await response.json()) as { status: string; data: VerifyResultRaw[]; error: string };
+    const json = (await response.json()) as { status: string; data: VerifyBatchResultRaw; error: string };
 
     if (json.status !== 'success') {
       throw new CofheError({
         code: CofheErrorCode.ZkVerifyFailed,
-        message: `ZK proof verification response malformed - ${json.error}`,
+        message: `ZK batch proof verification response malformed - ${json.error}`,
       });
     }
 
-    return json.data.map(({ ct_hash, signature, recid }) => {
-      return {
-        ct_hash,
-        signature: concatSigRecid(signature, recid),
-      };
-    });
+    const { ciphertexts, signature, recid } = json.data;
+
+    return {
+      outputs: ciphertexts,
+      signature: concatSigRecid(signature, recid),
+    };
   } catch (e) {
     throw new CofheError({
       code: CofheErrorCode.ZkVerifyFailed,
-      message: `ZK proof verification failed`,
+      message: `ZK batch proof verification failed`,
       cause: e instanceof Error ? e : undefined,
     });
   }
 };
 
-const concatSigRecid = (signature: string, recid: number): `0x${string}` => {
+export const concatSigRecid = (signature: string, recid: number): `0x${string}` => {
   return `${signature}${(recid + 27).toString(16).padStart(2, '0')}` as `0x${string}`;
 };

@@ -23,23 +23,29 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export type PermissionStruct = {
+export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
-  validatorId: BigNumberish;
-  validatorContract: AddressLike;
+  revokerData: BigNumberish;
+  revokerContract: AddressLike;
+  scope: BigNumberish;
+  contracts: AddressLike[];
+  handles: BytesLike[];
   sealingKey: BytesLike;
   issuerSignature: BytesLike;
   recipientSignature: BytesLike;
 };
 
-export type PermissionStructOutput = [
+export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
-  validatorId: bigint,
-  validatorContract: string,
+  revokerData: bigint,
+  revokerContract: string,
+  scope: bigint,
+  contracts: string[],
+  handles: string[],
   sealingKey: string,
   issuerSignature: string,
   recipientSignature: string,
@@ -47,8 +53,11 @@ export type PermissionStructOutput = [
   issuer: string;
   expiration: bigint;
   recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
+  revokerData: bigint;
+  revokerContract: string;
+  scope: bigint;
+  contracts: string[];
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;
@@ -57,15 +66,15 @@ export type PermissionStructOutput = [
 export interface MockACLInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | 'TASK_MANAGER_ADDRESS_'
       | 'allow'
       | 'allowForDecryption'
       | 'allowGlobal'
       | 'allowTransient'
       | 'allowedOnBehalf'
       | 'allowedTransient'
-      | 'checkPermitValidity'
+      | 'checkPermissionValidity'
       | 'cleanTransientStorage'
+      | 'defaultRevokerContract'
       | 'delegateAccount'
       | 'eip712Domain'
       | 'exists'
@@ -77,11 +86,24 @@ export interface MockACLInterface extends Interface {
       | 'isAllowedForDecryption'
       | 'isAllowedWithPermission'
       | 'persistAllowed'
+      | 'receiveCtHash'
+      | 'setDefaultRevokerContract'
+      | 'setShareRegistry'
+      | 'setTaskManager'
+      | 'shareCtHash'
+      | 'shareRegistry'
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: 'AllowedForDecryption' | 'EIP712DomainChanged' | 'NewDelegation'): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic:
+      | 'AllowedForDecryption'
+      | 'DefaultRevokerContractUpdated'
+      | 'EIP712DomainChanged'
+      | 'NewDelegation'
+      | 'ShareRegistryUpdated'
+      | 'TaskManagerUpdated'
+  ): EventFragment;
 
-  encodeFunctionData(functionFragment: 'TASK_MANAGER_ADDRESS_', values?: undefined): string;
   encodeFunctionData(functionFragment: 'allow', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowForDecryption', values: [BigNumberish[], AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowGlobal', values: [BigNumberish, AddressLike]): string;
@@ -91,8 +113,9 @@ export interface MockACLInterface extends Interface {
     values: [AddressLike, BigNumberish, AddressLike, AddressLike]
   ): string;
   encodeFunctionData(functionFragment: 'allowedTransient', values: [BigNumberish, AddressLike]): string;
-  encodeFunctionData(functionFragment: 'checkPermitValidity', values: [PermissionStruct]): string;
+  encodeFunctionData(functionFragment: 'checkPermissionValidity', values: [ACPStruct]): string;
   encodeFunctionData(functionFragment: 'cleanTransientStorage', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'defaultRevokerContract', values?: undefined): string;
   encodeFunctionData(functionFragment: 'delegateAccount', values: [AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'eip712Domain', values?: undefined): string;
   encodeFunctionData(functionFragment: 'exists', values?: undefined): string;
@@ -102,18 +125,24 @@ export interface MockACLInterface extends Interface {
   encodeFunctionData(functionFragment: 'hashTypedDataV4', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'isAllowed', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'isAllowedForDecryption', values: [BigNumberish]): string;
-  encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [PermissionStruct, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [ACPStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'persistAllowed', values: [BigNumberish, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'receiveCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'setDefaultRevokerContract', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'setShareRegistry', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'setTaskManager', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'shareCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'shareRegistry', values?: undefined): string;
 
-  decodeFunctionResult(functionFragment: 'TASK_MANAGER_ADDRESS_', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowForDecryption', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowGlobal', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowTransient', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowedOnBehalf', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowedTransient', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'checkPermitValidity', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'checkPermissionValidity', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'cleanTransientStorage', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'defaultRevokerContract', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'delegateAccount', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'eip712Domain', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
@@ -125,6 +154,12 @@ export interface MockACLInterface extends Interface {
   decodeFunctionResult(functionFragment: 'isAllowedForDecryption', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowedWithPermission', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'persistAllowed', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'receiveCtHash', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setDefaultRevokerContract', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setShareRegistry', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setTaskManager', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'shareCtHash', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'shareRegistry', data: BytesLike): Result;
 }
 
 export namespace AllowedForDecryptionEvent {
@@ -132,6 +167,19 @@ export namespace AllowedForDecryptionEvent {
   export type OutputTuple = [handlesList: bigint[]];
   export interface OutputObject {
     handlesList: bigint[];
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DefaultRevokerContractUpdatedEvent {
+  export type InputTuple = [oldAddress: AddressLike, newAddress: AddressLike];
+  export type OutputTuple = [oldAddress: string, newAddress: string];
+  export interface OutputObject {
+    oldAddress: string;
+    newAddress: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -156,6 +204,32 @@ export namespace NewDelegationEvent {
     sender: string;
     delegatee: string;
     contractAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ShareRegistryUpdatedEvent {
+  export type InputTuple = [oldAddress: AddressLike, newAddress: AddressLike];
+  export type OutputTuple = [oldAddress: string, newAddress: string];
+  export interface OutputObject {
+    oldAddress: string;
+    newAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TaskManagerUpdatedEvent {
+  export type InputTuple = [oldAddress: AddressLike, newAddress: AddressLike];
+  export type OutputTuple = [oldAddress: string, newAddress: string];
+  export interface OutputObject {
+    oldAddress: string;
+    newAddress: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -196,8 +270,6 @@ export interface MockACL extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
-  TASK_MANAGER_ADDRESS_: TypedContractMethod<[], [string], 'view'>;
-
   allow: TypedContractMethod<
     [handle: BigNumberish, account: AddressLike, requester: AddressLike],
     [void],
@@ -222,9 +294,11 @@ export interface MockACL extends BaseContract {
 
   allowedTransient: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
-  checkPermitValidity: TypedContractMethod<[permission: PermissionStruct], [boolean], 'view'>;
+  checkPermissionValidity: TypedContractMethod<[acp: ACPStruct], [boolean], 'view'>;
 
   cleanTransientStorage: TypedContractMethod<[], [void], 'nonpayable'>;
+
+  defaultRevokerContract: TypedContractMethod<[], [string], 'view'>;
 
   delegateAccount: TypedContractMethod<[delegatee: AddressLike, delegateeContract: AddressLike], [void], 'nonpayable'>;
 
@@ -258,13 +332,32 @@ export interface MockACL extends BaseContract {
 
   isAllowedForDecryption: TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
 
-  isAllowedWithPermission: TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithPermission: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   persistAllowed: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
+  receiveCtHash: TypedContractMethod<
+    [handle: BigNumberish, expectedSharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
+
+  setDefaultRevokerContract: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+
+  setShareRegistry: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+
+  setTaskManager: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+
+  shareCtHash: TypedContractMethod<
+    [handle: BigNumberish, sharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
+
+  shareRegistry: TypedContractMethod<[], [string], 'view'>;
+
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-  getFunction(nameOrSignature: 'TASK_MANAGER_ADDRESS_'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'allow'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike, requester: AddressLike], [void], 'nonpayable'>;
@@ -287,10 +380,9 @@ export interface MockACL extends BaseContract {
   getFunction(
     nameOrSignature: 'allowedTransient'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
-  getFunction(
-    nameOrSignature: 'checkPermitValidity'
-  ): TypedContractMethod<[permission: PermissionStruct], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'checkPermissionValidity'): TypedContractMethod<[acp: ACPStruct], [boolean], 'view'>;
   getFunction(nameOrSignature: 'cleanTransientStorage'): TypedContractMethod<[], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'defaultRevokerContract'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'delegateAccount'
   ): TypedContractMethod<[delegatee: AddressLike, delegateeContract: AddressLike], [void], 'nonpayable'>;
@@ -322,10 +414,28 @@ export interface MockACL extends BaseContract {
   ): TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithPermission'
-  ): TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  ): TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'persistAllowed'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
+  getFunction(
+    nameOrSignature: 'receiveCtHash'
+  ): TypedContractMethod<
+    [handle: BigNumberish, expectedSharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
+  getFunction(
+    nameOrSignature: 'setDefaultRevokerContract'
+  ): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'setShareRegistry'
+  ): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'setTaskManager'): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'shareCtHash'
+  ): TypedContractMethod<[handle: BigNumberish, sharer: AddressLike, receiver: AddressLike], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'shareRegistry'): TypedContractMethod<[], [string], 'view'>;
 
   getEvent(
     key: 'AllowedForDecryption'
@@ -333,6 +443,13 @@ export interface MockACL extends BaseContract {
     AllowedForDecryptionEvent.InputTuple,
     AllowedForDecryptionEvent.OutputTuple,
     AllowedForDecryptionEvent.OutputObject
+  >;
+  getEvent(
+    key: 'DefaultRevokerContractUpdated'
+  ): TypedContractEvent<
+    DefaultRevokerContractUpdatedEvent.InputTuple,
+    DefaultRevokerContractUpdatedEvent.OutputTuple,
+    DefaultRevokerContractUpdatedEvent.OutputObject
   >;
   getEvent(
     key: 'EIP712DomainChanged'
@@ -344,6 +461,20 @@ export interface MockACL extends BaseContract {
   getEvent(
     key: 'NewDelegation'
   ): TypedContractEvent<NewDelegationEvent.InputTuple, NewDelegationEvent.OutputTuple, NewDelegationEvent.OutputObject>;
+  getEvent(
+    key: 'ShareRegistryUpdated'
+  ): TypedContractEvent<
+    ShareRegistryUpdatedEvent.InputTuple,
+    ShareRegistryUpdatedEvent.OutputTuple,
+    ShareRegistryUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: 'TaskManagerUpdated'
+  ): TypedContractEvent<
+    TaskManagerUpdatedEvent.InputTuple,
+    TaskManagerUpdatedEvent.OutputTuple,
+    TaskManagerUpdatedEvent.OutputObject
+  >;
 
   filters: {
     'AllowedForDecryption(uint256[])': TypedContractEvent<
@@ -355,6 +486,17 @@ export interface MockACL extends BaseContract {
       AllowedForDecryptionEvent.InputTuple,
       AllowedForDecryptionEvent.OutputTuple,
       AllowedForDecryptionEvent.OutputObject
+    >;
+
+    'DefaultRevokerContractUpdated(address,address)': TypedContractEvent<
+      DefaultRevokerContractUpdatedEvent.InputTuple,
+      DefaultRevokerContractUpdatedEvent.OutputTuple,
+      DefaultRevokerContractUpdatedEvent.OutputObject
+    >;
+    DefaultRevokerContractUpdated: TypedContractEvent<
+      DefaultRevokerContractUpdatedEvent.InputTuple,
+      DefaultRevokerContractUpdatedEvent.OutputTuple,
+      DefaultRevokerContractUpdatedEvent.OutputObject
     >;
 
     'EIP712DomainChanged()': TypedContractEvent<
@@ -377,6 +519,28 @@ export interface MockACL extends BaseContract {
       NewDelegationEvent.InputTuple,
       NewDelegationEvent.OutputTuple,
       NewDelegationEvent.OutputObject
+    >;
+
+    'ShareRegistryUpdated(address,address)': TypedContractEvent<
+      ShareRegistryUpdatedEvent.InputTuple,
+      ShareRegistryUpdatedEvent.OutputTuple,
+      ShareRegistryUpdatedEvent.OutputObject
+    >;
+    ShareRegistryUpdated: TypedContractEvent<
+      ShareRegistryUpdatedEvent.InputTuple,
+      ShareRegistryUpdatedEvent.OutputTuple,
+      ShareRegistryUpdatedEvent.OutputObject
+    >;
+
+    'TaskManagerUpdated(address,address)': TypedContractEvent<
+      TaskManagerUpdatedEvent.InputTuple,
+      TaskManagerUpdatedEvent.OutputTuple,
+      TaskManagerUpdatedEvent.OutputObject
+    >;
+    TaskManagerUpdated: TypedContractEvent<
+      TaskManagerUpdatedEvent.InputTuple,
+      TaskManagerUpdatedEvent.OutputTuple,
+      TaskManagerUpdatedEvent.OutputObject
     >;
   };
 }

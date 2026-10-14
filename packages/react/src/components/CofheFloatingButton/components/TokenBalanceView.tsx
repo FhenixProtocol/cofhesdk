@@ -1,4 +1,4 @@
-import { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
+import { useCofheNavigateToCreateACP } from '@/hooks/acps/useCofheNavigateToCreateACP';
 import { cn } from '@/utils';
 import { LoadingDots } from './LoadingDots';
 
@@ -34,14 +34,14 @@ export const TokenBalanceView: React.FC<TokenBalanceViewProps> = ({
 };
 
 const ConfidentialValuePlaceholder: React.FC = () => {
-  const navigateToGeneratePermit = useCofheNavigateToCreatePermit();
+  const navigateToGenerateACP = useCofheNavigateToCreateACP();
 
   return (
     <span
       className="cursor-pointer hover:underline"
       onClick={(e) => {
         e.stopPropagation();
-        navigateToGeneratePermit({
+        navigateToGenerateACP({
           cause: 'clicked_on_confidential_balance',
         });
       }}

@@ -3,8 +3,11 @@ pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { MockCoFHEAddressBook } from '@cofhe/mock-contracts/contracts/MockCoFHEAddressBook.sol';
 import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
 import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
+import { ACPTimestampRevoker } from '@cofhe/mock-contracts/contracts/ACPTimestampRevoker.sol';
+import { ACPShareRegistry } from '@cofhe/mock-contracts/contracts/ACPShareRegistry.sol';
 import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
@@ -19,14 +22,18 @@ import {
 /// @dev    Inherit this contract and call `deployMocks()` in your `setUp()` function.
 ///         Use `createCofheClient()` to obtain a connected client instance.
 abstract contract CofheTest is Test {
+  MockCoFHEAddressBook public mockAddressBook;
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
+  ACPTimestampRevoker public acpRevoker;
+  ACPShareRegistry public acpShareRegistry;
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockThresholdNetwork public mockThresholdNetwork;
   MockThresholdNetworkSigner public mockThresholdNetworkSigner;
 
   // Keep in sync with `packages/sdk/core/consts.ts`
+  address constant MOCKS_TASK_MANAGER_ADDRESS = 0x0000000000000000000000000000000000005000;
   address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
   address constant THRESHOLD_NETWORK_ADDRESS = 0x0000000000000000000000000000000000005002;
 
@@ -38,16 +45,38 @@ abstract contract CofheTest is Test {
 
   /// @notice Deploys all mock contracts and wires them together, mirroring the Hardhat plugin's deployment order.
   function deployMocks() public {
+    // 0. Address Book (FHE.sol resolves the Task Manager through it)
+    deployCodeTo('MockCoFHEAddressBook.sol:MockCoFHEAddressBook', COFHE_ADDRESS_BOOK);
+    mockAddressBook = MockCoFHEAddressBook(COFHE_ADDRESS_BOOK);
+    vm.label(address(mockAddressBook), 'MockCoFHEAddressBook');
+
     // 1. Task Manager
-    deployCodeTo('MockTaskManager.sol:MockTaskManager', TASK_MANAGER_ADDRESS);
-    mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
+    deployCodeTo('MockTaskManager.sol:MockTaskManager', MOCKS_TASK_MANAGER_ADDRESS);
+    mockTaskManager = MockTaskManager(MOCKS_TASK_MANAGER_ADDRESS);
+    mockAddressBook.setTm(TASK_MANAGER_ID, MOCKS_TASK_MANAGER_ADDRESS);
     mockTaskManager.initialize(TM_ADMIN);
     mockTaskManager.setLogOps(false);
+    // Exclude mock-only plaintext replication from gas metering so reported gas is closer
+    // to the real task manager. Requires cheatcode access, which etched contracts don't
+    // inherit from the test contract.
+    vm.allowCheatcodes(MOCKS_TASK_MANAGER_ADDRESS);
+    mockTaskManager.setMockGasExcluded(true);
     vm.label(address(mockTaskManager), 'MockTaskManager');
 
     // 2. ACL (non-fixed deploy so constructor runs and EIP712 domain is set)
     mockAcl = new MockACL();
+    mockAcl.setTaskManager(address(mockTaskManager));
     vm.label(address(mockAcl), 'MockACL');
+
+    // ACP (ACP V3): default revoker (verification inherited by the ACL)
+    acpRevoker = new ACPTimestampRevoker();
+    vm.label(address(acpRevoker), 'ACPTimestampRevoker');
+    mockAcl.setDefaultRevokerContract(address(acpRevoker));
+
+    // ACP: on-chain hand-off for sharing ACPs
+    acpShareRegistry = new ACPShareRegistry();
+    vm.label(address(acpShareRegistry), 'ACPShareRegistry');
+    mockAcl.setShareRegistry(address(acpShareRegistry));
 
     // 3. Link Task Manager <-> ACL, configure signers
     vm.startPrank(TM_ADMIN);
@@ -74,7 +103,7 @@ abstract contract CofheTest is Test {
     // 7. Threshold Network
     deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', THRESHOLD_NETWORK_ADDRESS);
     mockThresholdNetwork = MockThresholdNetwork(THRESHOLD_NETWORK_ADDRESS);
-    mockThresholdNetwork.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
+    mockThresholdNetwork.initialize(address(mockTaskManager), address(mockAcl));
     vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
 
     // 8. Threshold Network Signer

@@ -1,5 +1,85 @@
 # @cofhe/sdk Changelog
 
+## 0.8.0
+
+### Minor Changes
+
+- 0fe40c3: Add the `ethereum` (chain id 1) and `arbitrum` (Arbitrum One, chain id 42161) mainnet chains to `@cofhe/sdk/chains`, both with `environment: 'MAINNET'`. They are included in `chains`, `getChainById` and `getChainByName`.
+- 6f7a4c5: Resolve the Task Manager through the `CoFHEAddressBook` (`@fhenixprotocol/cofhe-contracts@1.0.0`). **Breaking:** `TASK_MANAGER_ADDRESS` is removed from `@cofhe/sdk`. Use `getTaskManagerAddress(publicClient)`, which reads `getTm(TASK_MANAGER_ID)` from the book at `COFHE_ADDRESS_BOOK_ADDRESS` (both exported) and caches the result per chain. If the chain has no book, or the id is unset, it throws `TASK_MANAGER_UNRESOLVED`. `verifyDecryptResult`, the ACL/ACP lookups and `useCofheEnabled` / `useCofheReadDecryptionResults` now resolve the Task Manager this way. `@cofhe/react` adds `useCofheTaskManagerAddress()`.
+
+  Mocks: a new `MockCoFHEAddressBook` is deployed at FHE.sol's `COFHE_ADDRESS_BOOK`, and `MockTaskManager` moves to `MOCKS_TASK_MANAGER_ADDRESS` (`0x…5000`) and is registered in the book. `MockACL` now stores its Task Manager (`setTaskManager` / `getTaskManagerAddress`) instead of reading a constant, so its `TASK_MANAGER_ADDRESS_()` getter is gone. All three plugins deploy and wire the book. Hardhat 2 exposes `hre.cofhe.mocks.getMockCoFHEAddressBook()`, Hardhat 3 exposes `conn.cofhe.mocks.MockCoFHEAddressBook`, and Foundry exposes `CofheTest.mockAddressBook`. Contracts must be built against `@fhenixprotocol/cofhe-contracts@1.0.0` or later (the hardhat plugin's peer range is now `>=1.0.0`). Each FHE op now makes one extra `getTm` call on the book, as it does on real networks, so expect slightly higher gas numbers.
+
+- 552d118: The CRS is now cached per security zone. It was fetched per zone but cached under the chain id alone, so after encrypting on zone 0, encrypting on zone 1 reused zone 0's CRS and produced a proof the ZK verifier rejects.
+
+  **Breaking (`KeysStorage`):** `crs` is now keyed by chain and zone, like `fhe`. `getCrs(chainId, securityZone = 0)` takes the zone, and `setCrs(chainId, securityZone, crs)` matches `setFheKey`'s argument order. A CRS persisted in the old per-chain shape is dropped on rehydrate and refetched.
+
+### Patch Changes
+
+- 17ff23e: Scoped decryption with shared ACPs.
+
+  **@cofhe/sdk**
+
+  - `client.acp.importShared` and `client.acp.importFromChain` take an `activate` option (default `true`). With `activate: false` the imported ACP is stored without becoming the active ACP, so decrypts that use the active ACP are unaffected; use the imported ACP explicitly, e.g. `.withACP(acp)`. `importShared`'s second argument is now `{ activate?, publicClient?, walletClient? }`; passing `{ publicClient, walletClient }` works as before.
+  - New `client.acp.checkAccess(acp, handle?)` (and `ACPUtils.checkAccessOnChain`) returns an ACP on-chain status instead of reverting: `valid`, `expired`, `revoked` or an invalid signature, and with a handle `allowed`, `out-of-scope` or `issuer-not-allowed`. New exported type: `ACPAccessStatus`. ACL reverts are now recognized when the public client comes from another copy of viem than the SDK, which also fixes `checkValidityOnChain` throwing a generic error in that setup. ACL reverts reported only as text (`custom error 0x…`, e.g. by a transport that drops the error data) are decoded too. For the issuer copy of a share (type `sharing`, no recipient signature yet) the handle-less check reports expiry and revocation instead of failing on the missing signature.
+  - `@cofhe/sdk/acps` exports the on-chain sharing pieces: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `ACP_SHARE_TUPLE_ABI`, `toChainShare`, `computeShareId`, `shareIdOfChainShare`, `getAclAddress`, `getAclServedAddresses` and `clearAclServedAddresses`, so an app can send registry and revoker writes through its own transaction path and still agree with the registry on share ids.
+
+  **@cofhe/react**
+
+  - Decrypt with a chosen ACP in part of the tree without changing the active ACP. New `<CofheACPScope acp={acp | hash}>` and `useCofheACPScope()`; `useCofheReadContractAndDecrypt`, `useCofheReadContract`, `useCofheReadContracts` and `useCofheTokenDecryptedBalance` take an `acp` option that wins over the scope. Inside a scope `useCofheTokenDecryptedBalance` reads the ACP issuer balance unless given an account, and an invalid or unknown scoped ACP disables the reads (`disabledDueToMissingValidACP`) instead of falling back to the active ACP. The decrypt cache key gains a fifth segment, the hash of the ACP that decrypts (the chosen one, else the active one), so a value decrypted with one ACP never answers for another. New exported types: `CofheACPInput`, `CofheACPScopeValue`.
+  - `<CofheACPScope>` and the per-hook `acp` option check the chosen ACP on chain (`client.acp.checkAccess`) when mounted, every minute and on window focus, so a revoked share turns the scope off and drops its decrypted values while the view is open. `useCofheACPScope()` gains `status` (`checking`, `valid`, `expired`, `revoked`, `invalid`, `unverified`); the scope decrypts only while it is `valid`. For a SNAPSHOT (handle-scope) ACP, `useCofheReadContractAndDecrypt` and `useCofheTokenDecryptedBalance` report `isOutOfScope` for a value the share does not list and never send it for decryption. New exported type: `CofheACPStatus`.
+  - Plaintext decrypted with a shared (non-self) ACP is kept in memory only: it is no longer written to the persisted query cache. Decrypts are cached under the ACP that made them and dropped when that ACP leaves the ACP store (e.g. `removeACP`) or when a non-self ACP expires while in use, so a revoked or expired share does not keep serving its values from cache.
+  - The sharing hooks are exported: `useCofheIncomingShares` (registry inbox, polled; shares already imported by the connected account are left out), `useCofheShareOnChain`, `useCofheImportShared({ activate })` (exported JSON or an `IncomingShare`), `useCofheRemoveShare`, `useCofheRevokeACP` and `useCofheACPStatus` (an ACP on-chain status, re-read after a revoke mines). The write hooks resolve once mined. The package-internal names (`useIncomingShares`, `useShareOnChain`, `useImportFromChain`, `useRemoveShare`) stay as deprecated aliases.
+  - New `useCofheACPs({ chainId?, type? })`: the connected account stored ACPs on a chain (the connected chain by default), optionally narrowed to one type, e.g. `useCofheACPs({ type: 'recipient' })` for received shares. `useCofheAllACPs` is deprecated: it returned only the connected account ACPs on the connected chain, not all ACPs, and is now an alias of `useCofheACPs()`.
+  - `useCofheDecrypt` is exported: decrypt a ciphertext handle directly (no contract read), with the same `acp` option and scope behaviour as `useCofheReadContractAndDecrypt`.
+
+- 22eebcc: The Node in-memory storage fallback (used when the filesystem key cache is not writable) no longer JSON-encodes values a second time. Previously cached FHE keys and CRS read back from the fallback as strings instead of objects, so they were effectively lost and refetched.
+- 42fccae: Add `tfheThreads` config option (`'auto'` | number | `false`, default `'auto'`) to multi-thread ZK proof generation on cross-origin-isolated web pages, and export the `TfheThreadsSetting` and `TfheInitializer` types.
+
+## 0.7.1
+
+## 0.7.0
+
+### Minor Changes
+
+- fb87d91: **ACP-era chains only.** The SDK signs and sends ACP (Permit V3) exclusively. Chains whose ACL still serves the pre-upgrade V2 `Permission` protocol are rejected with a clear error at permit-signing time (the ACL's `eip712Domain` version is probed and must be `"2"`). Decryption request bodies carry the ACP object under the `acp` key, and backend error handling recognizes the `acp_*` codes exclusively — seven map 1:1 onto the former `permit_*` codes, while revocation now surfaces as `acp_denied` (see the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0) for the full table).
+- fb87d91: **Breaking: Permit (V2) → ACP (Access Control Permission).** Permits become scoped, revocable ACPs; old names are removed rather than deprecated. Highlights (full list in the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0)):
+
+  - `Permit`/`Permission`/`PermitUtils`/`client.permits` → `ACP`/`ACPPublic`/`ACPUtils`/`client.acp`; `getPermission()` → `getPublic()`
+  - `ACPPrivate` & `ACPPublic` are top-level types, `ACP` is the union; the sealing keypair is flattened to `sealingPrivateKey`/`sealingKey` (the `SealingKey` class is removed)
+  - New scope fields (`scope`, `contracts`, `handles: bytes32[]`) and revocation fields renamed `validatorId`/`validatorContract` → `revokerData`/`revokerContract`; default revoker `ACPTimestampRevoker` with `revokeACP`/`revokeAllACPs`/`isACPRevoked` on the client
+  - EIP-712 domain bumped to `("ACL", "2")` with new `ACPIssuerSelf`/`ACPIssuerShared`/`ACPRecipient` types — previously signed permits no longer verify; the permit store migrates by wiping retired-format permits
+  - `ACPUtils.export()` produces a fixed `SharedACP` shape and only accepts signed sharing ACPs
+
+- fb87d91: **On-chain ACP sharing.** New `ACPShareRegistry` contract (deployed with the mocks) lets an issuer post a sharing ACP on-chain for its recipient to discover and import — replacing the JSON copy-paste hand-off.
+
+  - `client.acp.shareOnChain(acp)` posts a signed sharing ACP (issuer-only, same guards as `export()`); `cancelShare(shareId)` retracts it
+  - `client.acp.getIncomingShares()` lists importable shares addressed to the connected account (unexpired, not revoked — the registry checks the share's own revoker)
+  - `client.acp.importFromChain(share)` imports like the JSON flow (recipient sealing key + signature); `dismissShare(shareId)` cleans up the entry
+  - config: `acp.sharingRegistry: Record<chainId, address>`
+  - registry exposes `isShareValid(shareId)` as an on-chain verification hook for contracts
+
+- fb87d91: Migrate `cofheClient.encryptInputs` from one-signature-per-ciphertext to the new batch verification scheme (one signature per batch, per `FhenixProtocol/cofhe-contracts#78`).
+
+  **Breaking:** `EncryptInputsBuilder.execute()` now always returns `[...hashes, signature]` (`HashPlusProofResult<T>`) instead of an array of per-item `EncryptedItemInput` structs. `EncryptedItemInput` and its per-type aliases (`EncryptedBoolInput`, `EncryptedUint8Input`, etc.) are removed, along with `EncryptInputsBuilder.asHashPlusProof()` (no longer needed - it's the only shape now). `@cofhe/abi`'s `extractEncryptableValues`/`insertEncryptedValues` now detect `external*` ABI types instead of `struct InEuintXX`, with a new calling convention: any function with encrypted inputs must end with a plain `bytes` parameter to receive the shared batch signature. `@cofhe/foundry-plugin`'s `CofheClient.createIn*` helpers are renamed to `createExternal*` (`createInEuint32` → `createExternalEuint32`, etc.) and now return an `external*` handle plus a batch signature rather than an `InEuintXX` struct; the `createIn*_asHashPlusProof` variants are removed as redundant. See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0) for the full list of changes and what contract authors need to update.
+
+- fb87d91: Bind encrypted inputs to a consuming contract (`FhenixProtocol/cofhe-contracts#77`). The verifier-signed digest now includes the contract that will consume the ciphertext, closing a replay path where a signed input packet observed on-chain could be reused against a different contract than the one it was signed for.
+
+  **Breaking:** `EncryptInputsBuilder.setConsumingContract(address)` must be called before `.execute()` - it throws `ConsumingContractUninitialized` otherwise. `@cofhe/mock-contracts`'s `MockTaskManager` signature digest changed to include the consuming contract (external ABI unchanged). `@cofhe/foundry-plugin`'s `CofheClient.createExternal*`/`createEuint32sBatch` helpers now take a required `address consumingContract` as their last parameter (no global setter). `@cofhe/react`'s `useCofheEncryptAndWriteContract` defaults `consumingContract` to the write's target address automatically; `useCofheEncrypt` accepts it as an explicit option. See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0) for full details.
+
+- fb87d91: **Permit is now ACP everywhere.** All Permit-named API surface is renamed to ACP to avoid confusion with classic DeFi permits: types (`SelfACP`, `SharingACP`, `RecipientACP`, ...), client methods (`getOrCreateSelfACP`, `withACP`, ...), react hooks and components (`useCofheACPs`, `ACPCard`, ...), error codes (`ACP_DENIED`, ...), the `@cofhe/sdk/permits` entrypoint (now `@cofhe/sdk/acps`), and all documentation. English prose words (permitted/permitting) and protocol contract interfaces are unchanged. The persisted store key also changed; previously stored ACPs are not migrated and are transparently re-created on next use.
+
+### Patch Changes
+
+- d4d662f: fix(sdk): don't activate delegated (sharing) permits on creation
+
+  `createPermitWithSign` always stored the newly created permit as the issuer's active permit, so creating a delegated/sharing permit hijacked the issuer's own active permit. A delegated permit is for the recipient and must not change the issuer's active permit.
+
+  `createSharing` now defaults to store-only; `getOrCreateSharingACP` (which genuinely wants an active sharing ACP) opts in via `activate: true`. Self ACPs are unchanged.
+
+- f01cac7: Decrypt/sealoutput failures now map the threshold network's stable `error` codes to dedicated `CofheErrorCode` values (e.g. `ACPDenied`, `CtNotFound`, `UnsupportedType`) instead of a generic `DecryptFailed`/`SealOutputFailed`, and `CofheError` gains an `apiErrorCode` field with the raw backend string.
+
+  Also fixes submit-time `404` retries: a `404` is only retried while the backend reports `ct_not_found` (still indexing); any other error code now fails immediately instead of being blindly retried for up to `set404RetryTimeout`.
+
 ## 0.6.1
 
 ### Patch Changes

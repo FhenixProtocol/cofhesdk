@@ -12,6 +12,7 @@ import {
 } from '@cofhe/sdk/chains';
 import { createTestnetSetup, isTestnetEnabled } from './testnet.js';
 import { hardhatChainConfig } from './hardhat.js';
+import { stagingChainConfig } from './staging.js';
 import type { TestChainConfig } from '../types.js';
 
 const arbSepoliaConfig: TestChainConfig = {
@@ -94,4 +95,5 @@ export const ALL_CHAINS: TestChainConfig[] = [
   sepoliaConfig,
   arbSepoliaConfig,
   baseSepoliaConfig,
+  stagingChainConfig,
 ];

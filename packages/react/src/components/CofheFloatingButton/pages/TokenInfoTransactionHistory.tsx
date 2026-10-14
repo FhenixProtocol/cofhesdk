@@ -51,7 +51,7 @@ export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryPr
         };
       }
 
-      const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
+      const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.tokenAmountDecimals ?? tx.token.decimals));
       const amountUsd =
         typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
 

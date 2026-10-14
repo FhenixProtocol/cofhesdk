@@ -1,6 +1,6 @@
 import { type Address } from 'viem';
 import type { ConfidentialToken } from './useCofheTokenLists.js';
-import { assertTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, getConfidentialDecimals } from '@/types/token';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { type EncryptableItem } from '@cofhe/sdk';
@@ -47,6 +47,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
           hash,
           token: extras.token,
           tokenAmount: extras.amount,
+          tokenAmountDecimals: getConfidentialDecimals(extras.token),
           chainId: extras.token.chainId,
           actionType: TransactionActionType.ShieldSend,
           account: extras.userAddress,

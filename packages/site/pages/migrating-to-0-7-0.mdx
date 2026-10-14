@@ -1,0 +1,178 @@
+---
+title: Migrating to 0.7.0
+description: Upgrade @cofhe/* from 0.6.x to 0.7.0, with an agent skill that does most of the work
+---
+
+# Migrating to `0.7.0`
+
+`0.7.0` renames Permit to ACP, replaces per-ciphertext input signatures with **one signature per
+batch**, and requires every encryption to declare the contract that will consume it. It also moves
+to `@fhenixprotocol/cofhe-contracts` `0.2.x`, **which deletes the `InEuintXX` structs** — so most
+projects need Solidity changes, not just TypeScript changes.
+
+There are no deprecation shims. Old names are removed, so your compiler finds the work.
+
+:::warning
+Migrate from `0.6.x`. If you are on an earlier version, upgrade to `0.6.1` first using the package
+changelog. If you are coming from `cofhejs`, read [Migrating from
+cofhejs](/migrating-from-cofhejs) first.
+:::
+
+## The agent skill
+
+Most of this migration is mechanical, and the parts that aren't are worth a conversation rather
+than a find-and-replace. We ship a skill that drives the whole thing: it detects what your project
+uses, works through the changes in dependency order, shows you a diff before touching anything,
+and tells you what it couldn't decide for you.
+
+### Install
+
+It's an [Agent Skill](https://agentskills.io) — an open format supported by Claude Code, Cursor,
+GitHub Copilot, VS Code, Codex, Gemini CLI, OpenCode, Roo, Kiro, Goose and others. Drop the folder
+into wherever your agent reads skills from (commonly `.claude/skills/` or `.cursor/skills/`):
+
+```bash
+mkdir -p .claude/skills
+curl -L https://github.com/FhenixProtocol/cofhesdk/archive/refs/heads/main.tar.gz \
+  | tar -xz --strip-components=2 -C .claude/skills \
+    '*/skills/cofhe-migrate-0-6-to-0-7'
+```
+
+Or [browse it on GitHub](https://github.com/FhenixProtocol/cofhesdk/tree/main/skills/cofhe-migrate-0-6-to-0-7)
+and copy the directory manually.
+
+### Run
+
+```
+Migrate this project to @cofhe/sdk 0.7.0
+```
+
+The skill proposes each change as a diff and waits for your approval by default. Ask it to apply
+everything if you'd rather review at the end.
+
+It will stop and ask you — rather than guess — when a function takes two or more encrypted
+parameters, when encrypted values were persisted somewhere, or when the contract you call isn't
+one you control.
+
+## What changes
+
+### Contracts
+
+`InEuint32` and friends are gone, along with `FHE.asEuint32(InEuint32)` and
+`ITaskManager.verifyInput`. Which case you're in depends on how many encrypted parameters a
+function takes:
+
+```solidity
+// BEFORE - the shape the 0.6.x docs taught
+function setValue(InEuint32 memory inValue) external {
+  storedValue = FHE.asEuint32(inValue);
+}
+
+// AFTER - one encrypted value
+function setValue(externalEuint32 inValue, bytes memory proof) external {
+  storedValue = FHE.asEuint32(inValue, proof);
+}
+```
+
+If a function takes **two or more** encrypted values, they must become an array sharing one
+signature — you can't keep separate `(hash, proof)` pairs, because the signature covers all the
+hashes together:
+
+```solidity
+function transfer(address to, externalEuint32[] calldata values, bytes calldata signature) external {
+  euint32[] memory v = FHE.asEuint32s(values, signature);
+  euint32 amount = v[0];
+  euint32 fee    = v[1];
+}
+```
+
+Already using `(externalEuint32, bytes)` with a single encrypted value? **No contract change and no
+redeploy** — `FHE.asEuint32(hash, proof)` now verifies as a one-element batch, so the new signature
+works with your existing ABI.
+
+### Encrypting inputs
+
+```ts
+// BEFORE
+const [encA, encB] = await client.encryptInputs([a, b]).execute();
+await contract.f(encA, encB);
+
+// AFTER
+const [hashA, hashB, signature] = await client
+  .encryptInputs([a, b])
+  .setConsumingContract(contractAddress)
+  .execute();
+await contract.f([hashA, hashB], signature);
+```
+
+`execute()` returns `[...hashes, signature]` — note that's one element _more_ than your input
+count. `setConsumingContract` is required; omitting it is a compile error, because the verifier
+binds that address into the signature so a batch signed for one contract can't be replayed into
+another.
+
+### Passing encrypted values between contracts
+
+If a contract hands an encrypted value to another contract — as a parameter, or as the return value
+of a non-`view` function — that has to move onto the new `sharedEuintXX` types.
+
+```solidity
+// BEFORE - permission granted out of band, and the receiver cannot tell who sent it
+FHE.allowTransient(amount, address(token));
+token.pull(amount);
+
+// AFTER - the type carries the permission, and the sharer is checked
+token.pull(FHE.shareEuint64(amount, address(token)));
+```
+
+```solidity
+// in Token
+function pull(sharedEuint64 shared) external {
+  euint64 amount = FHE.receiveEuint64Param(shared);   // reverts unless our caller shared it
+}
+```
+
+:::danger
+The old spelling still compiles and still runs, so **your compiler will not find these**. It is
+also unsafe: a function taking a bare `euintXX` can be called by anyone, with any handle your
+contract is allowed on — including your contract's own stored ciphertexts. FHE operations check the
+permission of the _contract_, not the caller, so it will happily compute on them and hand the result
+back. That makes it an oracle over your encrypted state.
+:::
+
+Both sides must migrate together — `pull(euint64)` and `pull(sharedEuint64)` are both `bytes32` on
+the wire, so an unmigrated caller compiles fine and fails at runtime with `NotShared`. `view`
+functions returning an encrypted value are unaffected: they never granted anything.
+
+Full details, including which `receive` function to use and why it matters, are in
+[Sharing Encrypted Values](/reference/sharing-encrypted-values).
+
+### Permit → ACP
+
+`@cofhe/sdk/permits` → `@cofhe/sdk/acps`, `Permit` → `ACP`, `Permission` → `ACPPublic`,
+`PermitUtils` → `ACPUtils`, and `client.permits` → **`client.acp`** (singular). React hooks follow:
+`useCofhePermits` → `useCofheACPs`, `useCofheActivePermit` → `useCofheActiveACP`, and so on.
+
+Previously signed permits can't verify against the upgraded ACL, so stored ones are dropped and
+recreated — **your users will be prompted to sign again.**
+
+### Config keys
+
+Five keys were renamed. In `0.6.x` an unknown key was silently ignored; now it throws and names its
+replacement.
+
+| Before                                 | After                               |
+| -------------------------------------- | ----------------------------------- |
+| `defaultPermitExpiration`              | `defaultACPExpiration`              |
+| `react.shareablePermits`               | `react.shareableACPs`               |
+| `react.autogeneratePermits`            | `react.autogenerateACPs`            |
+| `react.permitExpirationOptions`        | `react.acpExpirationOptions`        |
+| `react.defaultPermitExpirationSeconds` | `react.defaultACPExpirationSeconds` |
+
+## Known issue
+
+The verifier's batch endpoint is live on **CoFHE staging** and the host chain, and encryption works
+end-to-end there and against hardhat mocks. It is **not yet deployed on the public testnets**
+(Sepolia, Arbitrum Sepolia, Base Sepolia), where encrypting still fails with `ZK_VERIFY_FAILED`.
+
+This is not a problem with your migration. Point at staging to confirm your code is correct; the
+testnets will start working with no further code changes once the endpoint ships there.

@@ -1,5 +1,47 @@
 # @cofhe/abi Changelog
 
+## 0.8.0
+
+### Patch Changes
+
+- 9dacf73: `extractEncryptableValues` and `insertEncryptedValues` now handle arrays of structs (`tuple[]` / `tuple[N]`): each element is walked as its own tuple, with fixed-size lengths enforced. Previously the array itself was processed as a single tuple, so the named-component lookups found nothing — extraction handed `undefined` to the encryptable transform instead of the real plaintext, and insertion consumed no hashes and collapsed the argument to `{}`. This broke any write taking a struct array (e.g. a batch submission taking `Order[]` through `useCofheWriteContract`), and dropped plain struct-array arguments even when they carried no encrypted fields. Mirrors the same fix made to `transformEncryptedReturnTypes` for struct-array returns.
+- 7529d66: `transformEncryptedReturnTypes` now handles arrays of structs (`tuple[]` / `tuple[N]`): each element is transformed as its own tuple, with fixed-size lengths enforced. Previously the array itself was processed as a single tuple — the named-component lookups found nothing and the whole result collapsed to `{}`, breaking any read whose return type is a struct array (e.g. a batch getter returning `Order[]` through `useCofheReadContract`). A stray `console.log` in the transform was also removed.
+- Updated dependencies [17ff23e]
+- Updated dependencies [0fe40c3]
+- Updated dependencies [6f7a4c5]
+- Updated dependencies [552d118]
+- Updated dependencies [22eebcc]
+- Updated dependencies [42fccae]
+  - @cofhe/sdk@0.8.0
+
+## 0.7.1
+
+### Patch Changes
+
+- @cofhe/sdk@0.7.1
+
+## 0.7.0
+
+### Minor Changes
+
+- fb87d91: Migrate `cofheClient.encryptInputs` from one-signature-per-ciphertext to the new batch verification scheme (one signature per batch, per `FhenixProtocol/cofhe-contracts#78`).
+
+  **Breaking:** `EncryptInputsBuilder.execute()` now always returns `[...hashes, signature]` (`HashPlusProofResult<T>`) instead of an array of per-item `EncryptedItemInput` structs. `EncryptedItemInput` and its per-type aliases (`EncryptedBoolInput`, `EncryptedUint8Input`, etc.) are removed, along with `EncryptInputsBuilder.asHashPlusProof()` (no longer needed - it's the only shape now). `@cofhe/abi`'s `extractEncryptableValues`/`insertEncryptedValues` now detect `external*` ABI types instead of `struct InEuintXX`, with a new calling convention: any function with encrypted inputs must end with a plain `bytes` parameter to receive the shared batch signature. `@cofhe/foundry-plugin`'s `CofheClient.createIn*` helpers are renamed to `createExternal*` (`createInEuint32` → `createExternalEuint32`, etc.) and now return an `external*` handle plus a batch signature rather than an `InEuintXX` struct; the `createIn*_asHashPlusProof` variants are removed as redundant. See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0) for the full list of changes and what contract authors need to update.
+
+- fb87d91: Find the batch-signature parameter by pairing instead of position: it is now the plain `bytes` immediately after the contiguous run of `external*` inputs, not necessarily the function's last parameter. ERC-7984-style `*AndCall` ABIs (`..., externalEuint64 amount, bytes inputProof, bytes data`) now work in `extractEncryptableValues` / `insertEncryptedValues` / `useCofheEncryptAndWriteContract`, and `CofheInputArgsPreTransform` drops that slot wherever it sits. Non-adjacent `external*` inputs now throw — they share one signature, so there is no unambiguous slot. ABIs with the signature already last are unaffected.
+
+### Patch Changes
+
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [d4d662f]
+- Updated dependencies [fb87d91]
+- Updated dependencies [f01cac7]
+  - @cofhe/sdk@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes

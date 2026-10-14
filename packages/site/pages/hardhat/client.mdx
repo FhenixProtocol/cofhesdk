@@ -14,7 +14,7 @@ The plugin extends `hre` with `hre.cofhe`, providing three ways to create and co
 1. Creates a CoFHE config with `environment: 'hardhat'` and `supportedChains: [hardhat]`
 2. Creates a `CofheClient`
 3. Connects it using the provided Hardhat signer (defaults to the first signer)
-4. Generates a self-usage permit for the signer
+4. Generates a self-usage ACP for the signer
 
 ```ts twoslash
 // @noErrors
@@ -31,7 +31,7 @@ cofheClient.connected; // true
 ```
 
 :::info
-`createClientWithBatteries` generates a self-permit automatically, so most test operations (encrypting inputs, decrypting for view, decrypting for tx) work immediately without any extra setup.
+`createClientWithBatteries` generates a self-ACP automatically, so most test operations (encrypting inputs, decrypting for view, decrypting for tx) work immediately without any extra setup.
 :::
 
 If `signer` is omitted, the first signer from `hre.ethers.getSigners()` is used.
@@ -126,4 +126,4 @@ Once connected, the client works identically to the standard SDK client. See:
 - [Encrypting Inputs](/sdk/encrypting-inputs)
 - [Decrypting to View](/sdk/decrypt-to-view)
 - [Decrypting to Transact](/sdk/decrypt-to-tx)
-- [Permits](/sdk/permits)
+- [ACPs](/sdk/acp)

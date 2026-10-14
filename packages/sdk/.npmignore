@@ -5,7 +5,7 @@
 !core/
 !adapters/
 !chains/
-!permits/
+!acps/
 !node/
 !web/
 !package.json

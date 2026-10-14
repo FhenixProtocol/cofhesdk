@@ -1,5 +1,6 @@
 import { parseAbi } from 'viem';
 
+import { CONFIDENTIAL_TOKEN_CLAIM_CONTRACTS } from './confidentialTokenClaims';
 import type { ConfidentialTokenContracts } from './tokenTypeConfig';
 
 export const DUAL_TOKEN_CONTRACTS = {
@@ -37,31 +38,14 @@ export const DUAL_TOKEN_CONTRACTS = {
             type: 'address',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'ctHash',
-                type: 'uint256',
-              },
-              {
-                internalType: 'uint8',
-                name: 'securityZone',
-                type: 'uint8',
-              },
-              {
-                internalType: 'uint8',
-                name: 'utype',
-                type: 'uint8',
-              },
-              {
-                internalType: 'bytes',
-                name: 'signature',
-                type: 'bytes',
-              },
-            ],
-            internalType: 'struct InEuint64',
+            internalType: 'externalEuint64',
             name: 'inValue',
-            type: 'tuple',
+            type: 'bytes32',
+          },
+          {
+            internalType: 'bytes',
+            name: 'inputProof',
+            type: 'bytes',
           },
         ],
         name: 'confidentialTransfer',
@@ -88,40 +72,5 @@ export const DUAL_TOKEN_CONTRACTS = {
     abi: parseAbi(['function unshield(uint64 amount) returns (bytes32)']),
     functionName: 'unshield' as const,
   },
-  claims: {
-    single: {
-      abi: parseAbi(['function claimUnshielded(bytes32 ctHash, uint64 decryptedAmount, bytes decryptionProof)']),
-      functionName: 'claimUnshielded' as const,
-    },
-    all: {
-      abi: parseAbi([
-        'function claimUnshieldedBatch(bytes32[] ctHashes, uint64[] decryptedAmounts, bytes[] decryptionProofs)',
-      ]),
-      functionName: 'claimUnshieldedBatch' as const,
-    },
-    query: {
-      abi: [
-        {
-          inputs: [{ name: 'user', type: 'address' }],
-          name: 'getUserClaims',
-          outputs: [
-            {
-              components: [
-                { name: 'to', type: 'address' },
-                { name: 'ctHash', type: 'bytes32' },
-                { name: 'requestedAmount', type: 'uint64' },
-                { name: 'decryptedAmount', type: 'uint64' },
-                { name: 'claimed', type: 'bool' },
-              ],
-              name: 'userClaims',
-              type: 'tuple[]',
-            },
-          ],
-          stateMutability: 'view',
-          type: 'function',
-        },
-      ] as const,
-      functionName: 'getUserClaims' as const,
-    },
-  },
+  claims: CONFIDENTIAL_TOKEN_CLAIM_CONTRACTS,
 } as const satisfies ConfidentialTokenContracts;

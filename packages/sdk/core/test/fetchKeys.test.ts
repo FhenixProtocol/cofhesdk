@@ -110,7 +110,7 @@ describe('fetchKeys', () => {
   it('should not fetch CRS if already cached', async () => {
     // Pre-populate with a cached CRS
     const mockCachedCrs = '0x2345678901';
-    keysStorage.setCrs(sepolia.id, mockCachedCrs);
+    keysStorage.setCrs(sepolia.id, 0, mockCachedCrs);
 
     const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
       config,
@@ -133,12 +133,33 @@ describe('fetchKeys', () => {
     expect(retrievedKey).toBeDefined();
   });
 
+  it('should not reuse a cached CRS from a different security zone', async () => {
+    // CoFHE serves a distinct CRS per security zone, so a zone 0 CRS must not satisfy zone 1
+    const zone0Crs = '0x2345678901';
+    keysStorage.setCrs(sepolia.id, 0, zone0Crs);
+
+    const [, [crs, crsFetchedFromCoFHE]] = await fetchKeys(
+      config,
+      sepolia.id,
+      1,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
+
+    expect(crsFetchedFromCoFHE).toBe(true);
+    expect(crs).not.toEqual(zone0Crs);
+
+    // The zone 0 entry is untouched
+    expect(keysStorage.getCrs(sepolia.id, 0)).toEqual(zone0Crs);
+  });
+
   it('should not make any network calls if both keys are cached', async () => {
     // Pre-populate both keys
     const mockCachedKey = '0x1234567890';
     const mockCachedCrs = '0x2345678901';
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
-    keysStorage.setCrs(sepolia.id, mockCachedCrs);
+    keysStorage.setCrs(sepolia.id, 0, mockCachedCrs);
 
     const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
       config,
