@@ -267,4 +267,3 @@ describe('ACPShareRegistry', () => {
     expect(await registry.MAX_SHARES_PAGE()).to.equal(256n);
   });
 });
-
