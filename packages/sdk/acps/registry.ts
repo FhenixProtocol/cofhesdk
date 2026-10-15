@@ -199,6 +199,43 @@ export const readSharesFor = async (
   registry: Address,
   recipient: Address
 ): Promise<PostedShares> => {
+  // Prefer paging when the registry exposes the #351 helpers so inboxes larger than
+  // MAX_SHARES_PAGE are not silently truncated by the capped `sharesFor` view.
+  try {
+    const [count, pageSize] = await Promise.all([
+      publicClient.readContract({
+        address: registry,
+        abi: ACP_SHARE_REGISTRY_ABI,
+        functionName: 'sharesForCount',
+        args: [recipient],
+      }),
+      publicClient.readContract({
+        address: registry,
+        abi: ACP_SHARE_REGISTRY_ABI,
+        functionName: 'MAX_SHARES_PAGE',
+      }),
+    ]);
+    if (count > pageSize) {
+      const entries: { shareId: Hex; header: ShareHeader }[] = [];
+      for (let offset = 0n; offset < count; offset += pageSize) {
+        const [shareIds, headers] = await publicClient.readContract({
+          address: registry,
+          abi: ACP_SHARE_REGISTRY_ABI,
+          functionName: 'sharesForPage',
+          args: [recipient, offset, pageSize],
+        });
+        for (let i = 0; i < shareIds.length; i++) {
+          entries.push({ shareId: shareIds[i], header: headers[i] });
+        }
+        // sharesForPage skips dead entries; stop early if a short page means we exhausted live ones
+        if (BigInt(shareIds.length) < pageSize) break;
+      }
+      return readPostedShares(publicClient, registry, entries);
+    }
+  } catch {
+    // Older registries without pagination helpers fall through to sharesFor.
+  }
+
   const [shareIds, headers] = await publicClient.readContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,

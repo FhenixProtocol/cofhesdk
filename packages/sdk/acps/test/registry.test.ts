@@ -79,6 +79,34 @@ describe('registry reads', () => {
     );
   });
 
+  it('pages through sharesForPage when count exceeds MAX_SHARES_PAGE', async () => {
+    const pageSize = 2n;
+    const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args: unknown[] }) => {
+      if (functionName === 'sharesForCount') return 3n;
+      if (functionName === 'MAX_SHARES_PAGE') return pageSize;
+      if (functionName === 'sharesForPage') {
+        const offset = args[1] as bigint;
+        if (offset === 0n) return [ids.slice(0, 2), headers.slice(0, 2)];
+        if (offset === 2n) return [ids.slice(2), headers.slice(2)];
+        return [[], []];
+      }
+      if (functionName === 'sharesFor') throw new Error('sharesFor should not be used when paging');
+      throw new Error(`unexpected ${functionName}`);
+    });
+    const getContractEvents = vi.fn(async ({ fromBlock, args }: { fromBlock: bigint; args: { shareId: string[] } }) =>
+      shares
+        .map((acp, i) => ({ block: headers[i].blockNumber, acp, id: ids[i], metadata: metadata[i] }))
+        .filter((e) => e.block === fromBlock && args.shareId.includes(e.id))
+        .map((e) => ({ args: { shareId: e.id, acp: e.acp, metadata: e.metadata } }))
+    );
+    const client = { readContract, getContractEvents } as unknown as PublicClient;
+    const { posted, unreadable } = await readSharesFor(client, REGISTRY, RECIPIENT);
+    expect(unreadable).toEqual([]);
+    expect(posted.map((p) => p.shareId)).toEqual(ids);
+    expect(readContract).toHaveBeenCalledWith(expect.objectContaining({ functionName: 'sharesForPage' }));
+    expect(readContract.mock.calls.some((c) => c[0].functionName === 'sharesFor')).toBe(false);
+  });
+
   it('reads one share, and null for an unknown one', async () => {
     const { client } = clientWith();
     expect((await readShare(client, REGISTRY, ids[2]))?.metadata).toBe('0x03bb');
