@@ -8,7 +8,7 @@ import {
 } from '@/stores/transactionStore';
 import { isTokenOperationSupported } from '@/types/token';
 import { cofheLogger } from '@/utils/debug';
-import { resolveReceiptBlockHash } from '@/utils/resolveReceiptBlockHash';
+import { hasInvalidBlockHash, resolveReceiptBlockHash } from '@/utils/resolveReceiptBlockHash';
 import { type QueriesOptions } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { assert } from 'ts-essentials';
@@ -44,30 +44,40 @@ function useTrackPendingTransactionsBase({
     queryKey: ['tx-receipt', tx.chainId, tx.hash],
     queryFn: async ({ signal }) => {
       assert(publicClient, 'Public client is guaranteed by enabled condition');
+      let receipt: TransactionReceipt;
       try {
-        const receipt = await publicClient.waitForTransactionReceipt({
+        receipt = await publicClient.waitForTransactionReceipt({
           hash: tx.hash,
         });
-
-        const normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, { signal });
-
-        const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
-
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
-          receipt: normalizedReceipt,
-        });
-
-        // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
-        else onReceiptFail?.(tx, normalizedReceipt);
-
-        return normalizedReceipt;
       } catch (e) {
         onFetchFailure?.(e, tx);
         // no need to invalidate on failure, since nothing has changed on chain
         useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, TransactionStatus.Failed);
         throw e;
       }
+
+      // The tx is mined at this point, so the receipt's own status decides the outcome.
+      // Failing to get a real blockHash for it only means invalidation can't be block-gated.
+      let normalizedReceipt = receipt;
+      try {
+        normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, { signal });
+      } catch (error) {
+        // Query cancelled (e.g. unmount): keep the tx pending so it is watched again.
+        if (signal?.aborted) throw error;
+        cofheLogger.warn('Using mined receipt without a real blockHash', { txHash: tx.hash, error });
+      }
+
+      const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+
+      useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
+        receipt: normalizedReceipt,
+      });
+
+      // invalidate if tx was successful
+      if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
+      else onReceiptFail?.(tx, normalizedReceipt);
+
+      return normalizedReceipt;
     },
 
     enabled: !!publicClient && accountsPendingTxs.length > 0,
@@ -82,7 +92,10 @@ function useTrackPendingTransactionsBase({
 function useHandleInvalidations() {
   const queryClient = useInternalQueryClient();
   const handleInvalidations = (tx: Transaction, receipt?: TransactionReceipt) => {
-    const blockHashToBeAwareOf = receipt?.blockHash ?? tx.receipt?.blockHash;
+    const receiptBlockHash = receipt?.blockHash ?? tx.receipt?.blockHash;
+    // A zero blockHash never matches a real block, so invalidate without gating on it.
+    const blockHashToBeAwareOf =
+      receiptBlockHash && !hasInvalidBlockHash(receiptBlockHash) ? receiptBlockHash : undefined;
     // each transaction requires gas, so native token balance changes on every transaction
     invalidatePublicTokenBalanceQueries(
       {
