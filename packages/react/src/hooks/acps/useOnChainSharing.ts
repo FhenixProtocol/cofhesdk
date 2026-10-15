@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import type { Hex } from 'viem';
+import { useCallback, useRef } from 'react';
+import type { Abi, ContractFunctionArgs, ContractFunctionName, Hex } from 'viem';
 import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP, ShareLabel } from '@cofhe/sdk/acps';
 import { CofheError, CofheErrorCode } from '@cofhe/sdk';
 import { useInternalMutation, useInternalQuery, useInternalQueryClient } from '../../providers/index.js';
@@ -7,6 +7,18 @@ import { useCofheClient } from '../useCofheClient.js';
 import { useCofheACPs } from '../useCofheACPs.js';
 import { ACP_STATUS_QUERY_KEY } from '../useCofheACPScope.js';
 import { useCofheAccount, useCofheChainId } from '../useCofheConnection.js';
+import {
+  useCofheWriteContract,
+  type CofheWriteInvalidationTarget,
+  type WalletWriteContractParams,
+} from '../useCofheWriteContract';
+import { useTransactionGlobalLifecycle } from '../useTransactionGlobalLifecycle';
+import {
+  TransactionActionType,
+  useTransactionStore,
+  type BuiltInTransactionActionType,
+  type JsonValue,
+} from '../../stores/transactionStore';
 
 const INCOMING_SHARES_KEY = 'cofhe-incoming-shares';
 const INCOMING_SHARES_REFETCH_MS = 15_000;
@@ -24,6 +36,54 @@ async function mined(client: ReturnType<typeof useCofheClient>, hash: Hex): Prom
   const { publicClient } = client.getSnapshot();
   await publicClient?.waitForTransactionReceipt({ hash });
   return hash;
+}
+
+/** What the transaction store keeps of a sharing write besides its hash: the row's text and data. */
+type SharingEntry = { description: string; payload: JsonValue };
+
+/**
+ * The path every sharing write takes: the SDK's write hook — simulated before it is sent, its
+ * `invalidates` refetched block-awarely once mined — a transaction-store entry, so the write shows
+ * in the floating button's Activity and the pending-transaction tracker follows it, and a wait until
+ * it is mined, so a read that follows sees the result. A refused write (a simulation revert, a wallet
+ * rejection) raises the submit-error toast and throws; nothing is recorded.
+ */
+function useSharingWrite(
+  actionType: BuiltInTransactionActionType,
+  invalidates: () => readonly CofheWriteInvalidationTarget[]
+) {
+  const cofheClient = useCofheClient();
+  const account = useCofheAccount();
+  const chainId = useCofheChainId();
+  const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
+  // A ref, so the write hook's receipt callback reads the targets of the write that mined.
+  const invalidatesRef = useRef(invalidates);
+  invalidatesRef.current = invalidates;
+  const { writeContractAsync } = useCofheWriteContract({ invalidates: () => invalidatesRef.current() });
+
+  return useCallback(
+    async <
+      TAbi extends Abi | readonly unknown[],
+      TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
+      TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
+    >(
+      write: WalletWriteContractParams<TAbi, TFunctionName, TArgs>,
+      entry: SharingEntry
+    ): Promise<Hex> => {
+      let hash: Hex;
+      try {
+        hash = await writeContractAsync(write);
+      } catch (error) {
+        onTransactionSubmitError(error, actionType);
+        throw error;
+      }
+      if (account != null && chainId != null) {
+        useTransactionStore.getState().addTransaction({ hash, chainId, account, actionType, ...entry });
+      }
+      return mined(cofheClient, hash);
+    },
+    [writeContractAsync, onTransactionSubmitError, actionType, account, chainId, cofheClient]
+  );
 }
 
 /**
@@ -70,19 +130,29 @@ export const useCofheIncomingShares = ({
 
 /**
  * Issuer side: post a signed sharing ACP to the on-chain share registry, optionally with the labels
- * of its handles (`{ acp, labels }`, one label per handle). Resolves once mined.
+ * of its handles (`{ acp, labels }`, one label per handle). Simulated first, recorded in the
+ * transaction store, resolves once mined; the registry reads and the inbox refetch then.
  */
 export const useCofheShareOnChain = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
+  const registry = useRef<Hex | undefined>(undefined);
+  const send = useSharingWrite(TransactionActionType.ShareACP, () => [
+    ...(registry.current ? [{ address: registry.current }] : []),
+    [INCOMING_SHARES_KEY],
+  ]);
 
   return useInternalMutation<{ txHash: Hex; shareId: Hex }, Error, ACP | ({ acp: ACP } & ShareOnChainOptions)>({
     onSuccess,
     onError,
     mutationFn: async (input) => {
       const { acp, ...options } = 'acp' in input ? input : { acp: input };
-      const result = await cofheClient.acp.shareOnChain(acp, options);
-      await mined(cofheClient, result.txHash);
-      return result;
+      const { write, shareId } = await cofheClient.acp.prepareShareOnChain(acp, options);
+      registry.current = write.address;
+      const txHash = await send(write, {
+        description: `${acp.name} → ${acp.recipient}`,
+        payload: { acpHash: acp.hash, shareId, recipient: acp.recipient },
+      });
+      return { txHash, shareId };
     },
   });
 };
@@ -114,33 +184,50 @@ export const useCofheImportShared = ({
 
 /**
  * Remove a share from the registry: the recipient dismisses it (after importing, or to decline),
- * the issuer retracts a pending one. Resolves once mined.
+ * the issuer retracts a pending one. Simulated first, recorded in the transaction store, resolves
+ * once mined; the registry reads and the inbox refetch then.
  */
 export const useCofheRemoveShare = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
-  const queryClient = useInternalQueryClient();
+  const registry = useRef<Hex | undefined>(undefined);
+  const send = useSharingWrite(TransactionActionType.RemoveShare, () => [
+    ...(registry.current ? [{ address: registry.current }] : []),
+    [INCOMING_SHARES_KEY],
+  ]);
 
   return useInternalMutation<Hex, Error, Hex>({
     onSuccess,
     onError,
-    onSettled: () => queryClient.invalidateQueries({ queryKey: [INCOMING_SHARES_KEY] }),
-    mutationFn: async (shareId) => mined(cofheClient, await cofheClient.acp.dismissShare(shareId)),
+    mutationFn: async (shareId) => {
+      const write = await cofheClient.acp.prepareRemoveShare(shareId);
+      registry.current = write.address;
+      return send(write, { description: `Share ${shareId}`, payload: { shareId } });
+    },
   });
 };
 
 /**
- * Issuer side: revoke an ACP through its revoker contract. Resolves once mined, then the ACP
- * on-chain status (`useCofheACPStatus`, `<CofheACPScope>`) re-reads as revoked.
+ * Issuer side: revoke an ACP through its revoker contract. Simulated first, recorded in the
+ * transaction store, resolves once mined; the ACP on-chain status (`useCofheACPStatus`,
+ * `<CofheACPScope>`) and the revoker read refetch then.
  */
 export const useCofheRevokeACP = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
-  const queryClient = useInternalQueryClient();
+  const revoking = useRef<ACP | undefined>(undefined);
+  const send = useSharingWrite(TransactionActionType.RevokeACP, () => {
+    const acp = revoking.current;
+    if (!acp) return [];
+    return [{ address: acp.revokerContract, functionName: 'disabled' }, [ACP_STATUS_QUERY_KEY, acp.hash]];
+  });
 
   return useInternalMutation<Hex, Error, ACP>({
     onSuccess,
     onError,
-    onSettled: (_data, _error, acp) => queryClient.invalidateQueries({ queryKey: [ACP_STATUS_QUERY_KEY, acp.hash] }),
-    mutationFn: async (acp) => mined(cofheClient, await cofheClient.acp.revokeACP(acp)),
+    mutationFn: async (acp) => {
+      const write = cofheClient.acp.prepareRevokeACP(acp);
+      revoking.current = acp;
+      return send(write, { description: acp.name, payload: { acpHash: acp.hash } });
+    },
   });
 };
 

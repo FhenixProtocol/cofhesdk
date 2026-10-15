@@ -22,12 +22,27 @@ export const TransactionActionType = {
   Unshield: 'unshield',
   Claim: 'claim',
   Approve: 'approve',
+  /** A sharing ACP posted to the on-chain share registry (`useCofheShareOnChain`). */
+  ShareACP: 'shareAcp',
+  /** A share removed from the registry: dismissed by its recipient, or retracted by its issuer. */
+  RemoveShare: 'removeShare',
+  /** An ACP revoked through its revoker contract (`useCofheRevokeACP`). */
+  RevokeACP: 'revokeAcp',
 } as const;
 
 export type BuiltInTransactionActionType = (typeof TransactionActionType)[keyof typeof TransactionActionType];
 export type CustomTransactionActionType = `custom-${string}`;
 export type TransactionActionType = BuiltInTransactionActionType | CustomTransactionActionType;
-export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim' | 'Approve' | string;
+export type TransactionActionString =
+  | 'Shielded Transfer'
+  | 'Shield'
+  | 'Unshield'
+  | 'Claim'
+  | 'Approve'
+  | 'Share ACP'
+  | 'Remove share'
+  | 'Revoke ACP'
+  | string;
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -79,6 +94,14 @@ type UnshieldingTransaction = TokenTransaction & {
   actionType: typeof TransactionActionType.Unshield;
 };
 
+/** An on-chain sharing write: no token; what it did is in `description` and `payload` (acp hash, share id). */
+type SharingTransaction = BaseTransaction & {
+  actionType:
+    | typeof TransactionActionType.ShareACP
+    | typeof TransactionActionType.RemoveShare
+    | typeof TransactionActionType.RevokeACP;
+};
+
 type CustomTransaction = BaseTransaction & {
   actionType: CustomTransactionActionType;
 };
@@ -89,6 +112,7 @@ export type Transaction =
   | SendingTransaction
   | ClaimingTransaction
   | ApprovingTransaction
+  | SharingTransaction
   | CustomTransaction;
 
 export type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
@@ -115,6 +139,9 @@ const actionToStringMap: Record<BuiltInTransactionActionType, TransactionActionS
   [TransactionActionType.Unshield]: 'Unshield',
   [TransactionActionType.Claim]: 'Claim',
   [TransactionActionType.Approve]: 'Approve',
+  [TransactionActionType.ShareACP]: 'Share ACP',
+  [TransactionActionType.RemoveShare]: 'Remove share',
+  [TransactionActionType.RevokeACP]: 'Revoke ACP',
 };
 
 export const actionToString = (a: TransactionActionType, fallbackTitle?: string): TransactionActionString =>
