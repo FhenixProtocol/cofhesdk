@@ -1,4 +1,4 @@
-import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
+import type { ACP, CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
 import { decodeShareMetadata, shareAppKey, verifyShareLabels } from '@/acps';
 
 import { createStore } from 'zustand/vanilla';
