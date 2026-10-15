@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { Abi, ContractFunctionArgs, ContractFunctionName, Hex } from 'viem';
+import type { Hex } from 'viem';
 import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP, ShareLabel } from '@cofhe/sdk/acps';
 import { CofheError, CofheErrorCode } from '@cofhe/sdk';
 import { useInternalMutation, useInternalQuery, useInternalQueryClient } from '../../providers/index.js';
@@ -7,17 +7,13 @@ import { useCofheClient } from '../useCofheClient.js';
 import { useCofheACPs } from '../useCofheACPs.js';
 import { ACP_STATUS_QUERY_KEY } from '../useCofheACPScope.js';
 import { useCofheAccount, useCofheChainId } from '../useCofheConnection.js';
-import {
-  useCofheWriteContract,
-  type CofheWriteInvalidationTarget,
-  type WalletWriteContractParams,
-} from '../useCofheWriteContract';
+import { useCofheWriteContract, type CofheWriteInvalidationTarget } from '../useCofheWriteContract';
 import { useTransactionGlobalLifecycle } from '../useTransactionGlobalLifecycle';
 import {
   TransactionActionType,
   useTransactionStore,
-  type BuiltInTransactionActionType,
   type JsonValue,
+  type SharingTransactionActionType,
 } from '../../stores/transactionStore';
 
 const INCOMING_SHARES_KEY = 'cofhe-incoming-shares';
@@ -41,6 +37,9 @@ async function mined(client: ReturnType<typeof useCofheClient>, hash: Hex): Prom
 /** What the transaction store keeps of a sharing write besides its hash: the row's text and data. */
 type SharingEntry = { description: string; payload: JsonValue };
 
+/** A write as the SDK's write hook takes it: what the client's `prepare*` methods build. */
+type WriteInput = Parameters<ReturnType<typeof useCofheWriteContract>['writeContractAsync']>[0];
+
 /**
  * The path every sharing write takes: the SDK's write hook — simulated before it is sent, its
  * `invalidates` refetched block-awarely once mined — a transaction-store entry, so the write shows
@@ -49,7 +48,7 @@ type SharingEntry = { description: string; payload: JsonValue };
  * rejection) raises the submit-error toast and throws; nothing is recorded.
  */
 function useSharingWrite(
-  actionType: BuiltInTransactionActionType,
+  actionType: SharingTransactionActionType,
   invalidates: () => readonly CofheWriteInvalidationTarget[]
 ) {
   const cofheClient = useCofheClient();
@@ -62,14 +61,7 @@ function useSharingWrite(
   const { writeContractAsync } = useCofheWriteContract({ invalidates: () => invalidatesRef.current() });
 
   return useCallback(
-    async <
-      TAbi extends Abi | readonly unknown[],
-      TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
-      TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-    >(
-      write: WalletWriteContractParams<TAbi, TFunctionName, TArgs>,
-      entry: SharingEntry
-    ): Promise<Hex> => {
+    async (write: WriteInput, entry: SharingEntry): Promise<Hex> => {
       let hash: Hex;
       try {
         hash = await writeContractAsync(write);

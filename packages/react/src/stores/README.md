@@ -2,7 +2,7 @@
 
 The React package keeps a persisted transaction store for Activity, token history, status toasts, and receipt tracking. Consumers should add transactions through the public transaction helpers instead of mutating the store directly.
 
-Use this when your app submits a transaction that should appear alongside built-in CoFHE actions such as shield, unshield, claim, approve, or shielded transfer.
+Use this when your app submits a transaction that should appear alongside built-in CoFHE actions such as shield, unshield, claim, approve, shielded transfer, or the on-chain sharing writes (share ACP, remove share, revoke ACP — recorded by `useCofheShareOnChain`, `useCofheRemoveShare` and `useCofheRevokeACP`).
 
 ## Add a transaction from React
 

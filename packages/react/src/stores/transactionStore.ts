@@ -94,12 +94,14 @@ type UnshieldingTransaction = TokenTransaction & {
   actionType: typeof TransactionActionType.Unshield;
 };
 
+export type SharingTransactionActionType =
+  | typeof TransactionActionType.ShareACP
+  | typeof TransactionActionType.RemoveShare
+  | typeof TransactionActionType.RevokeACP;
+
 /** An on-chain sharing write: no token; what it did is in `description` and `payload` (acp hash, share id). */
 type SharingTransaction = BaseTransaction & {
-  actionType:
-    | typeof TransactionActionType.ShareACP
-    | typeof TransactionActionType.RemoveShare
-    | typeof TransactionActionType.RevokeACP;
+  actionType: SharingTransactionActionType;
 };
 
 type CustomTransaction = BaseTransaction & {
