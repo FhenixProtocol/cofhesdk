@@ -60,8 +60,9 @@ pnpm changeset status
 
 - Workflow: `.github/workflows/publish.yml`
 - Triggers: `push` to `master`
-  - Beta job runs when commit message does NOT contain `Version Packages`
-  - Stable job runs when commit message DOES contain `Version Packages`
+  - A `release-gate` job checks whether the push is the merge of the changesets bot's PR (`changeset-release/master`, authored by `github-actions[bot]`, same repo). The commit message is not used.
+  - Stable job runs when it is; beta job runs otherwise (and skips if there are no pending changesets)
+- Trigger: `workflow_dispatch` from any branch runs the `named-release` job (see `.memory/publishing.md`)
   - Docs deployment runs after stable releases to GitHub Pages
 - OIDC permissions are enabled (`id-token: write`, `contents: read`); npm provenance is enabled by default.
 
@@ -81,8 +82,8 @@ pnpm changeset status
 
 ## Troubleshooting
 
-- CI didn't publish beta: ensure the merge commit message doesn't include `Version Packages` and the workflow ran.
-- CI didn't publish stable: ensure you merged the auto "Version Packages" PR and the workflow ran the stable job.
+- CI didn't publish beta: ensure the merged PR had a changeset and the workflow ran.
+- CI didn't publish stable: ensure you merged the bot's "Version Packages" PR (not a copy) and check the `release-gate` output.
 - Docs didn't deploy:
   - Ensure GitHub Pages is configured to use "GitHub Actions" as the source in repository settings
   - Check that the workflow has completed successfully
