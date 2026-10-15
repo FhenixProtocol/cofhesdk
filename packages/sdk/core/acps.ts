@@ -26,7 +26,7 @@ import {
   clearAclServedAddresses,
 } from '@/acps';
 
-import { type Hex, type PublicClient, type WalletClient, zeroAddress } from 'viem';
+import { type ContractFunctionParameters, type Hex, type PublicClient, type WalletClient, zeroAddress } from 'viem';
 
 // HELPERS
 
@@ -311,23 +311,39 @@ const getBlockRevokerData = async (publicClient: PublicClient): Promise<number> 
  *
  * @returns the revocation transaction hash
  */
-const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => {
+/**
+ * A registry or revoker write built but not sent: what a simulation or `writeContract` takes,
+ * minus the sender. For a caller that sends through its own path (simulate first, record the
+ * transaction) instead of the plain `writeContract` the senders below do.
+ */
+export type ShareRegistryWrite<functionName extends 'share' | 'removeShare'> = ContractFunctionParameters<
+  typeof ACP_SHARE_REGISTRY_ABI,
+  'nonpayable',
+  functionName
+>;
+export type RevokerWrite = ContractFunctionParameters<typeof ACP_REVOKER_ABI, 'nonpayable', 'revokeSingle'>;
+
+/** The revoker write that revokes one acp, built but not sent. Throws for an acp without a revoker. */
+const prepareRevokeACP = (acp: ACP): RevokerWrite => {
   if (acp.revokerContract === zeroAddress || acp.revokerData === 0) {
     throw new Error('ACP is not revocable: it has no revoker (revokerContract/revokerData unset)');
   }
+  return {
+    address: acp.revokerContract,
+    abi: ACP_REVOKER_ABI,
+    functionName: 'revokeSingle',
+    args: [BigInt(acp.revokerData)],
+  };
+};
+
+const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => {
+  const write = prepareRevokeACP(acp);
   if (walletClient.account == null) throw new Error('Missing walletClient account');
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the acp issuer can revoke it');
   }
 
-  return walletClient.writeContract({
-    address: acp.revokerContract,
-    abi: ACP_REVOKER_ABI,
-    functionName: 'revokeSingle',
-    args: [BigInt(acp.revokerData)],
-    account: walletClient.account,
-    chain: walletClient.chain,
-  });
+  return walletClient.writeContract({ ...write, account: walletClient.account, chain: walletClient.chain });
 };
 
 /**
@@ -416,34 +432,51 @@ const metadataOf = (acp: ACP, { labels, metadata, appKey }: ShareOnChainOptions)
  * to discover and import — the on-chain alternative to `export()` — optionally
  * with the labels of its handles.
  */
-const shareOnChain = async (
+/**
+ * The registry `share` write for a signed sharing acp, built but not sent, with the share id it
+ * gets. Validates the acp, not the sender: the registry takes the write from the issuer only.
+ */
+const prepareShareOnChain = (
   acp: ACP,
-  walletClient: WalletClient,
   registry: Hex,
   options: ShareOnChainOptions = {}
-): Promise<{ txHash: Hex; shareId: Hex }> => {
+): { write: ShareRegistryWrite<'share'>; shareId: Hex } => {
   if (acp.type !== 'sharing') {
     throw new Error(`Cannot share a '${acp.type}' ACP on-chain — only 'sharing' ACPs are shareable.`);
   }
   if (acp.issuerSignature === '0x') {
     throw new Error('Cannot share an unsigned sharing ACP — sign it first.');
   }
+  return {
+    write: {
+      address: registry,
+      abi: ACP_SHARE_REGISTRY_ABI,
+      functionName: 'share',
+      args: [toChainShare(acp), metadataOf(acp, options)],
+    },
+    shareId: computeShareId(acp),
+  };
+};
+
+const shareOnChain = async (
+  acp: ACP,
+  walletClient: WalletClient,
+  registry: Hex,
+  options: ShareOnChainOptions = {}
+): Promise<{ txHash: Hex; shareId: Hex }> => {
+  const { write, shareId } = prepareShareOnChain(acp, registry, options);
   if (walletClient.account == null) throw new Error('Missing walletClient account');
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the ACP issuer can share it on-chain');
   }
-  const metadata = metadataOf(acp, options);
 
   const txHash = await walletClient.writeContract({
-    address: registry,
-    abi: ACP_SHARE_REGISTRY_ABI,
-    functionName: 'share',
-    args: [toChainShare(acp), metadata],
+    ...write,
     account: walletClient.account,
     chain: walletClient.chain ?? null,
   });
 
-  return { txHash, shareId: computeShareId(acp) };
+  return { txHash, shareId };
 };
 
 const toIncomingShare = ({ shareId, share: s, metadata }: PostedShare): IncomingShare => ({
@@ -514,14 +547,19 @@ const importFromChain = async (
   return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
 };
 
+/** The registry `removeShare` write for one share id, built but not sent. */
+const prepareRemoveShare = (shareId: Hex, registry: Hex): ShareRegistryWrite<'removeShare'> => ({
+  address: registry,
+  abi: ACP_SHARE_REGISTRY_ABI,
+  functionName: 'removeShare',
+  args: [shareId],
+});
+
 /** Remove a share from the registry (issuer retracts / recipient dismisses). */
 const removeShareOnChain = async (shareId: Hex, walletClient: WalletClient, registry: Hex): Promise<Hex> => {
   if (walletClient.account == null) throw new Error('Missing walletClient account');
   return walletClient.writeContract({
-    address: registry,
-    abi: ACP_SHARE_REGISTRY_ABI,
-    functionName: 'removeShare',
-    args: [shareId],
+    ...prepareRemoveShare(shareId, registry),
     account: walletClient.account,
     chain: walletClient.chain ?? null,
   });
@@ -562,15 +600,18 @@ export const acps = {
   removeActiveACP,
 
   revokeACP,
+  prepareRevokeACP,
   revokeAllACPs,
   isACPRevoked,
   checkAccess,
 
   shareOnChain,
+  prepareShareOnChain,
   getIncomingShares,
   getShareFromChain,
   importFromChain,
   removeShareOnChain,
+  prepareRemoveShare,
   computeShareId,
 
   applyACPDefaultsFromChain,
