@@ -115,6 +115,13 @@ export const deployMocks = async (
   const thresholdNetwork = await deployMockThresholdNetwork(hre, taskManager, acl);
   logDeployment('MockThresholdNetwork', await thresholdNetwork.getAddress());
 
+  // The TaskManager is placed with hardhat_setCode, so its `logOps = true` initializer never runs
+  // and logging starts off. Turn it on here when the config asks for it.
+  if (hre.config.cofhe.logMocks) {
+    await (await taskManager.setLogOps(true)).wait();
+    log('vv', 'FHE operation logs enabled', 2);
+  }
+
   log('v', chalk.bold('cofhe-hardhat-plugin :: mocks deployed'), 0);
 
   if (options.gasWarning) {
