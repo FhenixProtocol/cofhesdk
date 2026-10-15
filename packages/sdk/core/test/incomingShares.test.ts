@@ -45,7 +45,10 @@ const metadata = [
 ] as const;
 
 const client = {
-  readContract: vi.fn(async () => [ids, shares.map(() => header)]),
+  readContract: vi.fn(async ({ functionName }: { functionName?: string } = {}) => {
+    if (functionName === 'MAX_SHARES_PAGE') throw new Error('no pagination');
+    return [ids, shares.map(() => header)];
+  }),
   getContractEvents: vi.fn(async ({ args }: { args: { shareId: string[] } }) =>
     shares
       .map((acp, i) => ({ args: { shareId: ids[i], acp, metadata: metadata[i] } }))
@@ -67,7 +70,10 @@ describe('getIncomingShares and the app key', () => {
 
   it('leaves out a share whose event the node cannot serve yet, and keeps the rest', async () => {
     const lagging = {
-      readContract: vi.fn(async () => [ids, shares.map(() => header)]),
+      readContract: vi.fn(async ({ functionName }: { functionName?: string } = {}) => {
+        if (functionName === 'MAX_SHARES_PAGE') throw new Error('no pagination');
+        return [ids, shares.map(() => header)];
+      }),
       getContractEvents: vi.fn(async ({ args }: { args: { shareId: string[] } }) =>
         shares
           .map((acp, i) => ({ args: { shareId: ids[i], acp, metadata: metadata[i] } }))
