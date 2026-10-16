@@ -345,9 +345,9 @@ export const clearAclServedAddresses = () => aclServedAddressesCache.clear();
  * TaskManager -> acl() -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
  * resolve to `undefined` — callers fall back to `acp.*` config.
  *
- * Resolutions are cached per chainId. A failure to reach the TaskManager (network
- * error, no CoFHE deployment) is NOT cached, so a transient outage does not pin
- * an empty result for the whole session.
+ * Resolutions are cached per chainId. A failure to reach the TaskManager or the ACL
+ * getters (network error, no CoFHE deployment) is NOT cached, so a transient outage
+ * does not pin an empty result for the whole session.
  */
 export const getAclServedAddresses = async (
   publicClient: PublicClient,
@@ -367,19 +367,24 @@ export const getAclServedAddresses = async (
     return {};
   }
 
+  // A revert means the getter is missing (pre-upgrade ACL) and is safe to cache. Any other
+  // error (rate limit, timeout) is transient: return what we have but don't cache it.
+  let transient = false;
+  const readServedAddress = (functionName: 'defaultRevokerContract' | 'shareRegistry') =>
+    publicClient.readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName }).catch((err) => {
+      if (revertErrorName(err, ACL_SERVED_ADDRESSES_ABI) === undefined) transient = true;
+      return undefined;
+    });
+
   const [defaultRevoker, shareRegistry] = await Promise.all([
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'defaultRevokerContract' })
-      .catch(() => undefined),
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'shareRegistry' })
-      .catch(() => undefined),
+    readServedAddress('defaultRevokerContract'),
+    readServedAddress('shareRegistry'),
   ]);
 
   const resolved: AclServedAddresses = {
     defaultRevoker: defaultRevoker != null && defaultRevoker !== zeroAddress ? defaultRevoker : undefined,
     shareRegistry: shareRegistry != null && shareRegistry !== zeroAddress ? shareRegistry : undefined,
   };
-  aclServedAddressesCache.set(chainId, resolved);
+  if (!transient) aclServedAddressesCache.set(chainId, resolved);
   return resolved;
 };
