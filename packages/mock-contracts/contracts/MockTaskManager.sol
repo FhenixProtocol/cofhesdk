@@ -16,6 +16,7 @@ error InvalidInputsAmount(string operation, uint256 got, uint256 expected);
 error InvalidOperationInputs(string operation);
 error TooManyInputs(string operation, uint256 got, uint256 maxAllowed);
 error InvalidBytesLength(uint256 got, uint256 expected);
+error LengthMismatch();
 // Type and security validation errors
 error InvalidTypeOrSecurityZone(string operation);
 error InvalidInputType(uint8 actual, uint8 expected);
@@ -584,12 +585,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   /// @notice Publish a signed decrypt result to the chain
   /// @dev Anyone with a valid signature from the decrypt network can call this
   function publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external {
-    _verifyDecryptResult(ctHash, result, signature, true);
-    _decryptResultReady[ctHash] = true;
-    _decryptResult[ctHash] = result;
-
-    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
-    emit DecryptionResult(ctHash, result, msg.sender);
+    _publishDecryptResult(ctHash, result, signature);
   }
 
   function publishDecryptResultBatch(
@@ -597,12 +593,23 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external {
-    // Mock implementation: process each result individually
-    // Note: publishDecryptResult is defined later in the contract
-    for (uint256 i = 0; i < ctHashes.length; i++) {
-      // Call via external interface to avoid forward reference issue
-      this.publishDecryptResult(ctHashes[i], results[i], signatures[i]);
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    for (uint256 i = 0; i < length; i++) {
+      _publishDecryptResult(ctHashes[i], results[i], signatures[i]);
     }
+  }
+
+  /// @dev Shared by both publish functions, so a batch keeps its caller as the `DecryptionResult` requestor,
+  ///      like the real task manager. An external self-call would make the requestor this contract.
+  function _publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private {
+    _verifyDecryptResult(ctHash, result, signature, true);
+    _decryptResultReady[ctHash] = true;
+    _decryptResult[ctHash] = result;
+
+    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
+    emit DecryptionResult(ctHash, result, msg.sender);
   }
 
   function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
@@ -894,7 +901,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external view returns (bool) {
-    for (uint256 i = 0; i < ctHashes.length; i++) {
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    for (uint256 i = 0; i < length; i++) {
       if (!_verifyDecryptResult(ctHashes[i], results[i], signatures[i], true)) {
         return false;
       }
@@ -907,8 +917,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external view returns (bool[] memory) {
-    bool[] memory out = new bool[](ctHashes.length);
-    for (uint256 i = 0; i < ctHashes.length; i++) {
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    bool[] memory out = new bool[](length);
+    for (uint256 i = 0; i < length; i++) {
       out[i] = _verifyDecryptResult(ctHashes[i], results[i], signatures[i], false);
     }
     return out;
