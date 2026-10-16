@@ -228,7 +228,7 @@ export const useTransactionStore = create<TransactionStore>()(
           ? Object.values(chainTxs)
               .filter((tx) => {
                 if (!transactionMatchesToken(tx, tokenAddress)) return false;
-                return !account || tx.account.toLowerCase() === account.toLowerCase();
+                return !account || !tx.account || tx.account.toLowerCase() === account.toLowerCase();
               })
               .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];
