@@ -200,9 +200,8 @@ jobs:
     env:
       VERSION: ${{ needs.named-release-resolve.outputs.version }}
       DIST_TAG: ${{ needs.named-release-resolve.outputs.dist_tag }}
-      # TEMP: while testing the flow, runs `pnpm publish --dry-run` instead of publishing.
-      # Set to 'false' (or remove) before merging.
-      DRY_RUN: 'true'
+      # 'true' runs `pnpm publish --dry-run` instead of publishing, for testing changes to this job
+      DRY_RUN: 'false'
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
