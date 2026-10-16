@@ -9,12 +9,13 @@ import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
 import {
-  constructUnshieldClaimsQueryKey,
+  constructUnshieldClaimsSummaryQueryKey,
   DEFAULT_UNSHIELD_CLAIM_SUMMARY,
   fetchUnshieldClaimsSummary,
   isTokenConfidentialityTypeClaimable,
   type UnshieldClaimsSummary,
 } from './useCofheTokenClaimable.js';
+import { useCofheActiveACPHash } from './useCofheACPs.js';
 import { useStoredTransactions } from './useStoredTransactions.js';
 import { TransactionActionType, TransactionStatus } from '@/stores/transactionStore.js';
 import { withInvalidationContext } from '@/utils/invalidationContext';
@@ -33,7 +34,7 @@ type UseUnshieldClaimsManyOptions = Omit<
     UnshieldClaimsSummary,
     Error,
     UnshieldClaimsSummary,
-    ReturnType<typeof constructUnshieldClaimsQueryKey>
+    ReturnType<typeof constructUnshieldClaimsSummaryQueryKey>
   >,
   'queryKey' | 'queryFn' | 'enabled'
 >;
@@ -97,6 +98,7 @@ export function useCofheTokensClaimable(
 ): CombinedResult {
   const publicClient = useCofhePublicClient();
   const client = useCofheClient();
+  const activeACPHash = useCofheActiveACPHash();
 
   const normalizedTokens = useNormalizedList(tokens, {
     filter: isClaimableToken,
@@ -125,11 +127,12 @@ export function useCofheTokensClaimable(
   const combined = useInternalQueries({
     queries: normalizedTokens.map((token) => {
       const confidentialityType = token.extensions.fhenix.confidentialityType;
-      const queryKey = constructUnshieldClaimsQueryKey({
+      const queryKey = constructUnshieldClaimsSummaryQueryKey({
         chainId: token.chainId,
         tokenAddress: token.address,
         confidentialityType,
         accountAddress: account,
+        activeACPHash,
       });
 
       return {

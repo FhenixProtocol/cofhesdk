@@ -11,6 +11,7 @@ import { assert } from 'ts-essentials';
 import { cofheLogger } from '@/utils/debug';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract.js';
 import { invalidateQueriesWithContext, withInvalidationContext } from '@/utils/invalidationContext';
+import { useCofheActiveACPHash } from './useCofheACPs.js';
 
 export function constructUnshieldClaimsQueryKey({
   chainId,
@@ -24,6 +25,31 @@ export function constructUnshieldClaimsQueryKey({
   accountAddress: Address | undefined;
 }) {
   return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
+}
+
+export function constructUnshieldClaimsSummaryQueryKey({
+  chainId,
+  tokenAddress,
+  confidentialityType,
+  accountAddress,
+  activeACPHash,
+}: {
+  chainId: number | undefined;
+  tokenAddress: Address | undefined;
+  confidentialityType: string | undefined;
+  accountAddress: Address | undefined;
+  activeACPHash: string | undefined;
+}) {
+  return [
+    ...constructUnshieldClaimsQueryKey({
+      chainId,
+      tokenAddress,
+      confidentialityType,
+      accountAddress,
+    }),
+    'summary',
+    activeACPHash,
+  ] as const;
 }
 
 export function constructUnshieldClaimsQueryKeyForInvalidation({
@@ -208,9 +234,8 @@ export type UnshieldClaimsSummary = {
    */
   claimableCount: number;
   /**
-   * Always 0n before a claim is settled. Retained so callers that log or display an
-   * amount keep compiling; the real value only exists encrypted in ctHash until the
-   * claim flow decrypts it. Prefer claimableCount for anything user-facing.
+   * Sum of the pending claim amounts that were successfully decrypted for display with
+   * the active ACP. When undecryptedCount is non-zero, this is an incomplete total.
    */
   claimableAmount: bigint;
   /**
@@ -237,8 +262,9 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
  *
  * Returns an aggregate {@link UnshieldClaimsSummary} (totals only). The summary is
  * derived from the same per-claim list that {@link useCofheTokenClaims} exposes —
- * both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`. Use this hook
- * for totals; use {@link useCofheTokenClaims} when you need the individual claims.
+ * both share `fetchUnshieldClaims`, while the summary extends the base claim key with
+ * the active ACP used to decrypt its amounts. Use this hook for totals; use
+ * {@link useCofheTokenClaims} when you need the individual claims.
  *
  * @param input - Token object and optional account address
  * @param queryOptions - Optional React Query options
@@ -251,14 +277,16 @@ export function useCofheTokenClaimable(
   const publicClient = useCofhePublicClient();
   const client = useCofheClient();
   const chainId = useCofheChainId();
+  const activeACPHash = useCofheActiveACPHash();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
-  const queryKey = constructUnshieldClaimsQueryKey({
+  const queryKey = constructUnshieldClaimsSummaryQueryKey({
     chainId: token?.chainId,
     tokenAddress: token?.address,
     confidentialityType,
     accountAddress: account,
+    activeACPHash,
   });
 
   const result = useInternalQuery({
@@ -311,8 +339,8 @@ type UseUnshieldClaimsListOptions = Omit<UseQueryOptions<UnshieldClaim[], Error>
  * Not a duplicate of {@link useCofheTokenClaimable}: that hook collapses these claims
  * into aggregate totals, whereas this one surfaces the individual claims (amount,
  * claimed/pending state, ctHash) needed for batch claiming and detailed claim views.
- * Both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`; this hook appends
- * `'list'` to the key so the list and summary cache as separate entries.
+ * Both share `fetchUnshieldClaims`; this hook appends `'list'` to the base key, while
+ * the summary has its own ACP-specific key.
  */
 export function useCofheTokenClaims(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
