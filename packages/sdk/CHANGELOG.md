@@ -1,5 +1,56 @@
 # @cofhe/sdk Changelog
 
+## 1.0.0
+
+### Major Changes
+
+- d711ce2: 1.0.0, the first stable release. Breaking changes since 0.8, detailed in their own entries below:
+
+  - The on-chain share registry has a new layout (`share(acp, metadata)`, header-only `sharesFor` / `getShare`), and shared ACPs no longer carry a `name`.
+  - The mocks need Solidity 0.8.25 or later and `@openzeppelin/contracts-upgradeable`.
+  - `CofheProvider` takes either `config` or `cofheClient`, not both.
+
+### Minor Changes
+
+- 6dcfb7d: ACPs sharing SNAPSHOTs (ctHashes rather than live data) can use the new on-chain ACP Sharing Registry `metadata` field to cite the origin of the snapshotted data (contract address + view-function / event), and the recipient can verify it on-chain. [Docs](https://cofhesdk.fhenix.io/sdk/acp#labelling-a-snapshot-share)
+
+  **@cofhe/sdk**
+
+  - `createSharing({ labels })`, `shareOnChain(acp, { labels | metadata })`; labels travel in `export()` / `importShared` as `SharedACP.metadata`.
+  - New `client.acp.verifyShareLabels`, `client.acp.getShareFromChain`, and `describeShareMetadata`. `IncomingShare` gains `metadata` and `appKey`.
+  - New `acp.app` config option: shares are tagged with the app's key and `getIncomingShares` lists only that app's shares ([docs](https://cofhesdk.fhenix.io/sdk/acp#mark-shares-for-your-app)).
+  - `@cofhe/sdk/acps` exports the metadata codec, label builders (`viewFunctionLabel`, `eventLogLabel`, `UNLABELLED`), verifiers, registry readers, `shareAppKey` and `ERC7984_ABI`.
+
+  **@cofhe/react**
+
+  - New `useCofheShareLabels`. `useCofheShareOnChain` accepts `{ acp, labels | metadata }`.
+  - The inbox shows each share's labels and their verification. [Docs](https://cofhesdk.fhenix.io/react/acp#share-labels)
+
+  **Mocks and plugins**
+
+  - `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` are copied verbatim from a pinned cofhe-contracts commit (`pnpm update:cofhe-contracts <commit>`). The share registry is deployed behind `MockERC1967Proxy`.
+  - Mocks now need Solidity ≥0.8.25 and `@openzeppelin/contracts-upgradeable` (new Hardhat plugin peer dependency; Foundry users add its remapping).
+
+### Patch Changes
+
+- d711ce2: The mocks now behave like the real TaskManager and TFHE-rs in more places. Tests that relied on the old mock behaviour may start failing, as they would on a real network.
+
+  - `FHE.asE*` (trivial encrypt) reverts with `InvalidInputForFunction` when the value does not fit the type (e.g. `FHE.asEuint8(256)`), and with `InvalidSecurityZone` for an out of range zone, instead of storing the value masked.
+  - `encryptInputs` against the mocks rejects out-of-range values with the same error as the production path, instead of passing them on to be masked (e.g. `Encryptable.uint8(256n)` became `0`).
+  - `FHE.not` on encrypted integers is a bitwise NOT (`not(euint8(2))` is 253, not 0), and `FHE.rol` / `FHE.ror` rotate within the type's width, with the amount taken modulo the width, instead of shifting.
+  - `FHE.rem(x, 0)` returns `x` instead of reverting.
+  - `FHE.random*` handles carry their type and security zone and can be allowed and computed on.
+  - `MockTaskManager.isPubliclyAllowed` returns whether a handle was made public with `FHE.allowGlobal` / `FHE.allowPublic`, instead of reverting with `NotImplemented`.
+  - Handles in a negative security zone go through the ACL like any other handle. Previously any contract could use them and `FHE.allow*` did nothing.
+  - `publishDecryptResultBatch` emits `DecryptionResult` with the caller as `requestor`, and the batch decrypt result functions revert with `LengthMismatch` when the arrays differ in length.
+  - `setSecurityZones` rejects an inverted range (`min > max`) with `InvalidSecurityZone`.
+
+- 5a192ee: Node storage now creates ~/.cofhesdk with mode 0700 and files with 0600, and tightens permissions on existing ones.
+- 757e448: Use the latest chain block timestamp for injected ACP revoker data while preserving explicit revoker configuration precedence.
+- 73d5297: `seal` and `unsealWithPrivateKey` now throw when the sealing key contains non-hex characters. Previously a 64-character key with invalid characters passed the length check and those characters decoded to zero bytes, so `seal` silently encrypted to the wrong key (an entirely invalid key became the all-zero key, which offers no confidentiality), and `unsealWithPrivateKey` failed later with `Failed to decrypt message`.
+- 8fad647: `unsealWithPrivateKey` throws a `CofheError` with code `SealOutputFailed` when a decrypt response can't be unsealed, instead of a plain `Error`. `useCofheDecrypt` no longer retries these failures.
+- a4fcea7: `verifyDecryptResult` now returns `false` when the chain's TaskManager has no `decryptResultSigner` set (zero address). It used to return `true` for any signature in that case. The on-chain `verifyDecryptResult` still skips the check when no signer is set.
+
 ## 0.8.0
 
 ### Minor Changes
