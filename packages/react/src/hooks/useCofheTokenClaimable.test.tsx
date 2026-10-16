@@ -1,17 +1,41 @@
+import { QueriesObserver, QueryClient, type QueryObserverOptions } from '@tanstack/react-query';
 import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCofheTokenClaimable, useCofheTokenClaims } from './useCofheTokenClaimable';
+import {
+  constructUnshieldClaimsQueryKey,
+  constructUnshieldClaimsQueryKeyForInvalidation,
+  constructUnshieldClaimsSummaryQueryKey,
+  useCofheTokenClaimable,
+  useCofheTokenClaims,
+} from './useCofheTokenClaimable';
 import type { ConfidentialToken } from './useCofheTokenLists';
+import { useCofheTokensClaimable } from './useCofheTokensClaimable';
 
 const state = vi.hoisted(() => ({
   queryOptions: undefined as Record<string, unknown> | undefined,
+  queries: undefined as Record<string, unknown>[] | undefined,
   publicClient: undefined as object | undefined,
+  client: {} as object | undefined,
+  activeACPHash: undefined as string | undefined,
 }));
 
 vi.mock('@/providers', () => ({
   useInternalQuery: (options: Record<string, unknown>) => {
     state.queryOptions = options;
     return {};
+  },
+  useInternalQueries: (options: { queries: Record<string, unknown>[] }) => {
+    state.queries = options.queries;
+    return {
+      summariesByTokenAddress: {},
+      claimableByTokenAddress: {},
+      totalTokensClaimable: 0,
+      queries: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    };
   },
 }));
 
@@ -21,10 +45,18 @@ vi.mock('./useCofheConnection', () => ({
 }));
 
 vi.mock('./useCofheClient', () => ({
-  useCofheClient: () => ({}),
+  useCofheClient: () => state.client,
 }));
 
-const ACCOUNT = '0x0000000000000000000000000000000000000002';
+vi.mock('./useCofheACPs', () => ({
+  useCofheActiveACPHash: () => state.activeACPHash,
+}));
+
+vi.mock('./useStoredTransactions', () => ({
+  useStoredTransactions: () => ({ reduced: {} }),
+}));
+
+const ACCOUNT = '0x0000000000000000000000000000000000000002' as const;
 
 const TOKEN = {
   chainId: 11155111,
@@ -44,13 +76,30 @@ function ClaimsProbe({ account, enabled }: ProbeProps) {
   return null;
 }
 
+function ClaimsManyProbe() {
+  useCofheTokensClaimable({ tokens: [TOKEN], accountAddress: ACCOUNT });
+  return null;
+}
+
+type SummaryQueryOptions = QueryObserverOptions;
+
+function captureMultiSummaryQueryOptions(activeACPHash: string): SummaryQueryOptions {
+  state.activeACPHash = activeACPHash;
+  renderToString(<ClaimsManyProbe />);
+
+  return state.queries?.[0] as unknown as SummaryQueryOptions;
+}
+
 describe.each([
   ['useCofheTokenClaimable', ClaimableProbe],
   ['useCofheTokenClaims', ClaimsProbe],
 ])('%s', (_name, Probe) => {
   beforeEach(() => {
     state.queryOptions = undefined;
+    state.queries = undefined;
     state.publicClient = {};
+    state.client = {};
+    state.activeACPHash = undefined;
   });
 
   it('stays disabled without an account when enabled: true is passed', () => {
@@ -76,5 +125,218 @@ describe.each([
     renderToString(<Probe account={ACCOUNT} />);
 
     expect(state.queryOptions?.enabled).toBe(true);
+  });
+});
+
+describe('ACP-aware claim summary cache identity', () => {
+  beforeEach(() => {
+    state.queryOptions = undefined;
+    state.queries = undefined;
+    state.publicClient = {};
+    state.client = {};
+    state.activeACPHash = undefined;
+  });
+
+  it('separates summaries decrypted with different active ACPs', () => {
+    const first = constructUnshieldClaimsSummaryQueryKey({
+      chainId: TOKEN.chainId,
+      tokenAddress: TOKEN.address,
+      confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+      accountAddress: ACCOUNT,
+      activeACPHash: '0xaaa',
+    });
+    const second = constructUnshieldClaimsSummaryQueryKey({
+      chainId: TOKEN.chainId,
+      tokenAddress: TOKEN.address,
+      confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+      accountAddress: ACCOUNT,
+      activeACPHash: '0xbbb',
+    });
+
+    expect(first).not.toEqual(second);
+    expect(first).toEqual([
+      'unshieldClaims',
+      TOKEN.chainId,
+      TOKEN.address,
+      TOKEN.extensions.fhenix.confidentialityType,
+      ACCOUNT,
+      'summary',
+      '0xaaa',
+    ]);
+  });
+
+  it('updates the single-token summary key when the active ACP changes', () => {
+    state.activeACPHash = '0xaaa';
+    renderToString(<ClaimableProbe account={ACCOUNT} />);
+    const first = state.queryOptions?.queryKey;
+
+    state.activeACPHash = '0xbbb';
+    renderToString(<ClaimableProbe account={ACCOUNT} />);
+
+    expect(state.queryOptions?.queryKey).not.toEqual(first);
+  });
+
+  it('binds an in-flight summary fetch to the ACP recorded in its key', async () => {
+    const execute = vi.fn().mockResolvedValue(10n);
+    const withACP = vi.fn(() => ({ execute }));
+    const setAccount = vi.fn(() => ({ withACP }));
+    const setChainId = vi.fn(() => ({ setAccount }));
+    const decryptForView = vi.fn(() => ({ setChainId }));
+
+    state.client = { decryptForView };
+    state.publicClient = {
+      readContract: vi.fn().mockResolvedValue([
+        {
+          ctHash: '0x01',
+          id: '0x02',
+          decryptedAmount: 0n,
+          claimed: false,
+        },
+      ]),
+    };
+    state.activeACPHash = '0xaaa';
+    renderToString(<ClaimableProbe account={ACCOUNT} />);
+
+    const queryFn = state.queryOptions?.queryFn as (context: {
+      queryKey: readonly unknown[];
+      signal: AbortSignal;
+    }) => Promise<unknown>;
+    const queryKey = state.queryOptions?.queryKey as readonly unknown[];
+
+    state.activeACPHash = '0xbbb';
+    await queryFn({ queryKey, signal: new AbortController().signal });
+
+    expect(withACP).toHaveBeenCalledWith('0xaaa');
+  });
+
+  it('updates every multi-token summary key when the active ACP changes', () => {
+    state.activeACPHash = '0xaaa';
+    renderToString(<ClaimsManyProbe />);
+    const first = state.queries?.[0]?.queryKey;
+
+    state.activeACPHash = '0xbbb';
+    renderToString(<ClaimsManyProbe />);
+
+    expect(state.queries?.[0]?.queryKey).not.toEqual(first);
+  });
+
+  it('keeps the raw claim list independent of the active ACP', () => {
+    state.activeACPHash = '0xaaa';
+    renderToString(<ClaimsProbe account={ACCOUNT} />);
+    const first = state.queryOptions?.queryKey;
+
+    state.activeACPHash = '0xbbb';
+    renderToString(<ClaimsProbe account={ACCOUNT} />);
+
+    expect(state.queryOptions?.queryKey).toEqual(first);
+  });
+
+  it('invalidates every ACP-specific summary through the existing base key', async () => {
+    const queryClient = new QueryClient();
+    const baseParams = {
+      chainId: TOKEN.chainId,
+      tokenAddress: TOKEN.address,
+      confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+      accountAddress: ACCOUNT,
+    };
+    const first = constructUnshieldClaimsSummaryQueryKey({ ...baseParams, activeACPHash: '0xaaa' });
+    const second = constructUnshieldClaimsSummaryQueryKey({ ...baseParams, activeACPHash: '0xbbb' });
+    const list = [...constructUnshieldClaimsQueryKey(baseParams), 'list'] as const;
+
+    queryClient.setQueryData(first, {});
+    queryClient.setQueryData(second, {});
+    queryClient.setQueryData(list, []);
+
+    await queryClient.invalidateQueries({
+      queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+        chainId: TOKEN.chainId,
+        tokenAddress: TOKEN.address,
+        confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+        accountAddress: ACCOUNT,
+      }),
+    });
+
+    expect(queryClient.getQueryState(first)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(second)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(list)?.isInvalidated).toBe(true);
+  });
+
+  it('refetches an invalidated cached summary when its ACP is reselected', async () => {
+    const queryClient = new QueryClient();
+    const firstOptions = captureMultiSummaryQueryOptions('0xaaa');
+    const secondOptions = captureMultiSummaryQueryOptions('0xbbb');
+    const firstFetch = vi.fn().mockResolvedValue({
+      claimableCount: 1,
+      claimableAmount: 10n,
+      undecryptedCount: 0,
+      hasClaimable: true,
+    });
+
+    queryClient.setQueryData(firstOptions.queryKey, {
+      claimableCount: 0,
+      claimableAmount: 0n,
+      undecryptedCount: 0,
+      hasClaimable: false,
+    });
+    queryClient.setQueryData(secondOptions.queryKey, {
+      claimableCount: 0,
+      claimableAmount: 0n,
+      undecryptedCount: 0,
+      hasClaimable: false,
+    });
+
+    const observer = new QueriesObserver(queryClient, [secondOptions]);
+    const unsubscribe = observer.subscribe(() => undefined);
+
+    await queryClient.invalidateQueries({
+      queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+        chainId: TOKEN.chainId,
+        tokenAddress: TOKEN.address,
+        confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+        accountAddress: ACCOUNT,
+      }),
+      refetchType: 'none',
+    });
+
+    observer.setQueries([{ ...firstOptions, queryFn: firstFetch }]);
+
+    await vi.waitFor(() => {
+      expect(firstFetch).toHaveBeenCalledTimes(1);
+      expect(queryClient.getQueryData(firstOptions.queryKey)).toEqual({
+        claimableCount: 1,
+        claimableAmount: 10n,
+        undecryptedCount: 0,
+        hasClaimable: true,
+      });
+    });
+
+    unsubscribe();
+  });
+
+  it('does not refetch a valid cached summary when its ACP is reselected', async () => {
+    const queryClient = new QueryClient();
+    const firstOptions = captureMultiSummaryQueryOptions('0xaaa');
+    const secondOptions = captureMultiSummaryQueryOptions('0xbbb');
+    const firstFetch = vi.fn();
+    const cachedSummary = {
+      claimableCount: 1,
+      claimableAmount: 10n,
+      undecryptedCount: 0,
+      hasClaimable: true,
+    };
+
+    queryClient.setQueryData(firstOptions.queryKey, cachedSummary);
+    queryClient.setQueryData(secondOptions.queryKey, cachedSummary);
+
+    const observer = new QueriesObserver(queryClient, [secondOptions]);
+    const unsubscribe = observer.subscribe(() => undefined);
+
+    observer.setQueries([{ ...firstOptions, queryFn: firstFetch }]);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(firstFetch).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(firstOptions.queryKey)).toEqual(cachedSummary);
+
+    unsubscribe();
   });
 });
