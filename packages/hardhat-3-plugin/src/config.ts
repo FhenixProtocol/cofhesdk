@@ -1,5 +1,6 @@
 import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
 import type { LogMocksDeploy } from './deploy.js';
+import { getMockContractsNpmFiles } from './utils.js';
 
 /**
  * Extends the resolved config with plugin defaults and network presets.
@@ -54,6 +55,12 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
       httpHeaders: {},
     };
   }
+
+  // Build the mock contracts with the project: a full build removes the artifacts of any file it
+  // did not build, including the mocks compiled at startup
+  resolvedConfig.solidity.npmFilesToBuild = [
+    ...new Set([...resolvedConfig.solidity.npmFilesToBuild, ...getMockContractsNpmFiles()]),
+  ];
 
   // Resolve cofhe plugin config
   resolvedConfig.cofhe = {
