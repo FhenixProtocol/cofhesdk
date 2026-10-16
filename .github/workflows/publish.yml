@@ -133,9 +133,8 @@ jobs:
           fail() { echo "::error::$1"; exit 1; }
           pending=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
 
-          # base_version and manual_version are two sources for <base>: refuse both, like
-          # CofheProvider refuses config + cofheClient. A filled field that is silently
-          # ignored is the kind of run nobody can predict the name of.
+          # base_version and manual_version are two sources for <base>: refuse both.
+          # A filled field that is silently ignored makes the resolved name unpredictable.
           if [ "$BASE" = calculated ] && [ -n "$MANUAL" ]; then
             fail "Manual version '$MANUAL' was entered but base version is 'calculated'. Pick one: set base version to 'manual' to use it, or clear the field"
           fi
