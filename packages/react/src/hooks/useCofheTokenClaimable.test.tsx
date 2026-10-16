@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
   queryOptions: undefined as Record<string, unknown> | undefined,
   queries: undefined as Record<string, unknown>[] | undefined,
   publicClient: undefined as object | undefined,
+  client: {} as object | undefined,
   activeACPHash: undefined as string | undefined,
 }));
 
@@ -44,7 +45,7 @@ vi.mock('./useCofheConnection', () => ({
 }));
 
 vi.mock('./useCofheClient', () => ({
-  useCofheClient: () => ({}),
+  useCofheClient: () => state.client,
 }));
 
 vi.mock('./useCofheACPs', () => ({
@@ -88,6 +89,7 @@ describe.each([
     state.queryOptions = undefined;
     state.queries = undefined;
     state.publicClient = {};
+    state.client = {};
     state.activeACPHash = undefined;
   });
 
@@ -122,6 +124,7 @@ describe('ACP-aware claim summary cache identity', () => {
     state.queryOptions = undefined;
     state.queries = undefined;
     state.publicClient = {};
+    state.client = {};
     state.activeACPHash = undefined;
   });
 
@@ -162,6 +165,39 @@ describe('ACP-aware claim summary cache identity', () => {
     renderToString(<ClaimableProbe account={ACCOUNT} />);
 
     expect(state.queryOptions?.queryKey).not.toEqual(first);
+  });
+
+  it('binds an in-flight summary fetch to the ACP recorded in its key', async () => {
+    const execute = vi.fn().mockResolvedValue(10n);
+    const withACP = vi.fn(() => ({ execute }));
+    const setAccount = vi.fn(() => ({ withACP }));
+    const setChainId = vi.fn(() => ({ setAccount }));
+    const decryptForView = vi.fn(() => ({ setChainId }));
+
+    state.client = { decryptForView };
+    state.publicClient = {
+      readContract: vi.fn().mockResolvedValue([
+        {
+          ctHash: '0x01',
+          id: '0x02',
+          decryptedAmount: 0n,
+          claimed: false,
+        },
+      ]),
+    };
+    state.activeACPHash = '0xaaa';
+    renderToString(<ClaimableProbe account={ACCOUNT} />);
+
+    const queryFn = state.queryOptions?.queryFn as (context: {
+      queryKey: readonly unknown[];
+      signal: AbortSignal;
+    }) => Promise<unknown>;
+    const queryKey = state.queryOptions?.queryKey as readonly unknown[];
+
+    state.activeACPHash = '0xbbb';
+    await queryFn({ queryKey, signal: new AbortController().signal });
+
+    expect(withACP).toHaveBeenCalledWith('0xaaa');
   });
 
   it('updates every multi-token summary key when the active ACP changes', () => {

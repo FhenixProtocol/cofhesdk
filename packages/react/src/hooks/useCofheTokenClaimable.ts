@@ -103,6 +103,8 @@ export type FetchUnshieldClaimsSummaryInput = {
   /** CoFHE client + chain, required to decrypt each pending claim amount for display. */
   client?: ReturnType<typeof useCofheClient>;
   chainId?: number;
+  /** Active ACP captured with the summary query key. */
+  activeACPHash?: string;
 };
 
 function normalizeUnshieldClaims(result: unknown): UnshieldClaim[] {
@@ -150,6 +152,7 @@ export async function fetchUnshieldClaimsSummary({
   publicClient,
   client,
   chainId,
+  activeACPHash,
   token,
   accountAddress,
   confidentialityType,
@@ -185,13 +188,13 @@ export async function fetchUnshieldClaimsSummary({
   // read is not the same as an amount that is not there — hiding it would strand funds.
   const decrypted = await Promise.all(
     claims.map(async (claim) => {
-      if (!client || chainId == null) return undefined;
+      if (!client || chainId == null || !activeACPHash) return undefined;
       try {
         return (await client
           .decryptForView(claim.ctHash as Hex, FheTypes.Uint64)
           .setChainId(chainId)
           .setAccount(accountAddress)
-          .withACP()
+          .withACP(activeACPHash)
           .execute()) as bigint;
       } catch (error) {
         cofheLogger.warn('Could not decrypt a pending unshield claim amount for display', {
@@ -310,6 +313,7 @@ export function useCofheTokenClaimable(
         publicClient,
         client,
         chainId,
+        activeACPHash,
         token,
         accountAddress: account,
         confidentialityType,
