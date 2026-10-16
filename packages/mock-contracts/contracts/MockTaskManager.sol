@@ -159,10 +159,6 @@ library TMCommon {
     return uint256((SHIFTED_TYPE_MASK | SECURITY_ZONE_MASK) & hash);
   }
 
-  function isTriviallyEncryptedFromHash(uint256 hash) internal pure returns (bool) {
-    return (hash & TRIVIALLY_ENCRYPTED_MASK) == TRIVIALLY_ENCRYPTED_MASK;
-  }
-
   function computeDecryptResultHash(
     uint256 ctHash,
     uint256 result,
@@ -382,9 +378,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function checkAllowed(uint256 ctHash) internal view {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      if (!acl.isAllowed(ctHash, msg.sender)) revert ACLNotAllowed(ctHash, msg.sender);
-    }
+    if (!acl.isAllowed(ctHash, msg.sender)) revert ACLNotAllowed(ctHash, msg.sender);
   }
 
   function isUnaryOperation(FunctionId funcId) internal pure returns (bool) {
@@ -704,47 +698,36 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function allow(uint256 ctHash, address account) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allow(ctHash, account, msg.sender);
+    acl.allow(ctHash, account, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
   }
 
   function allowGlobal(uint256 ctHash) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allowGlobal(ctHash, msg.sender);
+    acl.allowGlobal(ctHash, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
   }
 
   function allowTransient(uint256 ctHash, address account) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allowTransient(ctHash, account, msg.sender);
+    acl.allowTransient(ctHash, account, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
   }
 
   function allowForDecryption(uint256 ctHash) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      uint256[] memory hashes = new uint256[](1);
-      hashes[0] = ctHash;
-      acl.allowForDecryption(hashes, msg.sender);
+    uint256[] memory hashes = new uint256[](1);
+    hashes[0] = ctHash;
+    acl.allowForDecryption(hashes, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
   }
 
   function isAllowed(uint256 ctHash, address account) external view returns (bool) {
-    if (TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      return true;
-    }
     return acl.isAllowed(ctHash, account);
   }
 
