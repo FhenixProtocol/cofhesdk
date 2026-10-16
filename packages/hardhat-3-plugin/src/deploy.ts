@@ -44,6 +44,7 @@ export type DeployedMockContracts = {
 export type DeployMocksArgs = {
   gasWarning?: boolean;
   mocksDeployVerbosity?: LogMocksDeploy;
+  logMocks?: boolean;
 };
 
 export type DeployContext = {
@@ -231,6 +232,20 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     account,
     chain: null,
   });
+
+  // The TaskManager is placed with hardhat_setCode, so its `logOps = true` initializer never runs
+  // and logging starts off. Turn it on here when the config asks for it.
+  if (options.logMocks) {
+    await ctx.walletClient.writeContract({
+      address: MOCKS_TASK_MANAGER_ADDRESS,
+      abi: MockTaskManagerArtifact.abi,
+      functionName: 'setLogOps',
+      args: [true],
+      account,
+      chain: null,
+    });
+    log('vv', 'FHE operation logs enabled', 2);
+  }
 
   log('v', chalk.bold('cofhe-hardhat-3-plugin :: mocks deployed'), 0);
 
