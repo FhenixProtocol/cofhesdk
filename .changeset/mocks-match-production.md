@@ -11,3 +11,6 @@ The mocks now behave like the real TaskManager and TFHE-rs in more places. Tests
 - `FHE.rem(x, 0)` returns `x` instead of reverting.
 - `FHE.random*` handles carry their type and security zone and can be allowed and computed on.
 - `MockTaskManager.isPubliclyAllowed` returns whether a handle was made public with `FHE.allowGlobal` / `FHE.allowPublic`, instead of reverting with `NotImplemented`.
+- Handles in a negative security zone go through the ACL like any other handle. Previously any contract could use them and `FHE.allow*` did nothing.
+- `publishDecryptResultBatch` emits `DecryptionResult` with the caller as `requestor`, and the batch decrypt result functions revert with `LengthMismatch` when the arrays differ in length.
+- `setSecurityZones` rejects an inverted range (`min > max`) with `InvalidSecurityZone`.

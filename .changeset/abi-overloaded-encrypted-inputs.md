@@ -2,4 +2,4 @@
 '@cofhe/abi': patch
 ---
 
-`extractEncryptableValues` and `insertEncryptedValues` now pick the right overload when a function name is overloaded. They used to take the first ABI entry with that name, which for compiler output is often the plaintext overload, so `useCofheEncryptAndWriteContract` could send the raw value unencrypted.
+For overloaded functions, `extractEncryptableValues` and `insertEncryptedValues` (and so `useCofheEncryptAndWriteContract`) now pick the overload by argument count, preferring the one with encrypted inputs. Previously they took the first ABI entry with that name, which could send the value unencrypted.
