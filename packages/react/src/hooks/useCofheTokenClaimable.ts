@@ -71,6 +71,10 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
   });
 }
 
+export function refetchInvalidatedQueryOnMount(query: { state: { isInvalidated: boolean } }): boolean {
+  return query.state.isInvalidated;
+}
+
 export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   claimableCount: 0,
   claimableAmount: 0n,
@@ -321,7 +325,7 @@ export function useCofheTokenClaimable(
         blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
       });
     }),
-    refetchOnMount: false,
+    refetchOnMount: refetchInvalidatedQueryOnMount,
     ...queryOptions,
     enabled:
       (queryOptions?.enabled ?? true) &&

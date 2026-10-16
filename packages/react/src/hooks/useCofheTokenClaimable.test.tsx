@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueriesObserver, QueryClient, type QueryObserverOptions } from '@tanstack/react-query';
 import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -79,6 +79,15 @@ function ClaimsProbe({ account, enabled }: ProbeProps) {
 function ClaimsManyProbe() {
   useCofheTokensClaimable({ tokens: [TOKEN], accountAddress: ACCOUNT });
   return null;
+}
+
+type SummaryQueryOptions = QueryObserverOptions;
+
+function captureMultiSummaryQueryOptions(activeACPHash: string): SummaryQueryOptions {
+  state.activeACPHash = activeACPHash;
+  renderToString(<ClaimsManyProbe />);
+
+  return state.queries?.[0] as unknown as SummaryQueryOptions;
 }
 
 describe.each([
@@ -250,5 +259,84 @@ describe('ACP-aware claim summary cache identity', () => {
     expect(queryClient.getQueryState(first)?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(second)?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(list)?.isInvalidated).toBe(true);
+  });
+
+  it('refetches an invalidated cached summary when its ACP is reselected', async () => {
+    const queryClient = new QueryClient();
+    const firstOptions = captureMultiSummaryQueryOptions('0xaaa');
+    const secondOptions = captureMultiSummaryQueryOptions('0xbbb');
+    const firstFetch = vi.fn().mockResolvedValue({
+      claimableCount: 1,
+      claimableAmount: 10n,
+      undecryptedCount: 0,
+      hasClaimable: true,
+    });
+
+    queryClient.setQueryData(firstOptions.queryKey, {
+      claimableCount: 0,
+      claimableAmount: 0n,
+      undecryptedCount: 0,
+      hasClaimable: false,
+    });
+    queryClient.setQueryData(secondOptions.queryKey, {
+      claimableCount: 0,
+      claimableAmount: 0n,
+      undecryptedCount: 0,
+      hasClaimable: false,
+    });
+
+    const observer = new QueriesObserver(queryClient, [secondOptions]);
+    const unsubscribe = observer.subscribe(() => undefined);
+
+    await queryClient.invalidateQueries({
+      queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+        chainId: TOKEN.chainId,
+        tokenAddress: TOKEN.address,
+        confidentialityType: TOKEN.extensions.fhenix.confidentialityType,
+        accountAddress: ACCOUNT,
+      }),
+      refetchType: 'none',
+    });
+
+    observer.setQueries([{ ...firstOptions, queryFn: firstFetch }]);
+
+    await vi.waitFor(() => {
+      expect(firstFetch).toHaveBeenCalledTimes(1);
+      expect(queryClient.getQueryData(firstOptions.queryKey)).toEqual({
+        claimableCount: 1,
+        claimableAmount: 10n,
+        undecryptedCount: 0,
+        hasClaimable: true,
+      });
+    });
+
+    unsubscribe();
+  });
+
+  it('does not refetch a valid cached summary when its ACP is reselected', async () => {
+    const queryClient = new QueryClient();
+    const firstOptions = captureMultiSummaryQueryOptions('0xaaa');
+    const secondOptions = captureMultiSummaryQueryOptions('0xbbb');
+    const firstFetch = vi.fn();
+    const cachedSummary = {
+      claimableCount: 1,
+      claimableAmount: 10n,
+      undecryptedCount: 0,
+      hasClaimable: true,
+    };
+
+    queryClient.setQueryData(firstOptions.queryKey, cachedSummary);
+    queryClient.setQueryData(secondOptions.queryKey, cachedSummary);
+
+    const observer = new QueriesObserver(queryClient, [secondOptions]);
+    const unsubscribe = observer.subscribe(() => undefined);
+
+    observer.setQueries([{ ...firstOptions, queryFn: firstFetch }]);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(firstFetch).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(firstOptions.queryKey)).toEqual(cachedSummary);
+
+    unsubscribe();
   });
 });

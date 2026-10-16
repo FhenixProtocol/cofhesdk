@@ -13,6 +13,7 @@ import {
   DEFAULT_UNSHIELD_CLAIM_SUMMARY,
   fetchUnshieldClaimsSummary,
   isTokenConfidentialityTypeClaimable,
+  refetchInvalidatedQueryOnMount,
   type UnshieldClaimsSummary,
 } from './useCofheTokenClaimable.js';
 import { useCofheActiveACPHash } from './useCofheACPs.js';
@@ -162,7 +163,7 @@ export function useCofheTokensClaimable(
             blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
           });
         }),
-        refetchOnMount: false,
+        refetchOnMount: refetchInvalidatedQueryOnMount,
         enabled: enabledBase,
         ...queryOptions,
       };
