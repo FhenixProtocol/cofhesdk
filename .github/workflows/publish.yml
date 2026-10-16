@@ -107,8 +107,6 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # changeset status compares against the base branch
 
       - name: Setup pnpm 8
         uses: pnpm/action-setup@v3
@@ -148,9 +146,10 @@ jobs:
                 base="$MANUAL"
                 base_from="manual version"
               elif [ "$pending" -gt 0 ]; then
-                pnpm exec changeset status --output=changeset-status.json > /dev/null
-                base=$(jq -r '.releases[] | select(.name == "@cofhe/sdk") | .newVersion' changeset-status.json)
-                base_from="changeset status ($pending pending changesets)"
+                # Apply the changesets in this throwaway checkout to get the Version Packages PR's version
+                pnpm exec changeset version > /dev/null
+                base=$(jq -r .version packages/sdk/package.json)
+                base_from="changeset version ($pending pending changesets)"
               else
                 base=$(jq -r .version packages/sdk/package.json)
                 base_from="package.json (no pending changesets)"
