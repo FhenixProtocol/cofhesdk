@@ -3,24 +3,26 @@ name: Publish
 on:
   push:
     branches: [master]
+  # Named release: publishes <base>-<tag>.<n>, e.g. 1.0.0-rc.1, under the npm dist-tag <tag>.
+  # The inputs below are listed in the order the pieces appear in the version.
   workflow_dispatch:
     inputs:
       base_version:
-        description: 'Base version'
+        description: '<base> in <base>-<tag>.<n>. calculated: from this branch (pending changesets, else package.json). manual: the field below'
         type: choice
         options: [calculated, manual]
         default: calculated
       manual_version:
-        description: 'Manual version, used when base is manual (e.g. 1.2.0)'
+        description: '<base> when base version is manual, as plain major.minor.patch (e.g. 1.2.0). Must stay blank when calculated'
         type: string
         required: false
       dist_tag:
-        description: 'Dist tag'
+        description: '<tag> in <base>-<tag>.<n>, also the npm dist-tag (npm i @cofhe/sdk@<tag>)'
         type: choice
         options: [alpha, rc]
         default: alpha
       prerelease_number:
-        description: 'Prerelease number, blank picks the next unused'
+        description: '<n> in <base>-<tag>.<n>. Blank picks the next unused'
         type: number
         required: false
 
@@ -130,6 +132,12 @@ jobs:
         run: |
           fail() { echo "::error::$1"; exit 1; }
           pending=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
+
+          # base_version and manual_version are two sources for <base>: refuse both.
+          # A filled field that is silently ignored makes the resolved name unpredictable.
+          if [ "$BASE" = calculated ] && [ -n "$MANUAL" ]; then
+            fail "Manual version '$MANUAL' was entered but base version is 'calculated'. Pick one: set base version to 'manual' to use it, or clear the field"
+          fi
 
           if [ "$BASE" = manual ]; then
             [[ "$MANUAL" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Manual version '${MANUAL:-(blank)}' must be a plain major.minor.patch like 1.2.0. The dist tag and number are added for you"
