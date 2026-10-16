@@ -41,7 +41,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets[matrix.project.id_secret] }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy preview
         id: deploy
@@ -82,7 +82,7 @@ jobs:
           mkdir -p /tmp/vercel-url
           printf '%s\t%s\t%s\n' "${{ matrix.project.name }}" "${{ steps.deploy.outputs.url }}" \
             "$(date -u +'%b %-d, %Y %H:%M UTC')" > "/tmp/vercel-url/${{ matrix.project.name }}.tsv"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: vercel-url-${{ matrix.project.name }}
           path: /tmp/vercel-url/${{ matrix.project.name }}.tsv
@@ -98,7 +98,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           pattern: vercel-url-*
           path: /tmp/vercel-url
@@ -150,7 +150,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets[matrix.project.id_secret] }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy production
         id: deploy

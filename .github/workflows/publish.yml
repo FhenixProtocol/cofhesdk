@@ -30,7 +30,7 @@ permissions:
   pull-requests: write
 
 # Keyed on event too, so a named release waiting for approval never holds up (or gets
-# queued pushes to master cancelled behind) the beta and stable jobs
+# queued pushes to master cancelled behind) the canary and stable jobs
 concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
 
 jobs:
@@ -41,17 +41,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Ensure valid pinned npm version (>11.5.1)
         run: npm i -g npm@11.6.2
@@ -106,17 +105,16 @@ jobs:
       dist_tag: ${{ steps.resolve.outputs.dist_tag }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -199,17 +197,16 @@ jobs:
       DRY_RUN: 'true'
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)
@@ -246,24 +243,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # Publish beta snapshots upon merge to master
-  beta-snapshot:
+  # Publish canary snapshots upon merge to master
+  canary-snapshot:
     needs: release-gate
     if: ${{ needs.release-gate.outputs.is_release != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)
@@ -277,14 +273,14 @@ jobs:
         with:
           version: stable
 
-      - name: Publish Beta Snapshot
+      - name: Publish Canary Snapshot
         run: |
           # Without pending changesets the snapshot is a no-op and the package.json versions
           # would publish as-is (e.g. a non-bot PR that bumps versions)
           if ! find .changeset -name '*.md' ! -name README.md | grep -q .; then
-            echo "No pending changesets, skipping beta snapshot"; exit 0
+            echo "No pending changesets, skipping canary snapshot"; exit 0
           fi
-          pnpm run beta:snapshot
+          pnpm run canary:snapshot
 
   # Publish stable releases when the changesets bot's Version Packages PR is merged
   stable-release:
@@ -293,19 +289,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # required for tagging
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)
