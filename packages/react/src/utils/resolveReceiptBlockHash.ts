@@ -5,7 +5,7 @@ const ZERO_BLOCK_HASH = '0x00000000000000000000000000000000000000000000000000000
 const RECEIPT_BLOCK_HASH_POLLING_INTERVAL_MS = 1_000;
 const DEFAULT_MAX_WAIT_MS = 60_000;
 
-function hasInvalidBlockHash(blockHash: TransactionReceipt['blockHash'] | undefined) {
+export function hasInvalidBlockHash(blockHash: TransactionReceipt['blockHash'] | undefined) {
   return blockHash === ZERO_BLOCK_HASH;
 }
 
