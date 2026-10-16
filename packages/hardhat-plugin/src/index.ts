@@ -557,7 +557,11 @@ extendEnvironment((hre) => {
         return mock_setLoggingEnabled(hre, false);
       },
       deployMocks: async (options: DeployMocksArgs = {}) => {
-        return deployMocks(hre, { mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity, ...options });
+        return deployMocks(hre, {
+          gasWarning: hre.config.cofhe.gasWarning,
+          mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
+          ...options,
+        });
       },
       getPlaintext: async (ctHash: bigint | string) => {
         const [signer] = await hre.ethers.getSigners();

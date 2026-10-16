@@ -98,3 +98,21 @@ describe('cofhe.logMocks config', () => {
     }
   });
 });
+
+describe('cofhe.mocks.deployMocks() output', () => {
+  it('prints the gas warning when gasWarning is true in the config', async () => {
+    const snapshot = await hre.network.provider.send('evm_snapshot');
+    hre.config.cofhe.gasWarning = true;
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => logged.push(args.join(' '));
+    try {
+      await hre.cofhe.mocks.deployMocks({ mocksDeployVerbosity: 'v' });
+    } finally {
+      console.log = originalLog;
+      hre.config.cofhe.gasWarning = false;
+      await hre.network.provider.send('evm_revert', [snapshot]);
+    }
+    expect(logged.some((line) => line.includes("'cofhe.gasWarning: false'"))).to.be.true;
+  });
+});
