@@ -154,6 +154,7 @@ export function useCofheTokensClaimable(
             publicClient,
             client,
             chainId,
+            activeACPHash,
             token,
             accountAddress: account,
             confidentialityType,
