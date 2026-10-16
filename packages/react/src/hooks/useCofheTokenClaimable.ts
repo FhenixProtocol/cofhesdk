@@ -290,8 +290,13 @@ export function useCofheTokenClaimable(
       });
     }),
     refetchOnMount: false,
-    enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
     ...queryOptions,
+    enabled:
+      (queryOptions?.enabled ?? true) &&
+      !!publicClient &&
+      !!account &&
+      !!token &&
+      isTokenConfidentialityTypeClaimable(confidentialityType),
   });
 
   return result;
@@ -353,7 +358,12 @@ export function useCofheTokenClaims(
       }
     ),
     refetchOnMount: false,
-    enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
     ...queryOptions,
+    enabled:
+      (queryOptions?.enabled ?? true) &&
+      !!publicClient &&
+      !!account &&
+      !!token &&
+      isTokenConfidentialityTypeClaimable(confidentialityType),
   });
 }

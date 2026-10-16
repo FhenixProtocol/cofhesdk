@@ -225,8 +225,8 @@ export function useResolvedCofheToken(
         erc20Pair,
       });
     },
-    enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
     staleTime: Infinity,
     ...queryOptions,
+    enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
   });
 }
