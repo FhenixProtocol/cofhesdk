@@ -42,9 +42,9 @@ export const HooksExample: React.FC = () => {
         Error: {JSON.stringify(encryptError, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
       </pre>
       <div>
-        <h2 className="text-2xl font-bold mb-4">useEncryptInput Hook Usage</h2>
+        <h2 className="text-2xl font-bold mb-4">useCofheEncrypt Hook Usage</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Examples of using the useEncryptInput hook directly for custom encryption workflows.
+          Examples of using the useCofheEncrypt hook directly for custom encryption workflows.
         </p>
       </div>
 

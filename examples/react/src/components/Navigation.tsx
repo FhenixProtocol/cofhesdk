@@ -13,7 +13,7 @@ const components = [
   { id: 'overview', label: 'Overview', description: 'Introduction to CofheEncryptInput component' },
   { id: 'cofhe-encrypt-input', label: 'CofheEncryptInput', description: 'Advanced input with type selection' },
   { id: 'cofhe-floating-button', label: 'CofheFloatingButton', description: 'Floating action button component' },
-  { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
+  { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useCofheEncrypt hook directly' },
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({
