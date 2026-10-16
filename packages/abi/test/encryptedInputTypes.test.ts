@@ -411,3 +411,58 @@ describe('struct arrays', () => {
     expect(orders.map((order) => order.encryptedInput)).toEqual(hashes);
   });
 });
+
+// Overloaded functions: solc and forge order overloads by selector, so `deposit(uint256)`
+// (0xb6b55f25) comes before `deposit(bytes32,bytes)` (0xe29973fc) in the emitted ABI.
+const OverloadedDepositABI = [
+  {
+    type: 'function',
+    name: 'deposit',
+    inputs: [{ name: 'amount', type: 'uint256', internalType: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'deposit',
+    inputs: [
+      { name: 'amount', type: 'bytes32', internalType: 'externalEuint32' },
+      { name: 'inputProof', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'deposit',
+    inputs: [
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
+      { name: 'memo', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const;
+
+describe('overloaded functions', () => {
+  it('picks the encrypted overload over an earlier plaintext one', () => {
+    const args = [42n] as const;
+    expect(extractEncryptableValues(OverloadedDepositABI, 'deposit', args)).toEqual([Encryptable.uint32(42n)]);
+    expect(insertEncryptedValues(OverloadedDepositABI, 'deposit', args, [createHash(1n), SIGNATURE])).toEqual([
+      createHash(1n),
+      SIGNATURE,
+    ]);
+  });
+
+  it('picks the overload whose argument count matches', () => {
+    const args = [42n, 7n] as const;
+    expect(extractEncryptableValues(OverloadedDepositABI, 'deposit', args)).toEqual([]);
+    expect(insertEncryptedValues(OverloadedDepositABI, 'deposit', args, [])).toEqual([42n, 7n]);
+  });
+
+  it('rejects arguments that match no single overload', () => {
+    expect(() => extractEncryptableValues(OverloadedDepositABI, 'deposit', [1n, 2n, 3n] as any)).toThrow(
+      /overloaded and 3 argument\(s\) do not select a single overload/
+    );
+  });
+});

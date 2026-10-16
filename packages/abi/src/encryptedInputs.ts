@@ -23,7 +23,7 @@ import type { Abi, AbiFunction, AbiParameter, ExtractAbiFunction } from 'abitype
 import type { CofheAbiParametersToPrimitiveTypes } from './fhenixMap';
 import {
   extractArrayParameterType,
-  getAbiFunction,
+  isAbiFunction,
   type MaybeExtractArrayParameterType,
   type MaybePartialBy,
   type ReadonlyWiden,
@@ -173,6 +173,31 @@ function internalTypeIsExternalInput(internalType: string): internalType is Exte
   return EXTERNAL_INPUT_INTERNAL_TYPES.includes(internalType as any);
 }
 
+/**
+ * Resolves `functionName` to a single ABI entry. When the name is overloaded, the
+ * overload is chosen by argument count: `args` leaves out the batch signature slot, so
+ * an overload with `external*` inputs takes one ABI parameter more than it gets args.
+ * Overloads with `external*` inputs win, since these helpers only run for calls that
+ * are being encrypted. Solidity tooling sorts overloads by selector, so the first
+ * entry by name is often the plaintext one.
+ */
+function getInputFunction(abi: readonly unknown[], functionName: string, args: readonly unknown[]) {
+  const overloads = abi.filter((item): item is AbiFunction => isAbiFunction(item) && item.name === functionName);
+  if (overloads.length <= 1) return overloads[0];
+
+  const hasExternalInputs = (fn: AbiFunction) => fn.inputs.some((input) => paramHasExternalInput(input));
+  const byArity = overloads.filter((fn) => fn.inputs.length - (hasExternalInputs(fn) ? 1 : 0) === args.length);
+  const encrypted = byArity.filter(hasExternalInputs);
+  const candidates = encrypted.length > 0 ? encrypted : byArity;
+
+  if (candidates.length !== 1) {
+    throw new Error(
+      `Function ${functionName} is overloaded and ${args.length} argument(s) do not select a single overload`
+    );
+  }
+  return candidates[0];
+}
+
 function paramHasExternalInput(param: AbiParameter): boolean {
   const [internalTypeHead] = extractArrayParameterType(param.internalType);
   if (internalTypeHead != null && internalTypeIsExternalInput(internalTypeHead)) return true;
@@ -234,14 +259,14 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
   functionName: TFunctionName,
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>
 ): EncryptableItem[] {
-  const abiFunction = getAbiFunction(abi, functionName);
+  if (!Array.isArray(args)) {
+    throw new Error('Arguments must be an array');
+  }
+
+  const abiFunction = getInputFunction(abi, functionName, args);
   const inputs = abiFunction?.inputs;
   if (abiFunction == null || inputs == null) {
     throw new Error(`Function ${functionName} not found in ABI`);
-  }
-
-  if (!Array.isArray(args)) {
-    throw new Error('Arguments must be an array');
   }
 
   const hasExternalInputs = inputs.some((input) => paramHasExternalInput(input));
@@ -392,14 +417,14 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>,
   encryptedResult: readonly `0x${string}`[]
 ): CofheInputArgs<TAbi, TFunctionName> {
-  const abiFunction = getAbiFunction(abi, functionName);
+  if (!Array.isArray(args)) {
+    throw new Error('Arguments must be an array');
+  }
+
+  const abiFunction = getInputFunction(abi, functionName, args);
   const inputs = abiFunction?.inputs;
   if (abiFunction == null || inputs == null) {
     throw new Error(`Function ${functionName} not found in ABI`);
-  }
-
-  if (!Array.isArray(args)) {
-    throw new Error('Arguments must be an array');
   }
 
   const hasExternalInputs = inputs.some((input) => paramHasExternalInput(input));
