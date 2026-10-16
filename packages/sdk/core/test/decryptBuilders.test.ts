@@ -53,7 +53,9 @@ const mockConfig: CofheConfig = createCofheConfigBase({
   ],
 });
 
-function createTxBuilder(overrides?: Partial<{ chainId: number | undefined; account: string; ctHash: string | bigint }>) {
+function createTxBuilder(
+  overrides?: Partial<{ chainId: number | undefined; account: string; ctHash: string | bigint }>
+) {
   return new DecryptForTxBuilder({
     config: mockConfig,
     publicClient,
@@ -629,4 +631,3 @@ describe('execute – chainId mismatch', () => {
     });
   });
 });
-
