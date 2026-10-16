@@ -5,21 +5,33 @@ on:
     branches: [master]
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Prerelease version for all packages (e.g. 1.0.0-beta.0). Leave blank for a 0.0.0-<dist_tag>-<timestamp> snapshot'
+      base_version:
+        description: 'Base version'
+        type: choice
+        options: ['0.0.0 (snapshot)', calculated, manual]
+        default: '0.0.0 (snapshot)'
+      manual_version:
+        description: 'Manual version, used when base is manual (e.g. 1.2.0)'
+        type: string
         required: false
-        default: ''
       dist_tag:
-        description: 'npm dist-tag to publish under'
-        required: false
+        description: 'Dist tag'
+        type: choice
+        options: [alpha, rc]
         default: alpha
+      prerelease_number:
+        description: 'Prerelease number, blank picks the next unused'
+        type: number
+        required: false
 
 permissions:
   id-token: write
   contents: write
   pull-requests: write
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# Keyed on event too, so a named release waiting for approval never holds up (or gets
+# queued pushes to master cancelled behind) the beta and stable jobs
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
 
 jobs:
   # Create (or update) the Version Packages pull request when PR merged containing a changeset
@@ -82,35 +94,122 @@ jobs:
           echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
           echo "is_release=$is_release"
 
-  # Manually publish a prerelease from any branch via workflow_dispatch.
-  # Blank version: 0.0.0-<dist_tag>-<timestamp> snapshot from pending changesets.
-  # Explicit version: every public package is set to that version as-is.
-  named-release:
+  # Manual prerelease from any branch via workflow_dispatch, in two jobs:
+  # named-release-resolve works out the exact version and shows it in the run summary,
+  # then named-release waits for approval on the named-release environment and publishes.
+  named-release-resolve:
     if: ${{ github.event_name == 'workflow_dispatch' }}
+    name: Resolve version
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ inputs.version }}
-      DIST_TAG: ${{ inputs.dist_tag }}
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      dist_tag: ${{ steps.resolve.outputs.dist_tag }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # changeset status compares against the base branch
 
-      - name: Validate inputs
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Resolve version
+        id: resolve
+        env:
+          BASE: ${{ inputs.base_version }}
+          MANUAL: ${{ inputs.manual_version }}
+          DIST_TAG: ${{ inputs.dist_tag }}
+          NUMBER: ${{ inputs.prerelease_number }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          if [[ ! "$DIST_TAG" =~ ^[a-z][a-z0-9-]*$ ]] || [ "$DIST_TAG" = latest ]; then
-            echo "::error::Invalid dist-tag '$DIST_TAG' (lowercase, not 'latest')"; exit 1
-          fi
-          if [ -n "$VERSION" ]; then
-            if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+$ ]]; then
-              echo "::error::'$VERSION' must be a semver prerelease (e.g. 1.0.0-beta.0)"; exit 1
-            fi
-            if [ -n "$(npm view "@cofhe/sdk@$VERSION" version 2>/dev/null)" ]; then
-              echo "::error::$VERSION is already published"; exit 1
-            fi
-          elif ! find .changeset -name '*.md' ! -name README.md | grep -q .; then
-            # Without pending changesets the snapshot is a no-op and the real versions would publish
-            echo "::error::No pending changesets to snapshot; pass an explicit version instead"; exit 1
-          fi
+          fail() { echo "::error::$1"; exit 1; }
+          pending=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
+
+          case "$BASE" in
+            "0.0.0 (snapshot)")
+              [ "$pending" -gt 0 ] || fail "No pending changesets on $BRANCH, so a snapshot would publish nothing new. Use base calculated or manual instead"
+              version="0.0.0-$DIST_TAG-$(date -u +%Y%m%d%H%M%S)"
+              base_from="snapshot of $pending pending changesets"
+              number_from="timestamp (prerelease number ignored)"
+              ;;
+            calculated|manual)
+              if [ "$BASE" = manual ]; then
+                [[ "$MANUAL" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Manual version '${MANUAL:-(blank)}' must be a plain major.minor.patch like 1.2.0. The dist tag and number are added for you"
+                base="$MANUAL"
+                base_from="manual version"
+              elif [ "$pending" -gt 0 ]; then
+                pnpm exec changeset status --output=changeset-status.json > /dev/null
+                base=$(jq -r '.releases[] | select(.name == "@cofhe/sdk") | .newVersion' changeset-status.json)
+                base_from="changeset status ($pending pending changesets)"
+              else
+                base=$(jq -r .version packages/sdk/package.json)
+                base_from="package.json (no pending changesets)"
+                [ -z "$(npm view "@cofhe/sdk@$base" version 2>/dev/null)" ] || fail "package.json on $BRANCH is $base, which is already published, and there are no pending changesets. Nothing to calculate a new version from"
+              fi
+              [ -n "$base" ] || fail "Could not calculate a version for @cofhe/sdk"
+
+              # Highest N already published as <base>-<tag>.N, or -1
+              highest=$(npm view @cofhe/sdk versions --json 2>/dev/null | jq --arg p "$base-$DIST_TAG." '
+                (if type == "array" then . else [.] end)
+                | [.[] | select(startswith($p)) | ltrimstr($p) | select(test("^[0-9]+$")) | tonumber]
+                | max // -1')
+              if [ -z "$NUMBER" ]; then
+                number=$((highest + 1))
+                number_from="next unused (highest published: $([ "$highest" -ge 0 ] && echo "$highest" || echo none))"
+              else
+                [[ "$NUMBER" =~ ^[0-9]+$ ]] || fail "Prerelease number must be a whole number, 0 or more"
+                number="$NUMBER"
+                number_from="entered"
+                [ "$number" -gt "$highest" ] || [ -z "$(npm view "@cofhe/sdk@$base-$DIST_TAG.$number" version 2>/dev/null)" ] || fail "$base-$DIST_TAG.$number is already published. npm versions can't be reused. Leave the number blank to use $((highest + 1))"
+              fi
+              version="$base-$DIST_TAG.$number"
+              ;;
+            *) fail "Unknown base version '$BASE'" ;;
+          esac
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved $version -> @$DIST_TAG"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Will publish \`$version\` to \`@$DIST_TAG\`
+
+          | | |
+          |---|---|
+          | Branch | \`$BRANCH\` |
+          | Base from | $base_from |
+          | Number from | $number_from |
+          | Install | \`npm i @cofhe/sdk@$DIST_TAG\` |
+
+          Approve **Publishing named release - $version** to continue.
+          EOF
+
+  named-release:
+    name: Publishing named release - ${{ needs.named-release-resolve.outputs.version }}
+    needs: named-release-resolve
+    runs-on: ubuntu-latest
+    environment:
+      name: named-release
+      url: https://www.npmjs.com/package/@cofhe/sdk/v/${{ needs.named-release-resolve.outputs.version }}
+    env:
+      VERSION: ${{ needs.named-release-resolve.outputs.version }}
+      DIST_TAG: ${{ needs.named-release-resolve.outputs.dist_tag }}
+      # TEMP: while testing the flow, runs `pnpm publish --dry-run` instead of publishing.
+      # Set to 'false' (or remove) before merging.
+      DRY_RUN: 'true'
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
       - name: Setup pnpm 8
         uses: pnpm/action-setup@v3
@@ -134,8 +233,7 @@ jobs:
         with:
           version: stable
 
-      - name: Set explicit version
-        if: ${{ inputs.version != '' }}
+      - name: Set version
         run: |
           for f in packages/*/package.json; do
             if [ "$(jq -r '.private // false' "$f")" != true ]; then
@@ -143,13 +241,18 @@ jobs:
             fi
           done
 
+      - name: Build
+        run: pnpm -r build
+
       - name: Publish Named Release
         run: |
-          if [ -z "$VERSION" ]; then
-            pnpm exec changeset version --snapshot "$DIST_TAG"
+          if [ "$DRY_RUN" = true ]; then
+            pnpm -r publish --dry-run --tag "$DIST_TAG" --no-git-checks
+            echo "## Dry run: would publish \`$VERSION\` to \`@$DIST_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            pnpm exec changeset publish --tag "$DIST_TAG"
+            echo "## Published \`$VERSION\` to \`@$DIST_TAG\`" >> "$GITHUB_STEP_SUMMARY"
           fi
-          pnpm -r build
-          pnpm exec changeset publish --tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
