@@ -8,8 +8,8 @@ on:
       base_version:
         description: 'Base version'
         type: choice
-        options: ['0.0.0 (snapshot)', calculated, manual]
-        default: '0.0.0 (snapshot)'
+        options: [calculated, manual]
+        default: calculated
       manual_version:
         description: 'Manual version, used when base is manual (e.g. 1.2.0)'
         type: string
@@ -133,48 +133,39 @@ jobs:
           fail() { echo "::error::$1"; exit 1; }
           pending=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
 
-          case "$BASE" in
-            "0.0.0 (snapshot)")
-              [ "$pending" -gt 0 ] || fail "No pending changesets on $BRANCH, so a snapshot would publish nothing new. Use base calculated or manual instead"
-              version="0.0.0-$DIST_TAG-$(date -u +%Y%m%d%H%M%S)"
-              base_from="snapshot of $pending pending changesets"
-              number_from="timestamp (prerelease number ignored)"
-              ;;
-            calculated|manual)
-              if [ "$BASE" = manual ]; then
-                [[ "$MANUAL" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Manual version '${MANUAL:-(blank)}' must be a plain major.minor.patch like 1.2.0. The dist tag and number are added for you"
-                base="$MANUAL"
-                base_from="manual version"
-              elif [ "$pending" -gt 0 ]; then
-                # Apply the changesets in this throwaway checkout to get the Version Packages PR's version
-                pnpm exec changeset version > /dev/null
-                base=$(jq -r .version packages/sdk/package.json)
-                base_from="changeset version ($pending pending changesets)"
-              else
-                base=$(jq -r .version packages/sdk/package.json)
-                base_from="package.json (no pending changesets)"
-                [ -z "$(npm view "@cofhe/sdk@$base" version 2>/dev/null)" ] || fail "package.json on $BRANCH is $base, which is already published, and there are no pending changesets. Nothing to calculate a new version from"
-              fi
-              [ -n "$base" ] || fail "Could not calculate a version for @cofhe/sdk"
+          if [ "$BASE" = manual ]; then
+            [[ "$MANUAL" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Manual version '${MANUAL:-(blank)}' must be a plain major.minor.patch like 1.2.0. The dist tag and number are added for you"
+            base="$MANUAL"
+            base_from="manual version"
+          elif [ "$BASE" != calculated ]; then
+            fail "Unknown base version '$BASE'"
+          elif [ "$pending" -gt 0 ]; then
+            # Apply the changesets in this throwaway checkout to get the Version Packages PR's version
+            pnpm exec changeset version > /dev/null
+            base=$(jq -r .version packages/sdk/package.json)
+            base_from="changeset version ($pending pending changesets)"
+          else
+            base=$(jq -r .version packages/sdk/package.json)
+            base_from="package.json (no pending changesets)"
+            [ -z "$(npm view "@cofhe/sdk@$base" version 2>/dev/null)" ] || fail "package.json on $BRANCH is $base, which is already published, and there are no pending changesets. Nothing to calculate a new version from"
+          fi
+          [ -n "$base" ] || fail "Could not calculate a version for @cofhe/sdk"
 
-              # Highest N already published as <base>-<tag>.N, or -1
-              highest=$(npm view @cofhe/sdk versions --json 2>/dev/null | jq --arg p "$base-$DIST_TAG." '
-                (if type == "array" then . else [.] end)
-                | [.[] | select(startswith($p)) | ltrimstr($p) | select(test("^[0-9]+$")) | tonumber]
-                | max // -1')
-              if [ -z "$NUMBER" ]; then
-                number=$((highest + 1))
-                number_from="next unused (highest published: $([ "$highest" -ge 0 ] && echo "$highest" || echo none))"
-              else
-                [[ "$NUMBER" =~ ^[0-9]+$ ]] || fail "Prerelease number must be a whole number, 0 or more"
-                number="$NUMBER"
-                number_from="entered"
-                [ "$number" -gt "$highest" ] || [ -z "$(npm view "@cofhe/sdk@$base-$DIST_TAG.$number" version 2>/dev/null)" ] || fail "$base-$DIST_TAG.$number is already published. npm versions can't be reused. Leave the number blank to use $((highest + 1))"
-              fi
-              version="$base-$DIST_TAG.$number"
-              ;;
-            *) fail "Unknown base version '$BASE'" ;;
-          esac
+          # Highest N already published as <base>-<tag>.N, or -1
+          highest=$(npm view @cofhe/sdk versions --json 2>/dev/null | jq --arg p "$base-$DIST_TAG." '
+            (if type == "array" then . else [.] end)
+            | [.[] | select(startswith($p)) | ltrimstr($p) | select(test("^[0-9]+$")) | tonumber]
+            | max // -1')
+          if [ -z "$NUMBER" ]; then
+            number=$((highest + 1))
+            number_from="next unused (highest published: $([ "$highest" -ge 0 ] && echo "$highest" || echo none))"
+          else
+            [[ "$NUMBER" =~ ^[0-9]+$ ]] || fail "Prerelease number must be a whole number, 0 or more"
+            number="$NUMBER"
+            number_from="entered"
+            [ "$number" -gt "$highest" ] || [ -z "$(npm view "@cofhe/sdk@$base-$DIST_TAG.$number" version 2>/dev/null)" ] || fail "$base-$DIST_TAG.$number is already published. npm versions can't be reused. Leave the number blank to use $((highest + 1))"
+          fi
+          version="$base-$DIST_TAG.$number"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
