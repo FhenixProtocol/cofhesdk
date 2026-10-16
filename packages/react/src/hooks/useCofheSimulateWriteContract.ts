@@ -1,14 +1,16 @@
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type {
-  Address,
-  Abi,
-  Account,
-  Chain,
-  ContractFunctionArgs,
-  ContractFunctionName,
-  PublicClient,
-  SimulateContractParameters,
-  SimulateContractReturnType,
+import {
+  keccak256,
+  type Abi,
+  type Account,
+  type Address,
+  type Chain,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
+  type Hex,
+  type PublicClient,
+  type SimulateContractParameters,
+  type SimulateContractReturnType,
 } from 'viem';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
@@ -68,6 +70,15 @@ function getAccountAddress(account: Account | Address | null | undefined): Addre
   return undefined;
 }
 
+function compactBlobs(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.map((blob) => {
+    if (blob instanceof Uint8Array) return keccak256(blob);
+    if (typeof blob === 'string' && /^0x(?:[\da-fA-F]{2})*$/.test(blob)) return keccak256(blob as Hex);
+    return blob;
+  });
+}
+
 export type CofheSimulateWriteContractParams = CofheSimulateWriteContractCallArgs;
 
 export type UseCofheSimulateWriteContractQueryOptions<TData, TSelectedData> = Omit<
@@ -89,7 +100,9 @@ export function constructCofheSimulateWriteContractQueryKey(params: {
     const normalizedCallArgs: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(callArgs)) {
-      if (key !== 'abi' && key !== 'account' && key !== 'chain') normalizedCallArgs[key] = value;
+      if (key !== 'abi' && key !== 'account' && key !== 'chain') {
+        normalizedCallArgs[key] = key === 'blobs' ? compactBlobs(value) : value;
+      }
     }
 
     normalizedCallArgs.account = resolvedAccountAddress;

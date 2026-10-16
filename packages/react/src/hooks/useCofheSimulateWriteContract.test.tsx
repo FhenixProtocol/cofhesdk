@@ -1,4 +1,5 @@
 import { renderToString } from 'react-dom/server';
+import { keccak256 } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   constructCofheSimulateWriteContractQueryKey,
@@ -113,6 +114,35 @@ describe('constructCofheSimulateWriteContractQueryKey', () => {
 
     expect(first).toEqual(second);
     expect(first).toContainEqual(expect.objectContaining({ account: ACCOUNT, chainId: 1 }));
+  });
+
+  it('keeps byte-array blobs compact in the cache key', () => {
+    const blob = new Uint8Array(131_072);
+    blob[0] = 1;
+    blob[blob.length - 1] = 2;
+
+    const key = constructCofheSimulateWriteContractQueryKey({
+      cofheChainId: 11155111,
+      callArgs: { ...CALL_ARGS, blobs: [blob] },
+      resolvedAccountAddress: ACCOUNT,
+    });
+
+    expect(key).toContainEqual(expect.objectContaining({ blobs: [keccak256(blob)] }));
+  });
+
+  it('keeps blob content in the cache identity', () => {
+    const first = constructCofheSimulateWriteContractQueryKey({
+      cofheChainId: 11155111,
+      callArgs: { ...CALL_ARGS, blobs: [Uint8Array.of(1)] },
+      resolvedAccountAddress: ACCOUNT,
+    });
+    const second = constructCofheSimulateWriteContractQueryKey({
+      cofheChainId: 11155111,
+      callArgs: { ...CALL_ARGS, blobs: [Uint8Array.of(2)] },
+      resolvedAccountAddress: ACCOUNT,
+    });
+
+    expect(first).not.toEqual(second);
   });
 });
 
