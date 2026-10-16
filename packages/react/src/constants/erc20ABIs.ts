@@ -25,6 +25,11 @@ export const ERC20_SYMBOL_ABI = parseAbi(['function symbol() view returns (strin
 export const ERC20_NAME_ABI = parseAbi(['function name() view returns (string)']);
 
 /**
+ * Confidential-side decimals of a dual (ERC20Confidential) token
+ */
+export const ERC20_CONFIDENTIAL_DECIMALS_ABI = parseAbi(['function confidentialDecimals() view returns (uint8)']);
+
+/**
  * Standard ERC20 allowance function ABI
  */
 export const ERC20_ALLOWANCE_ABI = parseAbi([
