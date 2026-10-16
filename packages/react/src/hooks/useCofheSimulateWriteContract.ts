@@ -13,7 +13,7 @@ import type {
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { serializeBigintRecursively, serializeIfBigint } from '../utils/serializeBigint.js';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
 
@@ -81,22 +81,24 @@ export function constructCofheSimulateWriteContractQueryKey(params: {
   cofheChainId?: number;
   callArgs?: unknown;
   resolvedAccountAddress?: Address;
-  enabled?: boolean;
 }): readonly unknown[] {
-  const { cofheChainId, callArgs, resolvedAccountAddress, enabled } = params;
+  const { cofheChainId, callArgs, resolvedAccountAddress } = params;
 
-  const serialized = isRecord(callArgs)
-    ? {
-        address: typeof callArgs.address === 'string' ? callArgs.address : undefined,
-        functionName: typeof callArgs.functionName === 'string' ? callArgs.functionName : undefined,
-        args: Array.isArray(callArgs.args) ? serializeBigintRecursively(callArgs.args) : undefined,
-        value: serializeIfBigint(callArgs.value),
-        dataSuffix: typeof callArgs.dataSuffix === 'string' ? callArgs.dataSuffix : undefined,
-        account: resolvedAccountAddress,
-      }
-    : undefined;
+  let serialized: unknown;
+  if (isRecord(callArgs)) {
+    const normalizedCallArgs: Record<string, unknown> = {};
 
-  return [QUERY_CACHE_PREFIX, cofheChainId, serialized, enabled] as const;
+    for (const [key, value] of Object.entries(callArgs)) {
+      if (key !== 'abi' && key !== 'account' && key !== 'chain') normalizedCallArgs[key] = value;
+    }
+
+    normalizedCallArgs.account = resolvedAccountAddress;
+    normalizedCallArgs.chainId =
+      isRecord(callArgs.chain) && typeof callArgs.chain.id === 'number' ? callArgs.chain.id : undefined;
+    serialized = serializeBigintRecursively(normalizedCallArgs);
+  }
+
+  return [QUERY_CACHE_PREFIX, cofheChainId, serialized] as const;
 }
 
 export function useCofheSimulateWriteContract<
@@ -136,7 +138,6 @@ export function useCofheSimulateWriteContract<
       cofheChainId,
       callArgs,
       resolvedAccountAddress,
-      enabled,
     }),
     retry: false, // no need to retry on error. The whole point of simulation is to check if there's an error
     queryFn: async () => {
