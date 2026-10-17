@@ -8,7 +8,7 @@ import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { tnDecryptV2 } from '../decrypt/tnDecryptV2';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2';
 import { createCofheConfigBase, type CofheConfig } from '../config.js';
-import { CofheErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { FheTypes } from '../types.js';
 
 // Stub the threshold network calls so tests can assert whether a request was dispatched
@@ -53,7 +53,9 @@ const mockConfig: CofheConfig = createCofheConfigBase({
   ],
 });
 
-function createTxBuilder(overrides?: Partial<{ chainId: number; account: string; ctHash: string | bigint }>) {
+function createTxBuilder(
+  overrides?: Partial<{ chainId: number | undefined; account: string; ctHash: string | bigint }>
+) {
   return new DecryptForTxBuilder({
     config: mockConfig,
     publicClient,
@@ -68,7 +70,7 @@ function createTxBuilder(overrides?: Partial<{ chainId: number; account: string;
 
 function createViewBuilder<U extends FheTypes>(
   utype: U,
-  overrides?: Partial<{ chainId: number; account: string; ctHash: string | bigint }>
+  overrides?: Partial<{ chainId: number | undefined; account: string; ctHash: string | bigint }>
 ) {
   return new DecryptForViewBuilder<U>({
     config: mockConfig,
@@ -520,6 +522,111 @@ describe('execute – expired acp (regression, issue #272)', () => {
       seedACP(acp);
 
       await expect(selectViewACP('active acp', acp).execute()).rejects.toThrow('stubbed threshold network');
+      expect(tnSealOutputV2).toHaveBeenCalledOnce();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ChainId mismatch
+// ---------------------------------------------------------------------------
+
+describe('execute – chainId mismatch', () => {
+  const now = () => Math.floor(Date.now() / 1000);
+
+  function createSignedACP(chainId: number): ACP {
+    return {
+      ...ACPUtils.createSelf({ name: 'Test ACP', issuer: account.address, expiration: now() + 3600 }),
+      issuerSignature: `0x${'11'.repeat(65)}`,
+      _signedDomain: { name: 'ACL', version: '1', chainId, verifyingContract: zeroAddress },
+    };
+  }
+
+  beforeEach(() => {
+    vi.mocked(tnDecryptV2).mockReset();
+    vi.mocked(tnSealOutputV2).mockReset();
+  });
+
+  describe('decryptForTx', () => {
+    it('throws ChainIdMismatch and prevents dispatch when builder chainId differs from ACP signed chainId', async () => {
+      const acp = createSignedACP(11155111);
+      const builder = createTxBuilder({ chainId: TEST_CHAIN_ID });
+
+      try {
+        await builder.withACP(acp).execute();
+        expect.fail('Expected ChainIdMismatch error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ChainIdMismatch);
+        expect((error as CofheError).message).toContain(
+          `builder chainId (${TEST_CHAIN_ID}) does not match ACP signed chainId (11155111)`
+        );
+        expect((error as CofheError).context).toEqual({
+          builderChainId: TEST_CHAIN_ID,
+          acpChainId: 11155111,
+        });
+      }
+      expect(tnDecryptV2).not.toHaveBeenCalled();
+    });
+
+    it('proceeds when builder chainId matches ACP signed chainId', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 42n, signature: '0x1234' });
+      const acp = createSignedACP(TEST_CHAIN_ID);
+      const builder = createTxBuilder({ chainId: TEST_CHAIN_ID });
+
+      const result = await builder.withACP(acp).execute();
+      expect(result.decryptedValue).toBe(42n);
+      expect(tnDecryptV2).toHaveBeenCalledOnce();
+    });
+
+    it('proceeds using ACP signed chainId when builder chainId is unset', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 99n, signature: '0x1234' });
+      const acp = createSignedACP(TEST_CHAIN_ID);
+      const builder = createTxBuilder({ chainId: undefined });
+
+      const result = await builder.withACP(acp).execute();
+      expect(result.decryptedValue).toBe(99n);
+      expect(tnDecryptV2).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('decryptForView', () => {
+    it('throws ChainIdMismatch and prevents dispatch when builder chainId differs from ACP signed chainId', async () => {
+      const acp = createSignedACP(11155111);
+      const builder = createViewBuilder(FheTypes.Uint32, { chainId: TEST_CHAIN_ID });
+
+      try {
+        await builder.withACP(acp).execute();
+        expect.fail('Expected ChainIdMismatch error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ChainIdMismatch);
+        expect((error as CofheError).message).toContain(
+          `builder chainId (${TEST_CHAIN_ID}) does not match ACP signed chainId (11155111)`
+        );
+        expect((error as CofheError).context).toEqual({
+          builderChainId: TEST_CHAIN_ID,
+          acpChainId: 11155111,
+        });
+      }
+      expect(tnSealOutputV2).not.toHaveBeenCalled();
+    });
+
+    it('proceeds when builder chainId matches ACP signed chainId', async () => {
+      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+      const acp = createSignedACP(TEST_CHAIN_ID);
+      const builder = createViewBuilder(FheTypes.Uint32, { chainId: TEST_CHAIN_ID });
+
+      await expect(builder.withACP(acp).execute()).rejects.toThrow('stubbed threshold network');
+      expect(tnSealOutputV2).toHaveBeenCalledOnce();
+    });
+
+    it('proceeds using ACP signed chainId when builder chainId is unset', async () => {
+      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+      const acp = createSignedACP(TEST_CHAIN_ID);
+      const builder = createViewBuilder(FheTypes.Uint32, { chainId: undefined });
+
+      await expect(builder.withACP(acp).execute()).rejects.toThrow('stubbed threshold network');
       expect(tnSealOutputV2).toHaveBeenCalledOnce();
     });
   });
