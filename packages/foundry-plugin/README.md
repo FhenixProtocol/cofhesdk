@@ -17,6 +17,7 @@ Add to `foundry.toml`:
 libs = ["node_modules", "lib"]
 remappings = [
   "forge-std/=node_modules/forge-std/src/",
+  "hardhat/=node_modules/forge-std/src/",
   "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
   "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
   "@fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/",
