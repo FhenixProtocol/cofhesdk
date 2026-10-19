@@ -53,9 +53,9 @@ const unpackMetadata = (metadata: string) => {
 
 export const deconstructZkPoKMetadata = (
   metadata: Uint8Array
-): { accountAddr: string; securityZone: number; chainId: number } => {
-  if (metadata.length < 53) {
-    // 1 + 20 + 32 = 53 bytes minimum
+): { accountAddr: string; securityZone: number; chainId: number; contractAddr: string } => {
+  if (metadata.length < 73) {
+    // 1 + 20 + 32 + 20 = 73 bytes minimum
     throw new CofheError({
       code: CofheErrorCode.InternalError,
       message: 'Invalid metadata: insufficient length',
@@ -78,10 +78,14 @@ export const deconstructZkPoKMetadata = (
     chainId = (chainId << 8) | chainIdBytes[i];
   }
 
+  // Extract the consuming contract (last 20 bytes)
+  const contractAddr = '0x' + toHexString(metadata.slice(53, 73));
+
   return {
     accountAddr,
     securityZone,
     chainId,
+    contractAddr,
   };
 };
 
@@ -593,6 +597,22 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata.signer).toBe(defaultSender);
       expect(encryptedMetadata.securityZone).toBe(0);
       expect(encryptedMetadata.chainId).toBe(defaultChainId);
+    });
+
+    it('binds the consuming contract into the proof metadata', async () => {
+      mockFetch.mockClear();
+
+      await builder.execute();
+
+      const verifyCall = mockFetch.mock.calls.find(([url]) => url === `${MockZkVerifierUrl}/verifyBatch`);
+      expect(verifyCall).toBeDefined();
+      const body = JSON.parse(verifyCall![1].body as string);
+      const { metadata } = parseWithBigInt(new TextDecoder().decode(fromHexString(body.packed_list)));
+      const embedded = deconstructZkPoKMetadata(Uint8Array.from(Object.values(metadata) as number[]));
+      expect(embedded.accountAddr).toBe(defaultSender);
+      expect(embedded.securityZone).toBe(0);
+      expect(embedded.chainId).toBe(defaultChainId);
+      expect(embedded.contractAddr).toBe(defaultConsumingContract);
     });
 
     it('should use overridden account when set', async () => {

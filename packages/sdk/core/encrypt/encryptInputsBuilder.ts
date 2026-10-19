@@ -567,7 +567,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepStart(EncryptStep.Prove);
 
     // Construct metadata once (used by both worker and main thread paths)
-    const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId);
+    const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
     let proof: Uint8Array | null = null;
     let usedWorker = false;
