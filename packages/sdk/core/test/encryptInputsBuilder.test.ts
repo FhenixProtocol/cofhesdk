@@ -449,6 +449,24 @@ describe('EncryptInputsBuilder', () => {
         expect((error as CofheError).code).toBe(CofheErrorCode.ConsumingContractUninitialized);
       }
     });
+
+    it('rejects a consuming contract that is not an address before any encrypt step runs', async () => {
+      for (const notAnAddress of ['0x0', 'not-an-address', '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbee']) {
+        const steps = vi.fn();
+        const invalid = new EncryptInputsBuilder(createDefaultParams())
+          .setConsumingContract(notAnAddress)
+          .onStep(steps);
+        try {
+          await invalid.execute();
+          expect.unreachable(`execute() should have thrown for ${notAnAddress}`);
+        } catch (error) {
+          expect(error, notAnAddress).toBeInstanceOf(CofheError);
+          expect((error as CofheError).code, notAnAddress).toBe(CofheErrorCode.ConsumingContractInvalid);
+        }
+        // Rejected before initTfhe, so no step (and no proving) ever started.
+        expect(steps, notAnAddress).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe('zkVerifierUrl', () => {

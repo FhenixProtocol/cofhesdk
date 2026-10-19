@@ -1,7 +1,7 @@
 ---
-'@cofhe/sdk': minor
+'@cofhe/sdk': patch
 ---
 
-The ZK proof built by `encryptInputs` now carries the consuming contract in its metadata (`securityZone || account || chainId || consumingContract`), so the proof itself is bound to the contract it was built for, matching the verifier's signed digest. No API change: `setConsumingContract` was already required.
+**Breaking:** `encryptInputs(...).execute()` now binds the consuming contract into the ZK proof itself, and the CoFHE verifier requires it. Upgrade to 1.0.1: 1.0.0 is deprecated because of an issue in ZK verification, and once the verifier is updated a proof from 1.0.0 fails with `ZK_VERIFY_FAILED`. No code change is needed beyond the upgrade; `setConsumingContract(...)` was already required.
 
-**Requires a verifier that expects the new layout** (zee-k-verifier with "Extend the proof metadata"). Against an older verifier every `encryptInputs` call fails with `ZK_VERIFY_FAILED`; deploy the two together, as with 0.7.0.
+`execute()` now throws `CofheError` with code `CONSUMING_CONTRACT_INVALID` when `setConsumingContract(...)` was given something that is not an address, before TFHE is initialised or any proving starts. Previously the bad address reached the verifier and failed there, after the proof was generated. `CofheErrorCode` gains `ConsumingContractInvalid`; an exhaustive `switch` over the enum needs the new arm.

@@ -16,6 +16,7 @@ export enum CofheErrorCode {
   AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
   ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
   ConsumingContractUninitialized = 'CONSUMING_CONTRACT_UNINITIALIZED',
+  ConsumingContractInvalid = 'CONSUMING_CONTRACT_INVALID',
   SealOutputFailed = 'SEAL_OUTPUT_FAILED',
   SealOutputReturnedNull = 'SEAL_OUTPUT_RETURNED_NULL',
   InvalidUtype = 'INVALID_UTYPE',
