@@ -2,7 +2,12 @@ import type { UseQueryOptions } from '@tanstack/react-query';
 import { type Abi, type Address, type Hex, isAddress, zeroAddress } from 'viem';
 
 import { ERC165_SUPPORTS_INTERFACE_ABI } from '@/constants/erc165ABIs';
-import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
+import {
+  ERC20_CONFIDENTIAL_DECIMALS_ABI,
+  ERC20_DECIMALS_ABI,
+  ERC20_NAME_ABI,
+  ERC20_SYMBOL_ABI,
+} from '@/constants/erc20ABIs';
 import {
   TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS,
   detectSupportedTokenTypeFromInterfaces,
@@ -131,6 +136,17 @@ export function useResolvedCofheToken(
         throw new Error('Address is not a supported CoFHE token');
       }
 
+      // Dual tokens keep the public ERC-20 ledger in `decimals()` and the confidential
+      // balance in `confidentialDecimals()`, which can differ (e.g. 18 vs 6).
+      let confidentialDecimals: number | undefined;
+      if (confidentialityType === 'dual') {
+        confidentialDecimals = await publicClient.readContract({
+          address,
+          abi: ERC20_CONFIDENTIAL_DECIMALS_ABI,
+          functionName: 'confidentialDecimals',
+        });
+      }
+
       let erc20Pair: ConfidentialToken['extensions']['fhenix']['erc20Pair'];
 
       const tokenTypeConfig = getTokenTypeConfig(confidentialityType);
@@ -205,11 +221,12 @@ export function useResolvedCofheToken(
         },
         confidentialityType,
         confidentialValueType: getTokenConfidentialValueType(confidentialityType),
+        confidentialDecimals,
         erc20Pair,
       });
     },
-    enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
     staleTime: Infinity,
     ...queryOptions,
+    enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
   });
 }

@@ -83,3 +83,18 @@ describe('Set Log Ops Task', () => {
     await expectLogOps(false);
   });
 });
+
+describe('cofhe.logMocks config', () => {
+  it('deployMocks turns logging on when logMocks is true', async () => {
+    const snapshot = await hre.network.provider.send('evm_snapshot');
+    hre.config.cofhe.logMocks = true;
+    try {
+      await hre.cofhe.mocks.deployMocks({ mocksDeployVerbosity: '' });
+      const taskManager = await hre.cofhe.mocks.getMockTaskManager();
+      expect(await taskManager.logOps()).to.be.true;
+    } finally {
+      hre.config.cofhe.logMocks = false;
+      await hre.network.provider.send('evm_revert', [snapshot]);
+    }
+  });
+});

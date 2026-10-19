@@ -1,5 +1,21 @@
 # @cofhe/abi Changelog
 
+## 1.0.0
+
+### Patch Changes
+
+- 84ccdb7: For overloaded functions, `extractEncryptableValues` and `insertEncryptedValues` (and so `useCofheEncryptAndWriteContract`) now pick the overload by argument count, preferring the one with encrypted inputs. Previously they took the first ABI entry with that name, which could send the value unencrypted.
+- b9ea2d4: Preserve positional tuple shapes when ABI components are unnamed while transforming encrypted inputs and return values.
+- Updated dependencies [d711ce2]
+- Updated dependencies [d711ce2]
+- Updated dependencies [5a192ee]
+- Updated dependencies [757e448]
+- Updated dependencies [73d5297]
+- Updated dependencies [6dcfb7d]
+- Updated dependencies [8fad647]
+- Updated dependencies [a4fcea7]
+  - @cofhe/sdk@1.0.0
+
 ## 0.8.0
 
 ### Patch Changes

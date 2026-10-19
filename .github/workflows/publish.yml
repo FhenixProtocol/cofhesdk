@@ -3,14 +3,37 @@ name: Publish
 on:
   push:
     branches: [master]
+  # Named release: publishes <base>-<tag>.<n>, e.g. 1.0.0-rc.1, under the npm dist-tag <tag>.
+  # The inputs below are listed in the order the pieces appear in the version.
   workflow_dispatch:
+    inputs:
+      base_version:
+        description: '<base> in <base>-<tag>.<n>. calculated: from this branch (pending changesets, else package.json). manual: the field below'
+        type: choice
+        options: [calculated, manual]
+        default: calculated
+      manual_version:
+        description: '<base> when base version is manual, as plain major.minor.patch (e.g. 1.2.0). Must stay blank when calculated'
+        type: string
+        required: false
+      dist_tag:
+        description: '<tag> in <base>-<tag>.<n>, also the npm dist-tag (npm i @cofhe/sdk@<tag>)'
+        type: choice
+        options: [alpha, rc]
+        default: alpha
+      prerelease_number:
+        description: '<n> in <base>-<tag>.<n>. Blank picks the next unused'
+        type: number
+        required: false
 
 permissions:
   id-token: write
   contents: write
   pull-requests: write
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# Keyed on event too, so a named release waiting for approval never holds up (or gets
+# queued pushes to master cancelled behind) the canary and stable jobs
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
 
 jobs:
   # Create (or update) the Version Packages pull request when PR merged containing a changeset
@@ -20,17 +43,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Ensure valid pinned npm version (>11.5.1)
         run: npm i -g npm@11.6.2
@@ -43,23 +65,155 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Manually publish a snapshot from any branch via workflow_dispatch
-  alpha-snapshot:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+  # A push only counts as a stable release if it is the merge of the changesets bot's
+  # Version Packages PR. Keyed on the PR (bot author, same-repo head branch), not the
+  # commit message, so contributors cannot trigger a release by naming a PR.
+  release-gate:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
+    outputs:
+      is_release: ${{ steps.check.outputs.is_release }}
+    steps:
+      - name: Check for merged changesets bot PR
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # The commit -> PR association can lag slightly behind the push
+          for attempt in 1 2 3; do
+            prs=$(gh api "repos/$REPO/commits/$SHA/pulls")
+            [ "$(jq length <<< "$prs")" -gt 0 ] && break
+            sleep 10
+          done
+          is_release=$(jq --arg repo "$REPO" 'any(.[];
+            .merged_at != null
+            and .head.ref == "changeset-release/master"
+            and .head.repo.full_name == $repo
+            and .user.login == "github-actions[bot]")' <<< "$prs")
+          echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
+          echo "is_release=$is_release"
+
+  # Manual prerelease from any branch via workflow_dispatch, in two jobs:
+  # named-release-resolve works out the exact version and shows it in the run summary,
+  # then named-release waits for approval on the named-release environment and publishes.
+  named-release-resolve:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      dist_tag: ${{ steps.resolve.outputs.dist_tag }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Resolve version
+        id: resolve
+        env:
+          BASE: ${{ inputs.base_version }}
+          MANUAL: ${{ inputs.manual_version }}
+          DIST_TAG: ${{ inputs.dist_tag }}
+          NUMBER: ${{ inputs.prerelease_number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          pending=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
+
+          # base_version and manual_version are two sources for <base>: refuse both.
+          # A filled field that is silently ignored makes the resolved name unpredictable.
+          if [ "$BASE" = calculated ] && [ -n "$MANUAL" ]; then
+            fail "Manual version '$MANUAL' was entered but base version is 'calculated'. Pick one: set base version to 'manual' to use it, or clear the field"
+          fi
+
+          if [ "$BASE" = manual ]; then
+            [[ "$MANUAL" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Manual version '${MANUAL:-(blank)}' must be a plain major.minor.patch like 1.2.0. The dist tag and number are added for you"
+            base="$MANUAL"
+            base_from="manual version"
+          elif [ "$BASE" != calculated ]; then
+            fail "Unknown base version '$BASE'"
+          elif [ "$pending" -gt 0 ]; then
+            # Apply the changesets in this throwaway checkout to get the Version Packages PR's version
+            pnpm exec changeset version > /dev/null
+            base=$(jq -r .version packages/sdk/package.json)
+            base_from="changeset version ($pending pending changesets)"
+          else
+            base=$(jq -r .version packages/sdk/package.json)
+            base_from="package.json (no pending changesets)"
+            [ -z "$(npm view "@cofhe/sdk@$base" version 2>/dev/null)" ] || fail "package.json on $BRANCH is $base, which is already published, and there are no pending changesets. Nothing to calculate a new version from"
+          fi
+          [ -n "$base" ] || fail "Could not calculate a version for @cofhe/sdk"
+
+          # Highest N already published as <base>-<tag>.N, or -1
+          highest=$(npm view @cofhe/sdk versions --json 2>/dev/null | jq --arg p "$base-$DIST_TAG." '
+            (if type == "array" then . else [.] end)
+            | [.[] | select(startswith($p)) | ltrimstr($p) | select(test("^[0-9]+$")) | tonumber]
+            | max // -1')
+          if [ -z "$NUMBER" ]; then
+            number=$((highest + 1))
+            number_from="next unused (highest published: $([ "$highest" -ge 0 ] && echo "$highest" || echo none))"
+          else
+            [[ "$NUMBER" =~ ^[0-9]+$ ]] || fail "Prerelease number must be a whole number, 0 or more"
+            number="$NUMBER"
+            number_from="entered"
+            [ "$number" -gt "$highest" ] || [ -z "$(npm view "@cofhe/sdk@$base-$DIST_TAG.$number" version 2>/dev/null)" ] || fail "$base-$DIST_TAG.$number is already published. npm versions can't be reused. Leave the number blank to use $((highest + 1))"
+          fi
+          version="$base-$DIST_TAG.$number"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved $version -> @$DIST_TAG"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Will publish \`$version\` to \`@$DIST_TAG\`
+
+          | | |
+          |---|---|
+          | Branch | \`$BRANCH\` |
+          | Base from | $base_from |
+          | Number from | $number_from |
+          | Install | \`npm i @cofhe/sdk@$DIST_TAG\` |
+
+          Approve **Publishing named release - $version** to continue.
+          EOF
+
+  named-release:
+    name: Publishing named release - ${{ needs.named-release-resolve.outputs.version }}
+    needs: named-release-resolve
+    runs-on: ubuntu-latest
+    environment:
+      name: named-release
+      url: https://www.npmjs.com/package/@cofhe/sdk/v/${{ needs.named-release-resolve.outputs.version }}
+    env:
+      VERSION: ${{ needs.named-release-resolve.outputs.version }}
+      DIST_TAG: ${{ needs.named-release-resolve.outputs.dist_tag }}
+      # 'true' runs `pnpm publish --dry-run` instead of publishing, for testing changes to this job
+      DRY_RUN: 'false'
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)
@@ -73,28 +227,46 @@ jobs:
         with:
           version: stable
 
-      - name: Publish Alpha Snapshot
-        run: pnpm run alpha:snapshot
+      - name: Set version
+        run: |
+          for f in packages/*/package.json; do
+            if [ "$(jq -r '.private // false' "$f")" != true ]; then
+              jq --arg v "$VERSION" '.version = $v' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+            fi
+          done
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Publish Named Release
+        run: |
+          if [ "$DRY_RUN" = true ]; then
+            pnpm -r publish --dry-run --tag "$DIST_TAG" --no-git-checks
+            echo "## Dry run: would publish \`$VERSION\` to \`@$DIST_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            pnpm exec changeset publish --tag "$DIST_TAG"
+            echo "## Published \`$VERSION\` to \`@$DIST_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # Publish beta snapshots upon merge to master
-  beta-snapshot:
-    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, 'Version Packages') }}
+  # Publish canary snapshots upon merge to master
+  canary-snapshot:
+    needs: release-gate
+    if: ${{ needs.release-gate.outputs.is_release != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)
@@ -108,28 +280,34 @@ jobs:
         with:
           version: stable
 
-      - name: Publish Beta Snapshot
-        run: pnpm run beta:snapshot
+      - name: Publish Canary Snapshot
+        run: |
+          # Without pending changesets the snapshot is a no-op and the package.json versions
+          # would publish as-is (e.g. a non-bot PR that bumps versions)
+          if ! find .changeset -name '*.md' ! -name README.md | grep -q .; then
+            echo "No pending changesets, skipping canary snapshot"; exit 0
+          fi
+          pnpm run canary:snapshot
 
-  # Publish stable releases when the Version Packages pull request is merged
+  # Publish stable releases when the changesets bot's Version Packages PR is merged
   stable-release:
-    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'Version Packages') }}
+    needs: release-gate
+    if: ${{ needs.release-gate.outputs.is_release == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # required for tagging
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Ensure valid pinned npm version (>11.5.1)

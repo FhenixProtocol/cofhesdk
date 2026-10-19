@@ -18,8 +18,7 @@
     "changeset": "changeset && pnpm format",
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",
-    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta",
-    "alpha:snapshot": "changeset version --snapshot alpha && pnpm -r build && changeset publish --tag alpha",
+    "canary:snapshot": "changeset version --snapshot canary && pnpm -r build && changeset publish --tag canary",
     "docs": "pnpm --filter @cofhe/site dev"
   },
   "devDependencies": {

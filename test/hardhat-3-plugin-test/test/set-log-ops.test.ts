@@ -1,6 +1,9 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
+import { createHardhatRuntimeEnvironment } from 'hardhat/hre';
+import cofhePlugin from '@cofhe/hardhat-3-plugin';
+import hardhatViem from '@nomicfoundation/hardhat-viem';
 import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 
 describe('Set Log Ops', async () => {
@@ -54,5 +57,28 @@ describe('Set Log Ops', async () => {
       /boom/
     );
     assert.equal(await getLogOps(), false);
+  });
+});
+
+describe('cofhe.logMocks config', () => {
+  it('logMocks: true turns logging on when the mocks are deployed', async () => {
+    const hre = await createHardhatRuntimeEnvironment(
+      {
+        solidity: { version: '0.8.28' },
+        plugins: [cofhePlugin, hardhatViem],
+        cofhe: { logMocks: true, mocksDeployVerbosity: '' },
+      },
+      {},
+      process.cwd()
+    );
+    const { viem } = await hre.network.connect();
+    const publicClient = await viem.getPublicClient();
+
+    const logOps = await publicClient.readContract({
+      address: MOCKS_TASK_MANAGER_ADDRESS,
+      abi: [{ name: 'logOps', type: 'function', inputs: [], outputs: [{ type: 'bool' }], stateMutability: 'view' }],
+      functionName: 'logOps',
+    });
+    assert.equal(logOps, true);
   });
 });

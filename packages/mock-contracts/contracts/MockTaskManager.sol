@@ -16,6 +16,7 @@ error InvalidInputsAmount(string operation, uint256 got, uint256 expected);
 error InvalidOperationInputs(string operation);
 error TooManyInputs(string operation, uint256 got, uint256 maxAllowed);
 error InvalidBytesLength(uint256 got, uint256 expected);
+error LengthMismatch();
 // Type and security validation errors
 error InvalidTypeOrSecurityZone(string operation);
 error InvalidInputType(uint8 actual, uint8 expected);
@@ -158,10 +159,6 @@ library TMCommon {
     return uint256((SHIFTED_TYPE_MASK | SECURITY_ZONE_MASK) & hash);
   }
 
-  function isTriviallyEncryptedFromHash(uint256 hash) internal pure returns (bool) {
-    return (hash & TRIVIALLY_ENCRYPTED_MASK) == TRIVIALLY_ENCRYPTED_MASK;
-  }
-
   function computeDecryptResultHash(
     uint256 ctHash,
     uint256 result,
@@ -210,8 +207,17 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setSecurityZones(int32 minSZ, int32 maxSZ) external onlyOwner {
-    securityZoneMin = minSZ;
-    securityZoneMax = maxSZ;
+    _setSecurityZones(minSZ, maxSZ);
+  }
+
+  /// @dev Same check as the real task manager's `_setSecurityZones`, the one write path for the bounds.
+  ///      Without it `setSecurityZones(2, 1)` would be stored here while the real task manager reverts.
+  function _setSecurityZones(int32 newMin, int32 newMax) private {
+    if (newMin > newMax) {
+      revert InvalidSecurityZone(newMin, newMin, newMax);
+    }
+    securityZoneMin = newMin;
+    securityZoneMax = newMax;
   }
 
   function isInitialized() public view returns (bool) {
@@ -372,9 +378,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function checkAllowed(uint256 ctHash) internal view {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      if (!acl.isAllowed(ctHash, msg.sender)) revert ACLNotAllowed(ctHash, msg.sender);
-    }
+    if (!acl.isAllowed(ctHash, msg.sender)) revert ACLNotAllowed(ctHash, msg.sender);
   }
 
   function isUnaryOperation(FunctionId funcId) internal pure returns (bool) {
@@ -575,12 +579,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   /// @notice Publish a signed decrypt result to the chain
   /// @dev Anyone with a valid signature from the decrypt network can call this
   function publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external {
-    _verifyDecryptResult(ctHash, result, signature, true);
-    _decryptResultReady[ctHash] = true;
-    _decryptResult[ctHash] = result;
-
-    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
-    emit DecryptionResult(ctHash, result, msg.sender);
+    _publishDecryptResult(ctHash, result, signature);
   }
 
   function publishDecryptResultBatch(
@@ -588,12 +587,23 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external {
-    // Mock implementation: process each result individually
-    // Note: publishDecryptResult is defined later in the contract
-    for (uint256 i = 0; i < ctHashes.length; i++) {
-      // Call via external interface to avoid forward reference issue
-      this.publishDecryptResult(ctHashes[i], results[i], signatures[i]);
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    for (uint256 i = 0; i < length; i++) {
+      _publishDecryptResult(ctHashes[i], results[i], signatures[i]);
     }
+  }
+
+  /// @dev Shared by both publish functions, so a batch keeps its caller as the `DecryptionResult` requestor,
+  ///      like the real task manager. An external self-call would make the requestor this contract.
+  function _publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private {
+    _verifyDecryptResult(ctHash, result, signature, true);
+    _decryptResultReady[ctHash] = true;
+    _decryptResult[ctHash] = result;
+
+    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
+    emit DecryptionResult(ctHash, result, msg.sender);
   }
 
   function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
@@ -688,47 +698,36 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function allow(uint256 ctHash, address account) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allow(ctHash, account, msg.sender);
+    acl.allow(ctHash, account, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
   }
 
   function allowGlobal(uint256 ctHash) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allowGlobal(ctHash, msg.sender);
+    acl.allowGlobal(ctHash, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
   }
 
   function allowTransient(uint256 ctHash, address account) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      acl.allowTransient(ctHash, account, msg.sender);
+    acl.allowTransient(ctHash, account, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
   }
 
   function allowForDecryption(uint256 ctHash) external {
-    if (!TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      uint256[] memory hashes = new uint256[](1);
-      hashes[0] = ctHash;
-      acl.allowForDecryption(hashes, msg.sender);
+    uint256[] memory hashes = new uint256[](1);
+    hashes[0] = ctHash;
+    acl.allowForDecryption(hashes, msg.sender);
 
-      // NOTE: MOCK
-      MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
-    }
+    // NOTE: MOCK
+    MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
   }
 
   function isAllowed(uint256 ctHash, address account) external view returns (bool) {
-    if (TMCommon.isTriviallyEncryptedFromHash(ctHash)) {
-      return true;
-    }
     return acl.isAllowed(ctHash, account);
   }
 
@@ -800,17 +799,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
-    if (securityZone < securityZoneMin) {
-      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
-    }
-    securityZoneMax = securityZone;
+    _setSecurityZones(securityZoneMin, securityZone);
   }
 
   function setSecurityZoneMin(int32 securityZone) external onlyOwner {
-    if (securityZone > securityZoneMax) {
-      revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
-    }
-    securityZoneMin = securityZone;
+    _setSecurityZones(securityZone, securityZoneMax);
   }
 
   function setACLContract(address _aclAddress) external onlyOwner {
@@ -891,7 +884,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external view returns (bool) {
-    for (uint256 i = 0; i < ctHashes.length; i++) {
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    for (uint256 i = 0; i < length; i++) {
       if (!_verifyDecryptResult(ctHashes[i], results[i], signatures[i], true)) {
         return false;
       }
@@ -904,8 +900,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     uint256[] calldata results,
     bytes[] calldata signatures
   ) external view returns (bool[] memory) {
-    bool[] memory out = new bool[](ctHashes.length);
-    for (uint256 i = 0; i < ctHashes.length; i++) {
+    uint256 length = ctHashes.length;
+    if (results.length != length || signatures.length != length) revert LengthMismatch();
+
+    bool[] memory out = new bool[](length);
+    for (uint256 i = 0; i < length; i++) {
       out[i] = _verifyDecryptResult(ctHashes[i], results[i], signatures[i], false);
     }
     return out;

@@ -15,7 +15,7 @@ This example demonstrates how to use the CoFHE SDK React components in a real ap
 ## Components Showcased
 
 1. **CofheEncryptInput** - Advanced input with type selection and progress
-2. **React Hooks** - Direct hook usage (`useEncryptInput`, `useCofheContext`)
+2. **React Hooks** - Direct hook usage (`useCofheEncrypt`, `useCofheContext`)
 3. **Worker Status Logging** - See worker performance in the console
 
 ## Getting Started

@@ -30,7 +30,7 @@ export function useStoredTransactions<T>({
   const filtered = useMemo(
     () =>
       transactionsAsArray.filter((tx) => {
-        if (account && tx.account.toLowerCase() !== account.toLowerCase()) return false;
+        if (account && tx.account && tx.account.toLowerCase() !== account.toLowerCase()) return false;
 
         if (filter && !filter(tx)) return false;
 
