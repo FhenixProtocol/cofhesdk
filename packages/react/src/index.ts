@@ -66,6 +66,19 @@ export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWrite
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 export { useCofheDecrypt } from '@/hooks/useCofheDecrypt';
 export {
+  useCofheDecryptFn,
+  type CofheDecryptFn,
+  type CofheDecryptFnOptions,
+  type UseCofheDecryptFnOptions,
+  type UseCofheDecryptFnResult,
+} from '@/hooks/useCofheDecryptFn';
+export {
+  useCofheDecryptForTx,
+  type CofheDecryptForTxVariables,
+  type UseCofheDecryptForTxOptions,
+  type UseCofheDecryptForTxResult,
+} from '@/hooks/useCofheDecryptForTx';
+export {
   CofheACPScope,
   useCofheACPScope,
   useCofheACPStatus,
