@@ -47,10 +47,19 @@ type WriteInput = Parameters<ReturnType<typeof useCofheWriteContract>['writeCont
  * it is mined, so a read that follows sees the result. A refused write (a simulation revert, a wallet
  * rejection) raises the submit-error toast and throws; nothing is recorded.
  */
-function useSharingWrite(
-  actionType: SharingTransactionActionType,
-  invalidates: () => readonly CofheWriteInvalidationTarget[]
-) {
+function useSharingWrite({
+  actionType,
+  invalidates,
+}: {
+  /** The transaction-store action type the write is recorded under. */
+  actionType: SharingTransactionActionType;
+  /**
+   * The reads to refetch once the write is mined, as `useCofheWriteContract`'s `invalidates` takes
+   * them. A function, read when the write mines, so it can name what only the write knows (the
+   * registry address, the acp being revoked).
+   */
+  invalidates: () => readonly CofheWriteInvalidationTarget[];
+}) {
   const cofheClient = useCofheClient();
   const account = useCofheAccount();
   const chainId = useCofheChainId();
@@ -128,10 +137,10 @@ export const useCofheIncomingShares = ({
 export const useCofheShareOnChain = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
   const registry = useRef<Hex | undefined>(undefined);
-  const send = useSharingWrite(TransactionActionType.ShareACP, () => [
-    ...(registry.current ? [{ address: registry.current }] : []),
-    [INCOMING_SHARES_KEY],
-  ]);
+  const send = useSharingWrite({
+    actionType: TransactionActionType.ShareACP,
+    invalidates: () => [...(registry.current ? [{ address: registry.current }] : []), [INCOMING_SHARES_KEY]],
+  });
 
   return useInternalMutation<{ txHash: Hex; shareId: Hex }, Error, ACP | ({ acp: ACP } & ShareOnChainOptions)>({
     onSuccess,
@@ -182,10 +191,10 @@ export const useCofheImportShared = ({
 export const useCofheRemoveShare = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
   const registry = useRef<Hex | undefined>(undefined);
-  const send = useSharingWrite(TransactionActionType.RemoveShare, () => [
-    ...(registry.current ? [{ address: registry.current }] : []),
-    [INCOMING_SHARES_KEY],
-  ]);
+  const send = useSharingWrite({
+    actionType: TransactionActionType.RemoveShare,
+    invalidates: () => [...(registry.current ? [{ address: registry.current }] : []), [INCOMING_SHARES_KEY]],
+  });
 
   return useInternalMutation<Hex, Error, Hex>({
     onSuccess,
@@ -206,10 +215,13 @@ export const useCofheRemoveShare = ({ onSuccess, onError }: MutationCallbacks = 
 export const useCofheRevokeACP = ({ onSuccess, onError }: MutationCallbacks = {}) => {
   const cofheClient = useCofheClient();
   const revoking = useRef<ACP | undefined>(undefined);
-  const send = useSharingWrite(TransactionActionType.RevokeACP, () => {
-    const acp = revoking.current;
-    if (!acp) return [];
-    return [{ address: acp.revokerContract, functionName: 'disabled' }, [ACP_STATUS_QUERY_KEY, acp.hash]];
+  const send = useSharingWrite({
+    actionType: TransactionActionType.RevokeACP,
+    invalidates: () => {
+      const acp = revoking.current;
+      if (!acp) return [];
+      return [{ address: acp.revokerContract, functionName: 'disabled' }, [ACP_STATUS_QUERY_KEY, acp.hash]];
+    },
   });
 
   return useInternalMutation<Hex, Error, ACP>({
