@@ -77,7 +77,7 @@ pnpm changeset status
 ## Best practices
 
 - Always include a changeset with user‑visible changes.
-- Keep descriptions clear; they become the changelog.
+- Keep descriptions clear; they become the changelog. How to word them: `.memory/changesets.md`.
 - Merge the “Version Packages” PR only when you’re ready for a stable release.
 - For emergency hotfixes, prefer a small changeset + fast Version PR merge rather than local/manual publishes.
 
