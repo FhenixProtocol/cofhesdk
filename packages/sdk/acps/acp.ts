@@ -205,6 +205,15 @@ export const ACPUtils = {
     importOptions: { name?: string } = {}
   ): Promise<RecipientACP> => {
     const acp = ACPUtils.importShared(options, importOptions);
+    // The ACL checks the recipient signature against `acp.recipient` and rejects expired ACPs, so
+    // a share for another account, or one that already expired, could never be used.
+    const account = walletClient.account?.address;
+    if (account != null && account.toLowerCase() !== acp.recipient.toLowerCase()) {
+      throw new Error(`Cannot import a share addressed to ${acp.recipient} as ${account}`);
+    }
+    if (ValidationUtils.isExpired(acp)) {
+      throw new Error('Cannot import an expired share');
+    }
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
