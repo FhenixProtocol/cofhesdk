@@ -42,7 +42,7 @@ export const useCofheAutoConnect = ({ walletClient: _walletClient, publicClient:
       return;
     }
 
-    if (client.connecting) return;
+    // Forward newer clients even while connecting; core connect ignores stale attempts.
     connectMutationFn({ publicClient, walletClient });
   }, [publicClient, walletClient, client, connectMutationFn, supportedChainIds, disconnectIfConnected]);
 };
