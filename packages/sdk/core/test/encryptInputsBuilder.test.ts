@@ -10,7 +10,7 @@ import {
 } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
-import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
+import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
@@ -448,6 +448,20 @@ describe('EncryptInputsBuilder', () => {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ConsumingContractUninitialized);
       }
+    });
+
+    it('accepts a mixed-case consuming contract whose checksum is wrong', async () => {
+      // The verifier decodes the address case-insensitively and the chain compares
+      // 20 bytes, so a 1.0.0 dApp with such an address must keep working.
+      const wrongChecksum = '0xBEEFbeefBEEFbeefBEEFbeefBEEFbeefBEEFbeef';
+      expect(isAddress(wrongChecksum)).toBe(false);
+      expect(isAddress(wrongChecksum, { strict: false })).toBe(true);
+
+      const result = await new EncryptInputsBuilder(createDefaultParams())
+        .setConsumingContract(wrongChecksum)
+        .execute();
+
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('rejects a consuming contract that is not an address before any encrypt step runs', async () => {

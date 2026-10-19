@@ -273,7 +273,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         },
       });
     }
-    if (!isAddress(this.consumingContract)) {
+    // strict: false — 20 bytes of hex in any case, no EIP-55 checksum check. The
+    // verifier decodes the address case-insensitively and the chain compares bytes,
+    // so a mixed-case address with a wrong checksum works end to end and a patch
+    // release must keep accepting it.
+    if (!isAddress(this.consumingContract, { strict: false })) {
       throw new CofheError({
         code: CofheErrorCode.ConsumingContractInvalid,
         message: 'Consuming contract is not an address',
