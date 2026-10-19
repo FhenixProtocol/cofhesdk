@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/foundry-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Foundry plugin for CoFHE — Write and test FHE enabled contracts",
   "license": "MIT",
   "repository": {
