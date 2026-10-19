@@ -300,7 +300,12 @@ export function createCofheReadContractQueryOptions<
 
       const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
 
-      const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
+      const transformed = transformEncryptedReturnTypes(
+        abi,
+        functionName,
+        convertedOut,
+        Array.isArray(args) ? args : []
+      );
 
       return transformed;
     }),
