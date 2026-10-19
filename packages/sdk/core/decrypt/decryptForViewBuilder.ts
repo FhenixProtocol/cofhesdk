@@ -13,6 +13,7 @@ import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
+import { assertDecryptTimeoutMs } from './submitRetry.js';
 
 const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
 
@@ -51,6 +52,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private acp?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
+  private timeoutMs?: number;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -131,6 +133,17 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     }
 
     this.retry404TimeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * The whole budget of this decrypt in milliseconds, submit retries and status polling together
+   * (5 minutes by default). Past it, `execute()` rejects with `SealOutputFailed`; a request still
+   * processing on the threshold network is not cancelled.
+   */
+  setTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
+    assertDecryptTimeoutMs(timeoutMs, 'decryptForView');
+    this.timeoutMs = timeoutMs;
     return this;
   }
 
@@ -295,6 +308,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       acp: wireAcp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
+      timeoutMs: this.timeoutMs,
       onPoll: this.pollCallback,
     });
     return ACPUtils.unseal(acp, sealed);

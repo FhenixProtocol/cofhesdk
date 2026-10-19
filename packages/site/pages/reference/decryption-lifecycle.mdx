@@ -87,6 +87,8 @@ The SDK uses one shared timeout budget across the full production lifecycle:
 
 This matters because a request can spend most of its time budget before the `request_id` even exists.
 
+The budget is 5 minutes by default and is set per request with `.setTimeout(timeoutMs)` on either decrypt builder (or the `timeoutMs` option of the React hooks). When it runs out the SDK rejects with `SealOutputFailed` / `DecryptFailed`; the request itself is not cancelled on the threshold network.
+
 ## How `.onPoll(...)` fits in
 
 Both decryption builders support `.onPoll(...)`:

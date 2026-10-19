@@ -2,6 +2,22 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 
 export const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+/** The default budget of one decrypt, submit retries and status polling together. */
+export const DEFAULT_DECRYPT_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Validates a builder's `setTimeout(timeoutMs)` argument: the overall budget must be a positive,
+ * finite number of milliseconds (0 would time out before the first attempt).
+ */
+export function assertDecryptTimeoutMs(timeoutMs: number, operationLabel: string): void {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new CofheError({
+      code: CofheErrorCode.InternalError,
+      message: `${operationLabel}: setTimeout(timeoutMs) expects a finite number greater than 0.`,
+      context: { timeoutMs },
+    });
+  }
+}
 
 export type SubmitRetryableStatus = 204 | 404;
 

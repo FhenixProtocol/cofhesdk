@@ -11,6 +11,7 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
 import { getPublicClientChainID, sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
+import { assertDecryptTimeoutMs } from './submitRetry';
 
 const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
 
@@ -65,6 +66,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private acpSelection: DecryptForTxACPSelection = 'unset';
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
+  private timeoutMs?: number;
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -150,6 +152,19 @@ export class DecryptForTxBuilder extends BaseBuilder {
     }
 
     this.retry404TimeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * The whole budget of this decrypt in milliseconds, submit retries and status polling together
+   * (5 minutes by default). Past it, `execute()` rejects with `DecryptFailed`; a request still
+   * processing on the threshold network is not cancelled.
+   */
+  setTimeout(this: DecryptForTxBuilderUnset, timeoutMs: number): DecryptForTxBuilderUnset;
+  setTimeout(this: DecryptForTxBuilderSelected, timeoutMs: number): DecryptForTxBuilderSelected;
+  setTimeout(timeoutMs: number): DecryptForTxBuilder {
+    assertDecryptTimeoutMs(timeoutMs, 'decryptForTx');
+    this.timeoutMs = timeoutMs;
     return this;
   }
 
@@ -326,6 +341,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       acp: wireAcp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
+      timeoutMs: this.timeoutMs,
       onPoll: this.pollCallback,
     });
 
