@@ -42,7 +42,6 @@ export const useCofheAutoConnect = ({ walletClient: _walletClient, publicClient:
       return;
     }
 
-    if (client.connecting) return;
     connectMutationFn({ publicClient, walletClient });
   }, [publicClient, walletClient, client, connectMutationFn, supportedChainIds, disconnectIfConnected]);
 };
