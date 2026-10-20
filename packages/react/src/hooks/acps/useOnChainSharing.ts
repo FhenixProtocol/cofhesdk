@@ -19,10 +19,16 @@ type MutationCallbacks = {
   onError?: (error: Error) => void;
 };
 
-/** Wait until the write is mined, so the next read (registry, revoker) sees it. */
+/**
+ * Wait until the write is mined, so the next read (registry, revoker) sees it. A reverted tx
+ * rejects, so callers don't report a share, removal or revocation that never happened.
+ */
 async function mined(client: ReturnType<typeof useCofheClient>, hash: Hex): Promise<Hex> {
   const { publicClient } = client.getSnapshot();
-  await publicClient?.waitForTransactionReceipt({ hash });
+  const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+  if (receipt && receipt.status !== 'success') {
+    throw new Error(`Transaction ${hash} reverted`);
+  }
   return hash;
 }
 
