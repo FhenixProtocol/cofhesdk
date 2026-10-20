@@ -45,6 +45,8 @@ export type DeployMocksArgs = {
   gasWarning?: boolean;
   mocksDeployVerbosity?: LogMocksDeploy;
   logMocks?: boolean;
+  /** Keep mocks that are already deployed on this chain (e.g. a shared `hardhat node`) instead of replacing them. */
+  reuseExisting?: boolean;
 };
 
 export type DeployContext = {
@@ -77,6 +79,14 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
     log('v', `cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
     return {} as DeployedMockContracts;
+  }
+
+  if (options.reuseExisting) {
+    const existing = await findDeployedMocks(ctx);
+    if (existing) {
+      log('vv', 'cofhe-hardhat-3-plugin :: mocks already deployed on this chain, reusing them', 0);
+      return existing;
+    }
   }
 
   log('vv', chalk.bold('cofhe-hardhat-3-plugin :: deploy mocks'), 0);
@@ -286,6 +296,59 @@ async function deployFixed(
     method: 'hardhat_setCode',
     params: [fixedAddress, deployedBytecode],
   });
+}
+
+/**
+ * Returns the mocks a previous deployMocks call left on this chain, or undefined when there are
+ * none or they come from a different build of the mock contracts. Deploying again would replace
+ * the ACL, dropping every permission granted so far.
+ */
+async function findDeployedMocks(ctx: DeployContext): Promise<DeployedMockContracts | undefined> {
+  const hasCodeOf = async (address: string, contractName: string) => {
+    const [code, { deployedBytecode }] = await Promise.all([
+      ctx.publicClient.getCode({ address: address as `0x${string}` }),
+      ctx.artifacts.readArtifact(contractName),
+    ]);
+    return code != null && code.toLowerCase() === deployedBytecode.toLowerCase();
+  };
+
+  const fixedMocks: Array<[string, string]> = [
+    ['MockCoFHEAddressBook', COFHE_ADDRESS_BOOK_ADDRESS],
+    ['MockTaskManager', MOCKS_TASK_MANAGER_ADDRESS],
+    ['MockZkVerifier', MOCKS_ZK_VERIFIER_ADDRESS],
+    ['MockThresholdNetwork', MOCKS_THRESHOLD_NETWORK_ADDRESS],
+  ];
+  for (const [contractName, address] of fixedMocks) {
+    if (!(await hasCodeOf(address, contractName))) return undefined;
+  }
+
+  const aclAddress = (await ctx.publicClient.readContract({
+    address: MOCKS_TASK_MANAGER_ADDRESS,
+    abi: MockTaskManagerArtifact.abi,
+    functionName: 'acl',
+  })) as `0x${string}`;
+  if (BigInt(aclAddress) === 0n) return undefined;
+
+  const readFromAcl = (functionName: 'defaultRevokerContract' | 'shareRegistry') =>
+    ctx.publicClient.readContract({
+      address: aclAddress,
+      abi: MockACLArtifact.abi,
+      functionName,
+    }) as Promise<`0x${string}`>;
+  const [acpRevokerAddress, acpShareRegistryAddress] = await Promise.all([
+    readFromAcl('defaultRevokerContract'),
+    readFromAcl('shareRegistry'),
+  ]);
+
+  return {
+    MockCoFHEAddressBook: COFHE_ADDRESS_BOOK_ADDRESS,
+    MockTaskManager: MOCKS_TASK_MANAGER_ADDRESS,
+    MockACL: aclAddress,
+    ACPTimestampRevoker: acpRevokerAddress,
+    ACPShareRegistry: acpShareRegistryAddress,
+    MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
+    MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
+  };
 }
 
 /** Deploys a contract by name and returns its deployed address. */
