@@ -92,7 +92,7 @@ const [encryptedAge, encryptedFlag, signature] = await cofheClient
 
 ### `.setConsumingContract(address)` — required
 
-Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The CoFHE verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another.
+Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The address is bound into the ZK proof and into the verifier's signed digest, so a batch built for one contract does not verify for, and cannot be replayed into, another.
 
 This is enforced by the type system: `client.encryptInputs(...)` returns a builder with no `.execute()` method, and `.setConsumingContract(...)` is what returns the builder that has one. Omitting it is a compile error rather than a runtime failure. (JavaScript callers, who get no such check, still hit a `ConsumingContractUninitialized` throw at `.execute()`.)
 
@@ -293,7 +293,8 @@ Use this with Solidity functions that accept `external*` handles plus a `bytes` 
 
 ## Common pitfalls
 
-- **Missing `.setConsumingContract(...)`**: required before `.execute()` — throws `ConsumingContractUninitialized` otherwise. It must be the exact contract you submit the hashes/signature to; the verifier binds this address into the signature.
+- **Missing `.setConsumingContract(...)`**: required before `.execute()` — throws `ConsumingContractUninitialized` otherwise. It must be the exact contract you submit the hashes/signature to; the address is bound into the proof and the signature.
+- **`.setConsumingContract(...)` given something that is not an address**: `.execute()` throws `ConsumingContractInvalid` before any proving starts, so a typo costs no time.
 - **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `externalEuint32`).
 - **Splitting a batch**: the signature authenticates _all_ the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.
