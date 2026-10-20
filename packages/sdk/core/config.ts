@@ -147,6 +147,7 @@ export const CofheConfigSchema = z.object({
       sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
       app: z.string().min(1).optional(),
     })
+    .strict()
     .optional()
     .default({}),
   /** Mocks configs */
@@ -158,6 +159,7 @@ export const CofheConfigSchema = z.object({
         .optional()
         .default([100, 100, 100, 500, 500]),
     })
+    .strict()
     .optional()
     .default({ decryptDelay: 0, encryptDelay: [100, 100, 100, 500, 500] }),
   /** Internal configuration */
@@ -204,8 +206,9 @@ export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<st
 export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
   assertNoRenamedConfigKeys(config, RENAMED_COFHE_CONFIG_KEYS, 'cofhe configuration');
 
-  // .strict(): reject unknown keys instead of stripping them - a stale or typo'd key is an error,
-  // not a silent no-op that leaves the caller on a default they didn't ask for.
+  // .strict(): reject unknown keys instead of stripping them (`acp` and `mocks` are strict in the
+  // schema too) - a stale or typo'd key is an error, not a silent no-op that leaves the caller on a
+  // default they didn't ask for.
   const result = CofheConfigSchema.strict().safeParse(config);
 
   if (!result.success) {
