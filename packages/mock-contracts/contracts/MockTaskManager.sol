@@ -909,4 +909,31 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
     return out;
   }
+
+  // Access list, added to ITaskManager in cofhe-contracts 1.0.2 (FHE.addToAccessList /
+  // FHE.removeFromAccessList). NOTE: MOCK - the TaskManager restricts these to its
+  // ACCESS_LIST_MANAGER_ROLE and, once the list is enabled, only lets listed callers create tasks.
+  // The mock has no roles and never enforces the list: it records it and emits the same events, so
+  // a contract that manages the list works against the mocks.
+
+  event AccessGranted(address indexed account);
+  event AccessRevoked(address indexed account);
+
+  mapping(address account => bool isAllowed) public accessList;
+
+  function addToAccessList(address[] calldata accounts) external {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      if (accounts[i] == address(0)) revert InvalidAddress();
+      accessList[accounts[i]] = true;
+      emit AccessGranted(accounts[i]);
+    }
+  }
+
+  function removeFromAccessList(address[] calldata accounts) external {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      if (accounts[i] == address(0)) revert InvalidAddress();
+      accessList[accounts[i]] = false;
+      emit AccessRevoked(accounts[i]);
+    }
+  }
 }
