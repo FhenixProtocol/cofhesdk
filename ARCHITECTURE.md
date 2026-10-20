@@ -326,7 +326,7 @@ The SDK uses the term **"ZK Verifier"** for the component that ultimately produc
 
 - **Production (testnet/mainnet):** the verifier is an **off-chain verifier service** (configured via `supportedChains[].verifierUrl`).
   - The SDK calls `POST {verifierUrl}/verifyBatch` (see `zkPackProveVerify.ts`).
-  - That service verifies the ZK proof and returns one `ct_hash` per input plus a **single signature authenticating the whole batch**, computed over `keccak256(h_0 || ... || h_n)`. The request also carries `contract_address`, binding the signature to the contract that will consume the inputs.
+  - That service verifies the ZK proof and returns one `ct_hash` per input plus a **single signature authenticating the whole batch**, computed over `keccak256(h_0 || ... || h_n)`. The request also carries `contract_address`, which is bound into the proof metadata and into the signature, so both are tied to the contract that will consume the inputs.
 - **Mock mode (Hardhat/local testing):** there is no real ZK proof verification.
   - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
   - The SDK produces a **mock signature** using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` so you can still exercise the "signed input" plumbing.
@@ -355,13 +355,13 @@ This design keeps plaintext values on the client and makes proof generation the 
 The SDK sends the verifier:
 
 - `packed_list`: serialized ciphertext/proof blob
-- `account_addr`, `security_zone`, `chain_id`: metadata that is also bound into the proof statement (see `constructZkPoKMetadata(...)`)
+- `account_addr`, `security_zone`, `chain_id`, `contract_address`: metadata that is also bound into the proof statement (see `constructZkPoKMetadata(...)`). The metadata bytes are `securityZone (1) || account (20) || chainId (32, big-endian) || contract (20)`; the verifier rebuilds the same bytes from the request fields before it checks the proof.
 
 The verifier checks that the blob is a valid ZK proof for the expected statement. The exact statement/circuit is verifier-defined, but conceptually it covers:
 
 1. **Proof validity under expected parameters** (CRS and the network’s public FHE key).
 2. **Well-formed encryption** (the ciphertext encoding is valid; the prover demonstrates knowledge of plaintext(s) and randomness consistent with the ciphertext list).
-3. **Metadata binding** (the statement is bound to `(account_addr, security_zone, chain_id)` to prevent out-of-context reuse).
+3. **Metadata binding** (the statement is bound to `(account_addr, security_zone, chain_id, contract_address)`, so a proof cannot be reused in another context, including for another consuming contract).
 
 If verification succeeds, the verifier returns a **ctHash** (handle derived from the proven ciphertext) and a **signature** that attests that this ctHash passed verification under the expected metadata.
 
