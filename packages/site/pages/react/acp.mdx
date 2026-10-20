@@ -165,7 +165,7 @@ function GrantedShare({ acp }: { acp: ACP }) {
 }
 ```
 
-The write hooks resolve once the transaction is mined, so a read that follows sees the result.
+The write hooks take the same path as every other SDK write: the transaction is simulated first, so a write the registry or the revoker would reject fails on the hook before anything is sent; once sent it is recorded in the transaction store, so it shows in the floating button's Activity ("Share ACP", "Remove share", "Revoke ACP") and in `useCofheTransactions`; and the hooks resolve once it is mined, when the registry reads and the inbox (or, for a revoke, the ACP status) have been refetched, so a read that follows sees the result. To send one of these writes through your own path instead, `client.acp.prepareShareOnChain`, `prepareRemoveShare` and `prepareRevokeACP` build them without sending.
 
 ### Share labels
 
