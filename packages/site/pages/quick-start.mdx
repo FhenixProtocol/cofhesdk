@@ -18,15 +18,15 @@ Set up a Hardhat project with `@cofhe/hardhat-plugin`, write a contract that sto
 :::code-group
 
 ```bash [npm]
-npm install @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@^1.0.0
+npm install @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@1.0.0
 ```
 
 ```bash [pnpm]
-pnpm add @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@^1.0.0
+pnpm add @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@1.0.0
 ```
 
 ```bash [yarn]
-yarn add @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@^1.0.0
+yarn add @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-contracts@1.0.0
 ```
 
 :::
@@ -35,10 +35,10 @@ yarn add @cofhe/hardhat-plugin@^1.0.1 @cofhe/sdk@^1.0.1 @fhenixprotocol/cofhe-co
 | --------------------------------- | -------- | ---------------------------------------------------------------------- |
 | `@cofhe/hardhat-plugin`           | `^1.0.1` | Extends Hardhat with `hre.cofhe`, deploys mock contracts automatically |
 | `@cofhe/sdk`                      | `^1.0.1` | Client-side encryption, decryption, and ACP management                 |
-| `@fhenixprotocol/cofhe-contracts` | `^1.0.0` | `FHE.sol` — the Solidity library imported by your contracts            |
+| `@fhenixprotocol/cofhe-contracts` | `1.0.0`  | `FHE.sol` — the Solidity library imported by your contracts            |
 
 :::note
-`@cofhe/hardhat-plugin@1.x` requires `@fhenixprotocol/cofhe-contracts` version `>= 1.0.0`.
+Install `@fhenixprotocol/cofhe-contracts` 1.0.0 exactly, the version the 1.0.1 mocks are built against. With 1.0.2 the mocks fail to compile (`MockTaskManager should be marked as abstract`).
 :::
 
 ## 2) Configure Hardhat
