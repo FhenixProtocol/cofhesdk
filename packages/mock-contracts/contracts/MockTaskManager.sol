@@ -216,6 +216,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (newMin > newMax) {
       revert InvalidSecurityZone(newMin, newMin, newMax);
     }
+    emit SecurityZonesChanged(securityZoneMin, securityZoneMax, newMin, newMax);
     securityZoneMin = newMin;
     securityZoneMax = newMax;
   }
@@ -232,6 +233,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   event TaskCreated(uint256 ctHash, string operation, uint256 input1, uint256 input2, uint256 input3);
   event ProtocolNotification(uint256 ctHash, string operation, string errorMessage);
   event DecryptionResult(uint256 ctHash, uint256 result, address indexed requestor);
+  event InputVerified(uint256 indexed ctHash, bytes32 commitment);
+  event DecryptResultSignerChanged(address indexed oldSigner, address indexed newSigner);
+  event VerifierSignerChanged(address indexed oldSigner, address indexed newSigner);
+  event ACLContractChanged(address indexed oldACL, address indexed newACL);
+  event SecurityZonesChanged(int32 oldMin, int32 oldMax, int32 newMin, int32 newMax);
 
   struct Task {
     address creator;
@@ -279,15 +285,15 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     string memory operation,
     uint256[] memory inputs
   ) private {
-    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
-
-    if (arity == 1) {
+    if (inputs.length == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
-    } else if (arity == 2) {
+    } else if (inputs.length == 2) {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], 0);
     } else {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], inputs[2]);
     }
+
+    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
 
     // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
     // task manager, so (under forge, when enabled) it runs with gas metering paused; when
@@ -690,6 +696,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     for (uint256 i = 0; i < len; i++) {
       int32 securityZone = int32(uint32(inputs[i].securityZone));
       uint256 appendedHash = TMCommon.appendMetadata(inputs[i].ctHash, securityZone, inputs[i].utype, false);
+      emit InputVerified(appendedHash, bytes32(inputs[i].ctHash));
       acl.allowTransient(appendedHash, msg.sender, address(this));
       appendedHashes[i] = appendedHash;
     }
@@ -789,13 +796,17 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setVerifierSigner(address signer) external onlyOwner {
+    address oldSigner = verifierSigner;
     verifierSigner = signer;
+    emit VerifierSignerChanged(oldSigner, signer);
   }
 
   /// @notice Set the authorized signer for decrypt results
   /// @param signer The new signer address (must be non-zero for publishDecryptResult to work)
   function setDecryptResultSigner(address signer) external onlyOwner {
+    address oldSigner = decryptResultSigner;
     decryptResultSigner = signer;
+    emit DecryptResultSignerChanged(oldSigner, signer);
   }
 
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
@@ -810,6 +821,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (_aclAddress == address(0)) {
       revert InvalidAddress();
     }
+    emit ACLContractChanged(address(acl), _aclAddress);
     acl = MockACL(_aclAddress);
   }
 
