@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { removeDecryptsOfACPs, storedACPHashes } from './acpDecryptCache';
 
-const decryptKey = (ctHash: string, acpHash: string | undefined) => ['decryptForView', 1, ctHash, 2, acpHash];
+const decryptKey = (ctHash: string, acpHash: string | undefined) => ['decryptCiphertext', 1, ctHash, 2, acpHash];
 const proofKey = (ctHash: string, acpHash: string | null) => ['decryptForTx', 1, ctHash, acpHash];
 
 describe('storedACPHashes', () => {

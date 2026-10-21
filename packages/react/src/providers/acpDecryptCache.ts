@@ -19,7 +19,7 @@ export function storedACPHashes(snapshot: ACPSnapshot): Set<string> {
  * (`constructCofheDecryptForTxQueryKey`); `undefined` for any other query.
  */
 function decryptQueryACPHash(queryKey: readonly unknown[]): unknown {
-  if (queryKey[0] === 'decryptForView') return queryKey[4];
+  if (queryKey[0] === 'decryptCiphertext') return queryKey[4];
   if (queryKey[0] === 'decryptForTx') return queryKey[3];
   return undefined;
 }
