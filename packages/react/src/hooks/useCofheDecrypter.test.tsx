@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CofheError, CofheErrorCode, FheTypes } from '@cofhe/sdk';
-import { useCofheDecryptFn, type UseCofheDecryptFnResult } from './useCofheDecryptFn';
+import { useCofheDecrypter, type UseCofheDecrypterResult } from './useCofheDecrypter';
 
 type FetchQueryOptions = {
   queryKey: readonly unknown[];
@@ -65,15 +65,15 @@ function fakeClient(result: unknown = 5n) {
   };
 }
 
-let hook: UseCofheDecryptFnResult;
+let hook: UseCofheDecrypterResult;
 function Probe({ concurrency }: { concurrency?: number }) {
-  hook = useCofheDecryptFn({ concurrency });
+  hook = useCofheDecrypter({ concurrency });
   return null;
 }
 
 const UINT64 = { ctHash: '42', utype: FheTypes.Uint64 } as const;
 
-describe('useCofheDecryptFn', () => {
+describe('useCofheDecrypter', () => {
   beforeEach(() => {
     state.acp = { acp: { hash: '0x1', type: 'self' }, isValid: true, scoped: false, status: 'valid' };
     state.fetchQuery = vi.fn(async (options: FetchQueryOptions) => options.queryFn());
@@ -83,7 +83,7 @@ describe('useCofheDecryptFn', () => {
   it('runs the same query as useCofheDecrypt: key, persisted meta, staleTime Infinity, default retry', async () => {
     renderToString(<Probe />);
 
-    await expect(hook.decrypt(UINT64)).resolves.toBe(5n);
+    await expect(hook.decryptForView(UINT64)).resolves.toBe(5n);
 
     expect(hook.isReady).toBe(true);
     const options = state.fetchQuery.mock.calls[0][0] as FetchQueryOptions;
@@ -102,7 +102,7 @@ describe('useCofheDecryptFn', () => {
     renderToString(<Probe />);
     const onPoll = () => {};
 
-    await expect(hook.decrypt(UINT64, { timeoutMs: 20_000, onPoll, meta: { label: 'Bid' } })).resolves.toBe(7n);
+    await expect(hook.decryptForView(UINT64, { timeoutMs: 20_000, onPoll, meta: { label: 'Bid' } })).resolves.toBe(7n);
 
     expect(client.decryptForView).toHaveBeenCalledWith('42', FheTypes.Uint64);
     expect(builder.withACP).toHaveBeenCalledWith(acp);
@@ -116,8 +116,8 @@ describe('useCofheDecryptFn', () => {
   it('resolves a zero handle to the type zero without a request', async () => {
     renderToString(<Probe />);
 
-    await expect(hook.decrypt({ ctHash: '0x0', utype: FheTypes.Uint64 })).resolves.toBe(0n);
-    await expect(hook.decrypt({ ctHash: '0', utype: FheTypes.Bool })).resolves.toBe(false);
+    await expect(hook.decryptForView({ ctHash: '0x0', utype: FheTypes.Uint64 })).resolves.toBe(0n);
+    await expect(hook.decryptForView({ ctHash: '0', utype: FheTypes.Bool })).resolves.toBe(false);
     expect(state.fetchQuery).not.toHaveBeenCalled();
   });
 
@@ -126,7 +126,7 @@ describe('useCofheDecryptFn', () => {
     renderToString(<Probe />);
 
     expect(hook.isReady).toBe(false);
-    await expect(hook.decrypt(UINT64)).rejects.toMatchObject({ code: CofheErrorCode.ACPExpired });
+    await expect(hook.decryptForView(UINT64)).rejects.toMatchObject({ code: CofheErrorCode.ACPExpired });
     expect(state.fetchQuery).not.toHaveBeenCalled();
   });
 
@@ -139,7 +139,7 @@ describe('useCofheDecryptFn', () => {
     };
     renderToString(<Probe />);
 
-    await expect(hook.decrypt(UINT64)).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
+    await expect(hook.decryptForView(UINT64)).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
     expect(state.fetchQuery).not.toHaveBeenCalled();
   });
 
@@ -148,7 +148,7 @@ describe('useCofheDecryptFn', () => {
     state.fetchQuery = vi.fn(() => new Promise<bigint>((resolve) => resolvers.push(resolve)));
     renderToString(<Probe concurrency={2} />);
 
-    const all = Promise.all([hook.decrypt(UINT64), hook.decrypt(UINT64), hook.decrypt(UINT64)]);
+    const all = Promise.all([hook.decryptForView(UINT64), hook.decryptForView(UINT64), hook.decryptForView(UINT64)]);
     await Promise.resolve();
     expect(state.fetchQuery).toHaveBeenCalledTimes(2);
 

@@ -24,7 +24,7 @@ export function constructCofheDecryptForTxQueryKey(params: {
 
 /**
  * The query one tx decrypt runs as — its key, its `queryFn` and its `meta` — shared by
- * `useCofheDecryptForTx` and `useCofheDecryptFn`, so a proof fetched either way is the same cache
+ * `useCofheDecryptForTx` and `useCofheDecrypter`, so a proof fetched either way is the same cache
  * entry. A proof is a read: a handle maps to one plaintext forever and the contract verifies only
  * `(ctHash, value, signature)`, so nothing but the handle and the ACP keys it.
  */
@@ -120,7 +120,7 @@ export type UseCofheDecryptForTxInput = {
 /**
  * Query hook around `client.decryptForTx`: the plaintext of a handle with the threshold network's
  * signature over it, for a contract to verify on chain (`FHE.verifyDecryptResult` /
- * `FHE.publishDecryptResult`). The declarative counterpart of `useCofheDecryptFn().decryptForTx`:
+ * `FHE.publishDecryptResult`). The declarative counterpart of `useCofheDecrypter().decryptForTx`:
  * mount it on the page that will send the transaction and the proof is ready before the click.
  *
  * A proof never changes, so the query is `staleTime: Infinity` by default and a handle proved

@@ -15,7 +15,7 @@ export function storedACPHashes(snapshot: ACPSnapshot): Set<string> {
 
 /**
  * The ACP-hash segment of a decrypt key, the ACP the value was decrypted with: the last segment
- * of a view decrypt (`constructCofheDecryptQueryKey`) and of a tx decrypt
+ * of a view decrypt (`constructCofheDecryptForViewQueryKey`) and of a tx decrypt
  * (`constructCofheDecryptForTxQueryKey`); `undefined` for any other query.
  */
 function decryptQueryACPHash(queryKey: readonly unknown[]): unknown {

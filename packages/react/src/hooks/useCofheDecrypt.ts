@@ -29,7 +29,7 @@ import type { CofheDecryptMeta, CofheQueryMeta } from '@/meta';
  * ACP), so a value decrypted with one ACP never answers for another: the same handle may be
  * decryptable with a shared ACP and not with the user's own, also when the active ACP changes.
  */
-export function constructCofheDecryptQueryKey(params: {
+export function constructCofheDecryptForViewQueryKey(params: {
   ctHash: string | undefined;
   utype: FheTypes | undefined;
   chainId: number | undefined;
@@ -52,10 +52,10 @@ export function defaultDecryptRetry(failureCount: number, error: Error): boolean
 
 /**
  * The query one decrypt runs as — its key, its `queryFn` and its `meta` — shared by
- * `useCofheDecrypt` and `useCofheDecryptFn`, so a value decrypted either way is the same cache
+ * `useCofheDecrypt` and `useCofheDecrypter`, so a value decrypted either way is the same cache
  * entry, persisted under the same rule and listed once in the activity panel.
  */
-export function cofheDecryptQuery<U extends FheTypes>(params: {
+export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
   client: CofheClient;
   input: EncryptedReturnTypeByUtype<U> | undefined;
   /** The chain the decrypt runs on: the caller's `chainId`, else the connected chain. */
@@ -78,7 +78,7 @@ export function cofheDecryptQuery<U extends FheTypes>(params: {
   const { client, input, decryptChainId, chainId, acp, scoped, onPoll, timeoutMs, meta, context } = params;
   const scopedACP = scoped ? acp : undefined;
   return {
-    queryKey: constructCofheDecryptQueryKey({
+    queryKey: constructCofheDecryptForViewQueryKey({
       ctHash: input?.ctHash.toString(),
       utype: input?.utype,
       chainId: decryptChainId,
@@ -190,7 +190,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const enabled =
     !!input && BigInt(input.ctHash) > 0n && !!client && effectiveACP.isValid && !outOfScope && (userEnabled ?? true);
 
-  const query = cofheDecryptQuery<U>({
+  const query = cofheDecryptForViewQuery<U>({
     client,
     input,
     decryptChainId,

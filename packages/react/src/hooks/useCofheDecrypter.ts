@@ -8,7 +8,7 @@ import {
 } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
 import {
-  cofheDecryptQuery,
+  cofheDecryptForViewQuery,
   defaultDecryptRetry,
   useDropDecryptsOfInvalidACP,
   type CofheDecryptContext,
@@ -25,8 +25,8 @@ import {
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
 
-/** Per-call options of the function `useCofheDecryptFn` returns. */
-export type CofheDecryptFnOptions = {
+/** Per-call options of the function `useCofheDecrypter` returns. */
+export type CofheDecryptForViewFnOptions = {
   /** Consumer-supplied metadata for debug/activity views. */
   meta?: CofheDecryptMeta;
   /** Structural context from the originating read (address/method), for recognition. */
@@ -44,17 +44,17 @@ export type CofheDecryptFnOptions = {
   retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
 };
 
-/** Decrypts one handle; see `useCofheDecryptFn`. */
-export type CofheDecryptFn = <U extends FheTypes>(
+/** Decrypts one handle; see `useCofheDecrypter`. */
+export type CofheDecryptForViewFn = <U extends FheTypes>(
   input: EncryptedReturnTypeByUtype<U>,
-  options?: CofheDecryptFnOptions
+  options?: CofheDecryptForViewFnOptions
 ) => Promise<UnsealedItem<U>>;
 
-/** Per-call options of `decryptForTx`; see `useCofheDecryptFn`. */
-export type CofheDecryptForTxFnOptions = CofheDecryptFnOptions & {
+/** Per-call options of `decryptForTx`; see `useCofheDecrypter`. */
+export type CofheDecryptForTxFnOptions = CofheDecryptForViewFnOptions & {
   /**
    * `null`: the contract allowed the handle publicly (`FHE.allowPublic`), so it decrypts without
-   * an ACP and does not wait for one. Otherwise the hook's ACP decrypts, as for `decrypt`.
+   * an ACP and does not wait for one. Otherwise the hook's ACP decrypts, as for `decryptForView`.
    */
   acp?: null;
   /** The account whose stored ACPs resolve the active ACP; the connected account by default. */
@@ -63,13 +63,13 @@ export type CofheDecryptForTxFnOptions = CofheDecryptFnOptions & {
   retry404TimeoutMs?: number;
 };
 
-/** Decrypts one handle into a plaintext with the network's signature; see `useCofheDecryptFn`. */
+/** Decrypts one handle into a plaintext with the network's signature; see `useCofheDecrypter`. */
 export type CofheDecryptForTxFn = (
   ctHash: bigint | string,
   options?: CofheDecryptForTxFnOptions
 ) => Promise<DecryptForTxResult>;
 
-export type UseCofheDecryptFnOptions = {
+export type UseCofheDecrypterOptions = {
   /**
    * The chain the ciphertexts live on — the connected chain by default. Gates on and decrypts
    * with THAT chain's active ACP, e.g. for values read through a chain-pinned read.
@@ -84,9 +84,9 @@ export type UseCofheDecryptFnOptions = {
   concurrency?: number;
 };
 
-export type UseCofheDecryptFnResult = {
+export type UseCofheDecrypterResult = {
   /** Decrypts one handle through the decrypt cache; rejects without a request while `isReady` is false. */
-  decrypt: CofheDecryptFn;
+  decryptForView: CofheDecryptForViewFn;
   /**
    * Decrypts one handle into a plaintext with the threshold network's signature, for a contract to
    * verify on chain, through the same cache as `useCofheDecryptForTx`. With `acp: null` it needs
@@ -95,7 +95,7 @@ export type UseCofheDecryptFnResult = {
   decryptForTx: CofheDecryptForTxFn;
   /** A client and a valid ACP are at hand, so a call can run. */
   isReady: boolean;
-  /** The ACP `decrypt` uses, with its status: why `isReady` is false, when it is. */
+  /** The ACP `decryptForView` uses, with its status: why `isReady` is false, when it is. */
   acp: CofheEffectiveACP;
 };
 
@@ -148,10 +148,10 @@ function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
  *
  * Each call is the same query `useCofheDecrypt` would run — same cache key, same gate, same
  * persistence, same activity row — so a handle decrypted either way is decrypted once, and
- * `decrypt` returns a cached plaintext without a request. Calls run at most `concurrency` at a
+ * `decryptForView` returns a cached plaintext without a request. Calls run at most `concurrency` at a
  * time; fan out with `Promise.all` freely.
  *
- * Without a valid ACP, or with a SNAPSHOT share that does not list the handle, `decrypt` rejects
+ * Without a valid ACP, or with a SNAPSHOT share that does not list the handle, `decryptForView` rejects
  * with a `CofheError` and sends nothing. A zero handle resolves to the type's zero without a request.
  *
  * `decryptForTx` is the same for a proof — the plaintext with the threshold network's signature,
@@ -159,11 +159,11 @@ function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
  * handle maps to one plaintext forever, so a handle proved once is never requested again. `acp:
  * null` decrypts a publicly allowed handle without an ACP, and then needs only the client.
  */
-export function useCofheDecryptFn({
+export function useCofheDecrypter({
   chainId,
   acp,
   concurrency = 4,
-}: UseCofheDecryptFnOptions = {}): UseCofheDecryptFnResult {
+}: UseCofheDecrypterOptions = {}): UseCofheDecrypterResult {
   const { client } = useCofheContext();
   const queryClient = useInternalQueryClient();
   const connectedChainId = useCofheChainId();
@@ -175,14 +175,14 @@ export function useCofheDecryptFn({
   const isReady = !!client && effectiveACP.isValid;
   const { acp: decryptACP, scoped } = effectiveACP;
 
-  const decrypt = useCallback<CofheDecryptFn>(
+  const decryptForView = useCallback<CofheDecryptForViewFn>(
     async (input, options) => {
       if (!client) {
         throw new CofheError({ code: CofheErrorCode.InternalError, message: 'CoFHE client not initialized' });
       }
       if (BigInt(input.ctHash) === 0n) return zeroPlaintext(input.utype);
-      assertACPDecrypts(effectiveACP, input.ctHash, 'decrypt');
-      const query = cofheDecryptQuery({
+      assertACPDecrypts(effectiveACP, input.ctHash, 'decryptForView');
+      const query = cofheDecryptForViewQuery({
         client,
         input,
         decryptChainId,
@@ -248,5 +248,5 @@ export function useCofheDecryptFn({
     [client, queryClient, decryptChainId, chainId, decryptACP, scoped, effectiveACP, limit]
   );
 
-  return { decrypt, decryptForTx, isReady, acp: effectiveACP };
+  return { decryptForView, decryptForTx, isReady, acp: effectiveACP };
 }
