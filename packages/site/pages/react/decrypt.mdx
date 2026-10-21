@@ -2,13 +2,15 @@
 
 Three hooks decrypt a ciphertext handle in React, one per shape of work. All three go through the SDK client; none asks the user to sign anything, so a view never prompts for an ACP — it waits for one (see [ACPs in React](/react/acp)).
 
+Declarative by default: a value a component renders, and a proof a page will send, are query hooks, so the cache, the ACP gate, retries and the activity panel come for free and the component re-renders as results arrive. The imperative `useCofheDecrypter` is for the two cases a query hook cannot express: the handles are only discovered inside the handler that uses them, or the result is an aggregate nobody renders per handle (a history to sum). Reaching for it because the decrypt happens "on click" is the wrong reason; flip `enabled` on click instead.
+
 Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is a cached query keyed by the handle, never a mutation: a plaintext for the UI and a plaintext with the network's signature for a transaction are both decrypted once and kept. Only encryption (`useCofheEncrypt`) is a mutation — it makes a fresh ciphertext and proof on every call.
 
-| Work                                         | Hook                                                                                                 |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| A value a component renders                  | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
-| A job the user starts over a list of handles | `useCofheDecrypter`, from the click handler                                                          |
-| A plaintext plus proof for a transaction     | `useCofheDecryptForTx` on the page, `useCofheDecrypter().decryptForTx` in the click handler          |
+| Work                                      | Hook                                                                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A value a component renders               | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
+| A plaintext plus proof for a transaction  | `useCofheDecryptForTx`, mounted on the page that sends it                                            |
+| Handles discovered in a handler, or a sum | `useCofheDecrypter`, from that handler                                                               |
 
 ## `useCofheDecrypt` — a value to render
 
@@ -66,7 +68,7 @@ function useRevealBids(bids: Bid[]) {
 }
 ```
 
-Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over the whole list is fine. The hook's own options are `chainId`, `acp` and `concurrency`; each call takes `meta`, `context`, `onPoll`, `timeoutMs`, `staleTime` (`Infinity` by default), `retry` and `signal`.
+Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over the whole list is fine; the client's own `decryptConcurrency` cap (8 by default) sits above every caller. The hook's own options are `chainId`, `acp` and `concurrency`; each call takes `meta`, `context`, `onPoll`, `timeoutMs`, `staleTime` (`Infinity` by default), `retry` and `signal`.
 
 `signal` is an `AbortSignal` for the job the call belongs to: when it fires, a call still waiting for a slot never starts, a request in flight is aborted, and the call rejects with a `CofheError` of code `Aborted`. Abort the job when the user navigates away, and nothing more is sent. A plaintext already in the cache is still returned, and a request already processing on the threshold network is not cancelled.
 
