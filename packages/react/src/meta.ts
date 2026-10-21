@@ -23,8 +23,8 @@ export interface CofheDecryptMeta {
  * and namespaces consumer metadata under `consumer`.
  */
 export interface CofheQueryMeta {
-  /** Which pipeline stage this query is. */
-  kind: 'cofheRead' | 'cofheDecrypt';
+  /** Which pipeline stage this query is: a read, a view decrypt, or a decrypt into a proof for a transaction. */
+  kind: 'cofheRead' | 'cofheDecrypt' | 'cofheDecryptForTx';
   chainId?: number;
   /** Contract address (method context). */
   address?: string;

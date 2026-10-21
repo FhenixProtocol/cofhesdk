@@ -2,11 +2,13 @@
 
 Three hooks decrypt a ciphertext handle in React, one per shape of work. All three go through the SDK client; none asks the user to sign anything, so a view never prompts for an ACP — it waits for one (see [ACPs in React](/react/acp)).
 
+Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is a cached query keyed by the handle, never a mutation: a plaintext for the UI and a plaintext with the network's signature for a transaction are both decrypted once and kept. Only encryption (`useCofheEncrypt`) is a mutation — it makes a fresh ciphertext and proof on every call.
+
 | Work                                         | Hook                                                                                                 |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A value a component renders                  | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
 | A job the user starts over a list of handles | `useCofheDecryptFn`, from a `useMutation`                                                            |
-| A plaintext plus proof for a transaction     | `useCofheDecryptForTx`                                                                               |
+| A plaintext plus proof for a transaction     | `useCofheDecryptForTx` on the page, `useCofheDecryptFn().decryptForTx` in the click handler          |
 
 ## `useCofheDecrypt` — a value to render
 
@@ -57,22 +59,26 @@ Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over 
 
 `isReady` is `false` without a client or a valid ACP; `decrypt` then rejects with a `CofheError` (`ACPRequired` / `ACPExpired`) and sends nothing. The returned `acp` says why. A SNAPSHOT share that does not list the handle rejects with `ACPDenied`. A zero handle — a value never set on chain — resolves to the type's zero without a request.
 
+The hook also returns `decryptForTx(ctHash, options)`: the same function for a proof (see below), through the cache of `useCofheDecryptForTx`. It takes the options above plus `account`, `retry404TimeoutMs` and `acp: null` for a publicly allowed handle, which then needs only the client, not `isReady`. The zero handle rejects: there is nothing to prove.
+
 ## `useCofheDecryptForTx` — a plaintext with proof
 
-A mutation around `client.decryptForTx`: the plaintext and the threshold network's signature over it, for a contract to verify (`FHE.verifyDecryptResult`). Shaped like `useCofheEncrypt`.
+A query around `client.decryptForTx`: the plaintext and the threshold network's signature over it, for a contract to verify (`FHE.verifyDecryptResult`). The contract checks only `(ctHash, value, signature)` — no nonce, no sender, no deadline — so the proof is a pure function of the handle, cached under `[chainId, ctHash, acpHash]` with `staleTime: Infinity`. Mount the hook on the page that will send the transaction and the proof is ready before the click:
 
 ```tsx
 import { useCofheDecryptForTx } from '@cofhe/react';
 
 function ClaimButton({ handle }: { handle: `0x${string}` }) {
-  const { decryptForTxAsync, isDecrypting } = useCofheDecryptForTx();
-  const claim = async () => {
-    // `acp: null`: the contract allowed this handle publicly, no ACP is needed
-    const { decryptedValue, signature } = await decryptForTxAsync({ ctHash: handle, acp: null });
-    // … write the transaction with (decryptedValue, signature)
+  // `acp: null`: the contract allowed this handle publicly, no ACP is needed
+  const { data: proof, isFetching, error } = useCofheDecryptForTx({ ctHash: handle, acp: null });
+  const claim = () => {
+    if (!proof) return;
+    // … write the transaction with (proof.decryptedValue, proof.signature)
   };
-  return <button onClick={claim} disabled={isDecrypting}>Claim</button>;
+  return <button onClick={claim} disabled={!proof || isFetching}>Claim</button>;
 }
 ```
 
-`acp` chooses the mode: `null` for a publicly allowed handle (`withoutACP()`), omitted for the active ACP, or an ACP / stored hash. `chainId`, `account`, `onPoll`, `timeoutMs` and `retry404TimeoutMs` map onto the builder. The result is a proof, not a view, so it is neither cached nor listed in the activity panel.
+In a click handler that first discovers the handle, fetch the proof through the same cache with `useCofheDecryptFn().decryptForTx(ctHash, { acp: null })`.
+
+`acp` chooses the mode: `null` for a publicly allowed handle (`withoutACP()`, which then needs no ACP at all), omitted for the enclosing scope or the active ACP, or an ACP / stored hash. `chainId`, `account`, `onPoll`, `timeoutMs` and `retry404TimeoutMs` map onto the builder; `meta` and `context` and any React Query option work as on `useCofheDecrypt`. A proof decrypted with the user own ACP, or with none, persists across reloads; one decrypted with a shared ACP stays in memory and goes with the share.

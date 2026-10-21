@@ -37,7 +37,7 @@ vi.mock('./useCofheConnection', () => ({
   useCofheChainId: () => 11155111,
 }));
 
-/** A fake client whose view builder records what was configured on it. */
+/** A fake client whose view and tx builders record what was configured on them. */
 function fakeClient(result: unknown = 5n) {
   const builder = {
     setChainId: vi.fn(() => builder),
@@ -46,7 +46,23 @@ function fakeClient(result: unknown = 5n) {
     setTimeout: vi.fn(() => builder),
     execute: vi.fn(async () => result),
   };
-  return { builder, client: { decryptForView: vi.fn(() => builder) } };
+  const proof = { ctHash: '42', decryptedValue: 9n, signature: '0xsig' };
+  const txBuilder = {
+    setChainId: vi.fn(() => txBuilder),
+    setAccount: vi.fn(() => txBuilder),
+    onPoll: vi.fn(() => txBuilder),
+    setTimeout: vi.fn(() => txBuilder),
+    set404RetryTimeout: vi.fn(() => txBuilder),
+    withACP: vi.fn(() => txBuilder),
+    withoutACP: vi.fn(() => txBuilder),
+    execute: vi.fn(async () => proof),
+  };
+  return {
+    builder,
+    txBuilder,
+    proof,
+    client: { decryptForView: vi.fn(() => builder), decryptForTx: vi.fn(() => txBuilder) },
+  };
 }
 
 let hook: UseCofheDecryptFnResult;
@@ -144,5 +160,57 @@ describe('useCofheDecryptFn', () => {
     resolvers[1](2n);
     resolvers[2](3n);
     await expect(all).resolves.toEqual([1n, 2n, 3n]);
+  });
+
+  describe('decryptForTx', () => {
+    it('runs the same query as useCofheDecryptForTx with the hook ACP: key, persisted meta, staleTime Infinity', async () => {
+      const { client, txBuilder, proof } = fakeClient();
+      state.client = client;
+      renderToString(<Probe />);
+
+      await expect(hook.decryptForTx('42', { meta: { label: 'Claim' } })).resolves.toBe(proof);
+
+      expect(client.decryptForTx).toHaveBeenCalledWith('42');
+      expect(txBuilder.withACP).toHaveBeenCalledWith();
+      const options = state.fetchQuery.mock.calls[0][0] as FetchQueryOptions;
+      expect(options.queryKey).toEqual(['decryptForTx', 11155111, '42', '0x1']);
+      expect(options.meta).toMatchObject({ kind: 'cofheDecryptForTx', persist: true, consumer: { label: 'Claim' } });
+      expect(options.staleTime).toBe(Infinity);
+      expect(options.retry(0, new CofheError({ code: CofheErrorCode.InternalError, message: 'final' }))).toBe(false);
+    });
+
+    it('`acp: null` decrypts a publicly allowed handle without an ACP, even without a valid one', async () => {
+      state.acp = { acp: undefined, isValid: false, scoped: false, status: 'missing' };
+      const { client, txBuilder, proof } = fakeClient();
+      state.client = client;
+      renderToString(<Probe />);
+      const onPoll = () => {};
+
+      await expect(
+        hook.decryptForTx(42n, { acp: null, account: '0xabc', onPoll, timeoutMs: 20_000, retry404TimeoutMs: 15_000 })
+      ).resolves.toBe(proof);
+
+      expect(hook.isReady).toBe(false);
+      expect(txBuilder.withoutACP).toHaveBeenCalledOnce();
+      expect(txBuilder.withACP).not.toHaveBeenCalled();
+      expect(txBuilder.setAccount).toHaveBeenCalledWith('0xabc');
+      expect(txBuilder.onPoll).toHaveBeenCalledWith(onPoll);
+      expect(txBuilder.setTimeout).toHaveBeenCalledWith(20_000);
+      expect(txBuilder.set404RetryTimeout).toHaveBeenCalledWith(15_000);
+      const options = state.fetchQuery.mock.calls[0][0] as FetchQueryOptions;
+      expect(options.queryKey).toEqual(['decryptForTx', 11155111, '42', null]);
+      expect(options.meta).toMatchObject({ persist: true });
+    });
+
+    it('rejects the zero handle, and without a valid ACP unless `acp: null`', async () => {
+      state.acp = { acp: { hash: '0x1', type: 'self' }, isValid: false, scoped: false, status: 'expired' };
+      renderToString(<Probe />);
+
+      await expect(hook.decryptForTx('0x0', { acp: null })).rejects.toMatchObject({
+        code: CofheErrorCode.DecryptFailed,
+      });
+      await expect(hook.decryptForTx('42')).rejects.toMatchObject({ code: CofheErrorCode.ACPExpired });
+      expect(state.fetchQuery).not.toHaveBeenCalled();
+    });
   });
 });

@@ -13,7 +13,15 @@ import {
   useDropDecryptsOfInvalidACP,
   type CofheDecryptContext,
 } from './useCofheDecrypt';
-import { CofheError, CofheErrorCode, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
+import { cofheDecryptForTxQuery } from './useCofheDecryptForTx';
+import {
+  CofheError,
+  CofheErrorCode,
+  FheTypes,
+  type DecryptForTxResult,
+  type DecryptPollCallbackFunction,
+  type UnsealedItem,
+} from '@cofhe/sdk';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
 
@@ -42,6 +50,25 @@ export type CofheDecryptFn = <U extends FheTypes>(
   options?: CofheDecryptFnOptions
 ) => Promise<UnsealedItem<U>>;
 
+/** Per-call options of `decryptForTx`; see `useCofheDecryptFn`. */
+export type CofheDecryptForTxFnOptions = CofheDecryptFnOptions & {
+  /**
+   * `null`: the contract allowed the handle publicly (`FHE.allowPublic`), so it decrypts without
+   * an ACP and does not wait for one. Otherwise the hook's ACP decrypts, as for `decrypt`.
+   */
+  acp?: null;
+  /** The account whose stored ACPs resolve the active ACP; the connected account by default. */
+  account?: string;
+  /** How long a submit-time `404 ct_not_found` (handle not indexed yet) is retried; 10 seconds by default. */
+  retry404TimeoutMs?: number;
+};
+
+/** Decrypts one handle into a plaintext with the network's signature; see `useCofheDecryptFn`. */
+export type CofheDecryptForTxFn = (
+  ctHash: bigint | string,
+  options?: CofheDecryptForTxFnOptions
+) => Promise<DecryptForTxResult>;
+
 export type UseCofheDecryptFnOptions = {
   /**
    * The chain the ciphertexts live on — the connected chain by default. Gates on and decrypts
@@ -60,6 +87,12 @@ export type UseCofheDecryptFnOptions = {
 export type UseCofheDecryptFnResult = {
   /** Decrypts one handle through the decrypt cache; rejects without a request while `isReady` is false. */
   decrypt: CofheDecryptFn;
+  /**
+   * Decrypts one handle into a plaintext with the threshold network's signature, for a contract to
+   * verify on chain, through the same cache as `useCofheDecryptForTx`. With `acp: null` it needs
+   * only the client, not `isReady`.
+   */
+  decryptForTx: CofheDecryptForTxFn;
   /** A client and a valid ACP are at hand, so a call can run. */
   isReady: boolean;
   /** The ACP `decrypt` uses, with its status: why `isReady` is false, when it is. */
@@ -71,6 +104,25 @@ function zeroPlaintext<U extends FheTypes>(utype: U): UnsealedItem<U> {
   if (utype === FheTypes.Bool) return false as UnsealedItem<U>;
   if (utype === FheTypes.Uint160) return '0x0000000000000000000000000000000000000000' as UnsealedItem<U>;
   return 0n as UnsealedItem<U>;
+}
+
+/** The reasons a call must not be sent: no valid ACP, or a SNAPSHOT share that does not list the handle. */
+function assertACPDecrypts(effectiveACP: CofheEffectiveACP, ctHash: bigint | string, operation: string): void {
+  const { acp, scoped, status } = effectiveACP;
+  if (!effectiveACP.isValid) {
+    throw new CofheError({
+      code: status === 'expired' ? CofheErrorCode.ACPExpired : CofheErrorCode.ACPRequired,
+      message: `${operation}: no valid ACP to decrypt with (${status})`,
+      hint: 'Create or activate an ACP, or wait for the chosen one to be checked, before decrypting.',
+    });
+  }
+  if (isHandleOutOfScope(scoped ? acp : undefined, ctHash)) {
+    throw new CofheError({
+      code: CofheErrorCode.ACPDenied,
+      message: `${operation}: the handle is not listed in the SNAPSHOT share that would decrypt it`,
+      context: { ctHash: ctHash.toString(), acpHash: acp?.hash },
+    });
+  }
 }
 
 /** Runs tasks at most `max` at a time, in call order. */
@@ -101,6 +153,11 @@ function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
  *
  * Without a valid ACP, or with a SNAPSHOT share that does not list the handle, `decrypt` rejects
  * with a `CofheError` and sends nothing. A zero handle resolves to the type's zero without a request.
+ *
+ * `decryptForTx` is the same for a proof — the plaintext with the threshold network's signature,
+ * for a contract to verify — through the cache of `useCofheDecryptForTx`. A proof is a read too: a
+ * handle maps to one plaintext forever, so a handle proved once is never requested again. `acp:
+ * null` decrypts a publicly allowed handle without an ACP, and then needs only the client.
  */
 export function useCofheDecryptFn({
   chainId,
@@ -116,7 +173,7 @@ export function useCofheDecryptFn({
   const limit = useMemo(() => createLimiter(concurrency), [concurrency]);
 
   const isReady = !!client && effectiveACP.isValid;
-  const { acp: decryptACP, scoped, status } = effectiveACP;
+  const { acp: decryptACP, scoped } = effectiveACP;
 
   const decrypt = useCallback<CofheDecryptFn>(
     async (input, options) => {
@@ -124,20 +181,7 @@ export function useCofheDecryptFn({
         throw new CofheError({ code: CofheErrorCode.InternalError, message: 'CoFHE client not initialized' });
       }
       if (BigInt(input.ctHash) === 0n) return zeroPlaintext(input.utype);
-      if (!effectiveACP.isValid) {
-        throw new CofheError({
-          code: status === 'expired' ? CofheErrorCode.ACPExpired : CofheErrorCode.ACPRequired,
-          message: `decrypt: no valid ACP to decrypt with (${status})`,
-          hint: 'Create or activate an ACP, or wait for the chosen one to be checked, before decrypting.',
-        });
-      }
-      if (isHandleOutOfScope(scoped ? decryptACP : undefined, input.ctHash)) {
-        throw new CofheError({
-          code: CofheErrorCode.ACPDenied,
-          message: 'decrypt: the handle is not listed in the SNAPSHOT share that would decrypt it',
-          context: { ctHash: input.ctHash.toString(), acpHash: decryptACP?.hash },
-        });
-      }
+      assertACPDecrypts(effectiveACP, input.ctHash, 'decrypt');
       const query = cofheDecryptQuery({
         client,
         input,
@@ -160,8 +204,49 @@ export function useCofheDecryptFn({
         })
       );
     },
-    [client, queryClient, decryptChainId, chainId, decryptACP, scoped, status, effectiveACP.isValid, limit]
+    [client, queryClient, decryptChainId, chainId, decryptACP, scoped, effectiveACP, limit]
   );
 
-  return { decrypt, isReady, acp: effectiveACP };
+  const decryptForTx = useCallback<CofheDecryptForTxFn>(
+    async (ctHash, options) => {
+      if (!client) {
+        throw new CofheError({ code: CofheErrorCode.InternalError, message: 'CoFHE client not initialized' });
+      }
+      if (BigInt(ctHash) === 0n) {
+        throw new CofheError({
+          code: CofheErrorCode.DecryptFailed,
+          message: 'decryptForTx: the zero handle has no value to prove',
+          hint: 'A zero handle is a value never set on chain; nothing can be revealed from it.',
+        });
+      }
+      const withoutACP = options?.acp === null;
+      if (!withoutACP) assertACPDecrypts(effectiveACP, ctHash, 'decryptForTx');
+      const query = cofheDecryptForTxQuery({
+        client,
+        ctHash,
+        decryptChainId,
+        chainId,
+        account: options?.account,
+        acp: withoutACP ? null : decryptACP,
+        scoped,
+        onPoll: options?.onPoll,
+        timeoutMs: options?.timeoutMs,
+        retry404TimeoutMs: options?.retry404TimeoutMs,
+        meta: options?.meta,
+        context: options?.context,
+      });
+      return limit(() =>
+        queryClient.fetchQuery({
+          queryKey: query.queryKey,
+          queryFn: query.queryFn,
+          meta: query.meta,
+          staleTime: options?.staleTime ?? Infinity,
+          retry: options?.retry ?? defaultDecryptRetry,
+        })
+      );
+    },
+    [client, queryClient, decryptChainId, chainId, decryptACP, scoped, effectiveACP, limit]
+  );
+
+  return { decrypt, decryptForTx, isReady, acp: effectiveACP };
 }
