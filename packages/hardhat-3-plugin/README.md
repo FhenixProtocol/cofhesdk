@@ -4,7 +4,7 @@ A [Hardhat 3](https://hardhat.org) plugin for [CoFHE](https://docs.fhenix.io) de
 
 ## Features
 
-- Automatically deploys the core CoFHE mock contracts (`MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockThresholdNetwork`) on every `network.connect()`
+- Automatically deploys the core CoFHE mock contracts (`MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockThresholdNetwork`) when connecting to an in-process Hardhat network or the plugin-injected `localcofhe` network
 - Exposes `conn.cofhe` on the Hardhat 3 connection object (compatible with `@nomicfoundation/hardhat-viem`'s `conn.viem`)
 - Provides a batteries-included `cofhe.createClientWithBatteries()` for quick SDK client setup
 - Mock-specific helpers: plaintext inspection, logging control, and Viem contract descriptors for every mock
@@ -57,10 +57,7 @@ export default defineConfig({
 
 ### The `cofhe` connection object
 
-Every call to `network.connect()` automatically:
-
-1. Deploys the core CoFHE mock contracts to the fresh in-process EVM
-2. Attaches a `cofhe` namespace to the returned connection object
+Every call to `network.connect()` attaches a `cofhe` namespace to the returned connection object. For an in-process Hardhat network or the plugin-injected `localcofhe` preset, it also deploys the core CoFHE mock contracts automatically.
 
 Because `network.connect()` is awaitable at the top level of an `async describe`, you can set everything up without lifecycle hooks:
 
@@ -222,7 +219,7 @@ await cofhe.mocks.withLogs('my test', async () => {
 
 #### `cofhe.mocks.deployMocks(options?)`
 
-Re-deploys the core mock contracts. They are deployed automatically on every `network.connect()`.
+Re-deploys the core mock contracts. They are deployed automatically for in-process Hardhat and plugin-injected `localcofhe` connections. Other HTTP networks are not probed or modified automatically; call this method to opt in explicitly.
 
 ```typescript
 await cofhe.mocks.deployMocks({ gasWarning: false, mocksDeployVerbosity: '' });
@@ -237,7 +234,7 @@ await cofhe.mocks.deployMocks({ gasWarning: false, mocksDeployVerbosity: '' });
 
 ## Mock contracts
 
-The plugin deploys these core contracts automatically on every `network.connect()`:
+The plugin deploys these core contracts automatically on in-process Hardhat and plugin-injected `localcofhe` connections:
 
 | Contract               | Address                                      | Description                                             |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------- |
