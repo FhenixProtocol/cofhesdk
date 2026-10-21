@@ -7,7 +7,7 @@ Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is
 | Work                                         | Hook                                                                                                 |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A value a component renders                  | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
-| A job the user starts over a list of handles | `useCofheDecrypter`, from a `useMutation`                                                            |
+| A job the user starts over a list of handles | `useCofheDecrypter`, from the click handler                                                          |
 | A plaintext plus proof for a transaction     | `useCofheDecryptForTx` on the page, `useCofheDecrypter().decryptForTx` in the click handler          |
 
 ## `useCofheDecrypt` — a value to render
@@ -35,23 +35,34 @@ Options: `chainId` (the chain the handle lives on, the connected chain by defaul
 The imperative counterpart: a hook whose `decryptForView` decrypts one handle on demand, for work a component does not render per value — a history to sum, a set of bids to reveal. Each call is the same query `useCofheDecrypt` would run: same key, same gate, same persistence, same activity row. A handle decrypted either way is decrypted once, and a cached plaintext comes back without a request.
 
 ```tsx
-import { useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useCofheDecrypter } from '@cofhe/react';
 import { FheTypes } from '@cofhe/sdk';
 
-function useRevealBids(bids: { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` }[]) {
+type Bid = { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` };
+
+function useRevealBids(bids: Bid[]) {
   const { decryptForView, isReady } = useCofheDecrypter();
-  const reveal = useMutation({
-    mutationFn: () =>
-      Promise.all(
-        bids.map(async (bid) => {
-          const u64 = (ctHash: `0x${string}`) => decryptForView({ ctHash, utype: FheTypes.Uint64 }, { meta: { label: `Bid ${bid.id}` } });
-          const [quantity, paid] = await Promise.all([u64(bid.eQuantity), u64(bid.ePaid)]);
-          return { id: bid.id, quantity, paid };
-        })
-      ),
-  });
-  return { ...reveal, canReveal: isReady };
+  const [revealed, setRevealed] = useState<Map<string, { quantity: bigint; paid: bigint }>>(new Map());
+  const [revealing, setRevealing] = useState(false);
+
+  const revealAll = async () => {
+    if (revealing || !isReady) return;
+    setRevealing(true);
+    const u64 = (ctHash: `0x${string}`, label: string) =>
+      decryptForView({ ctHash, utype: FheTypes.Uint64 }, { meta: { label } });
+    const next = new Map(revealed);
+    await Promise.all(
+      bids.map(async (bid) => {
+        const [quantity, paid] = await Promise.all([u64(bid.eQuantity, `Bid ${bid.id}`), u64(bid.ePaid, `Bid ${bid.id}`)]);
+        next.set(bid.id, { quantity, paid });
+      })
+    );
+    setRevealed(next);
+    setRevealing(false);
+  };
+
+  return { revealed, revealing, canReveal: isReady, revealAll };
 }
 ```
 

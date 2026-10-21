@@ -144,7 +144,7 @@ function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
 /**
  * The imperative counterpart of `useCofheDecrypt`: a function that decrypts one handle on demand,
  * for the work a component does not render per value — a job the user starts over a list of
- * handles (a history to sum, a set of bids to reveal), typically from a `useMutation`.
+ * handles (a history to sum, a set of bids to reveal), from the handler that starts it.
  *
  * Each call is the same query `useCofheDecrypt` would run — same cache key, same gate, same
  * persistence, same activity row — so a handle decrypted either way is decrypted once, and
