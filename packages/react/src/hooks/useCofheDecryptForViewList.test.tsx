@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FheTypes } from '@cofhe/sdk';
-import { useCofheDecrypts, type UseCofheDecryptsInput } from './useCofheDecrypts';
+import { useCofheDecryptForViewList, type UseCofheDecryptForViewListInput } from './useCofheDecryptForViewList';
 
 type QueryOptions = {
   enabled: boolean;
@@ -45,14 +45,14 @@ function Probe({
   inputs,
   queryOptions,
 }: {
-  inputs: UseCofheDecryptsInput<FheTypes>['inputs'];
+  inputs: UseCofheDecryptForViewListInput<FheTypes>['inputs'];
   queryOptions?: Record<string, unknown>;
 }) {
-  useCofheDecrypts({ inputs, meta: (input) => ({ label: `Bid ${input.ctHash}` }) }, queryOptions);
+  useCofheDecryptForViewList({ inputs, meta: (input) => ({ label: `Bid ${input.ctHash}` }) }, queryOptions);
   return null;
 }
 
-describe('useCofheDecrypts', () => {
+describe('useCofheDecryptForViewList', () => {
   beforeEach(() => {
     state.acp = { acp: { hash: '0x1', type: 'self' }, isValid: true, scoped: false, status: 'valid' };
     state.queries = [];

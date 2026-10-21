@@ -9,7 +9,7 @@ Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is
 | Work                                      | Hook                                                                                                 |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A value a component renders               | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
-| A list of values, or a total over them    | `useCofheDecrypts`, one query per handle                                                             |
+| A list of values, or a total over them    | `useCofheDecryptForViewList`, one query per handle                                                   |
 | A plaintext plus proof for a transaction  | `useCofheDecryptForTx`, mounted on the page that sends it                                            |
 | Handles discovered in a handler, or a sum | `useCofheDecrypter`, from that handler                                                               |
 
@@ -33,19 +33,19 @@ function Amount({ handle }: { handle: `0x${string}` }) {
 
 Options: `chainId` (the chain the handle lives on, the connected chain by default), `acp` (decrypt with this ACP instead of the enclosing scope or the active one), `timeoutMs` (the decrypt's whole budget, 5 minutes by default), `onPoll`, `meta` and `context` for the activity panel, and any React Query option as the second argument.
 
-## `useCofheDecrypts` — a list of values
+## `useCofheDecryptForViewList` — a list of values
 
 `useCofheDecrypt` for a list: one query per handle, the same keys, gate, persistence and activity rows, returned in the order of `inputs`. For a list a component renders, or a total it derives from every value, when the handles are known at render time. The client's `decryptConcurrency` cap bounds how many requests run at once, so a long list is safe.
 
 ```tsx
 import { useMemo } from 'react';
-import { useCofheDecrypts } from '@cofhe/react';
+import { useCofheDecryptForViewList } from '@cofhe/react';
 import { FheTypes } from '@cofhe/sdk';
 
 type Bid = { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` };
 
 function useBidTotals(bids: Bid[], enabled: boolean) {
-  const results = useCofheDecrypts(
+  const results = useCofheDecryptForViewList(
     {
       inputs: bids.flatMap((bid) => [
         { ctHash: bid.eQuantity, utype: FheTypes.Uint64 },

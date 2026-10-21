@@ -13,7 +13,7 @@ import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
 
-export type UseCofheDecryptsInput<U extends FheTypes> = {
+export type UseCofheDecryptForViewListInput<U extends FheTypes> = {
   /** The handles to decrypt, in the order the results come back; `undefined` entries stay idle. */
   inputs: ReadonlyArray<EncryptedReturnTypeByUtype<U> | undefined>;
   /** Consumer-supplied metadata for debug/activity views, one for all or one per entry. */
@@ -43,8 +43,8 @@ export type UseCofheDecryptsInput<U extends FheTypes> = {
  *
  * A zero handle — a value never set on chain — reads as the type's zero without a request.
  */
-export function useCofheDecrypts<U extends FheTypes, TSelectedData = UnsealedItem<U>>(
-  { inputs, meta, context, onPoll, chainId, acp, timeoutMs }: UseCofheDecryptsInput<U>,
+export function useCofheDecryptForViewList<U extends FheTypes, TSelectedData = UnsealedItem<U>>(
+  { inputs, meta, context, onPoll, chainId, acp, timeoutMs }: UseCofheDecryptForViewListInput<U>,
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSelectedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSelectedData, Error>[] {
   const { client } = useCofheContext();
