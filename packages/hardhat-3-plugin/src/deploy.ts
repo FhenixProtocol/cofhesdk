@@ -58,10 +58,11 @@ let verbosity: LogMocksDeploy = 'v';
 // ─── Public entrypoint ────────────────────────────────────────────────────────
 
 /**
- * Returns true when the provider supports Hardhat-specific RPC methods (i.e.
- * it is an in-process Hardhat / EDR network, or localcofhe).
+ * Returns true when the provider responds to Hardhat-specific RPC methods.
+ * This is a capability check for explicit deployment requests, not a trust
+ * signal for deciding whether a connection may deploy automatically.
  */
-async function isLocalHardhatNetwork(publicClient: PublicClient): Promise<boolean> {
+async function supportsHardhatRpcMethods(publicClient: PublicClient): Promise<boolean> {
   try {
     await (publicClient as any).request({ method: 'hardhat_metadata', params: [] });
     return true;
@@ -74,7 +75,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   const { gasWarning = true } = options;
   verbosity = options.mocksDeployVerbosity ?? 'v';
 
-  if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
+  if (!(await supportsHardhatRpcMethods(ctx.publicClient))) {
     log('v', `cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
     return {} as DeployedMockContracts;
   }

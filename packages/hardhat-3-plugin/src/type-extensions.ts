@@ -126,8 +126,9 @@ declare module 'hardhat/types/config' {
 declare module 'hardhat/types/network' {
   interface NetworkConnection {
     /**
-     * CoFHE mock environment — ready to use immediately after network.connect().
-     * Core mock contracts are deployed automatically on every connect().
+     * CoFHE helpers attached to every network connection.
+     * Core mocks are deployed automatically only for trusted local presets;
+     * other connections can opt in with `cofhe.mocks.deployMocks()`.
      * Contracts like SimpleTest should be deployed explicitly when a test needs them.
      */
     cofhe: CofheConnection;
