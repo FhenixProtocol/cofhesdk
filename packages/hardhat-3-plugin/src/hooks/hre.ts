@@ -17,7 +17,7 @@ import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, type CofheInputConfig } from '@co
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node';
 import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
 
-import { deployMocks, type DeployMocksArgs, type DeployedMockContracts } from '../deploy.js';
+import { deployMocks, COFHE_CONTRACTS_NPM_PATHS, type DeployMocksArgs, type DeployedMockContracts } from '../deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from '../logging.js';
 import { mock_getPlaintext, mock_expectPlaintext, getMockContractsNpmPaths } from '../utils.js';
 import { mock_getAdjustedGasBreakdown, mock_getAdjustedGasUsed, registerGasSummaryConnection } from '../gas.js';
@@ -157,7 +157,10 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
     const mockPaths = getMockContractsNpmPaths();
     if (mockPaths.length > 0) {
       try {
-        const buildResult = await hre.solidity.build(mockPaths, { quiet: true, scope: 'contracts' });
+        const buildResult = await hre.solidity.build([...mockPaths, ...COFHE_CONTRACTS_NPM_PATHS], {
+          quiet: true,
+          scope: 'contracts',
+        });
         assertSuccessfulMockBuild(hre, buildResult);
       } catch (err: any) {
         const cause = err?.cause ?? err;
