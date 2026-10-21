@@ -82,6 +82,25 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'accessList',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'isAllowed',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'acl',
       inputs: [],
       outputs: [
@@ -92,6 +111,19 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'addToAccessList',
+      inputs: [
+        {
+          name: 'accounts',
+          type: 'address[]',
+          internalType: 'address[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',
@@ -706,6 +738,19 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'pure',
+    },
+    {
+      type: 'function',
+      name: 'removeFromAccessList',
+      inputs: [
+        {
+          name: 'accounts',
+          type: 'address[]',
+          internalType: 'address[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',

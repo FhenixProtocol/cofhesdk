@@ -81,7 +81,9 @@ export interface MockTaskManagerInterface extends Interface {
       | 'MOCK_dispatchOperation'
       | 'MOCK_logAllow'
       | 'MOCK_setInEuintKey'
+      | 'accessList'
       | 'acl'
+      | 'addToAccessList'
       | 'aggregator'
       | 'allow'
       | 'allowForDecryption'
@@ -110,6 +112,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'publishDecryptResultBatch'
       | 'receiveCtHash'
       | 'removeFirstLetter'
+      | 'removeFromAccessList'
       | 'setACLContract'
       | 'setAggregator'
       | 'setDecryptResultSigner'
@@ -137,7 +140,9 @@ export interface MockTaskManagerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: 'MOCK_logAllow', values: [string, BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'MOCK_setInEuintKey', values: [BigNumberish, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'accessList', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'acl', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'addToAccessList', values: [AddressLike[]]): string;
   encodeFunctionData(functionFragment: 'aggregator', values?: undefined): string;
   encodeFunctionData(functionFragment: 'allow', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowForDecryption', values: [BigNumberish]): string;
@@ -178,6 +183,7 @@ export interface MockTaskManagerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: 'receiveCtHash', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'removeFirstLetter', values: [string]): string;
+  encodeFunctionData(functionFragment: 'removeFromAccessList', values: [AddressLike[]]): string;
   encodeFunctionData(functionFragment: 'setACLContract', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setAggregator', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setDecryptResultSigner', values: [AddressLike]): string;
@@ -206,7 +212,9 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'MOCK_dispatchOperation', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_logAllow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_setInEuintKey', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'accessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'acl', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'addToAccessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'aggregator', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowForDecryption', data: BytesLike): Result;
@@ -235,6 +243,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'publishDecryptResultBatch', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'receiveCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'removeFirstLetter', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'removeFromAccessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setACLContract', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setAggregator', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setDecryptResultSigner', data: BytesLike): Result;
@@ -357,7 +366,11 @@ export interface MockTaskManager extends BaseContract {
 
   MOCK_setInEuintKey: TypedContractMethod<[ctHash: BigNumberish, value: BigNumberish], [void], 'nonpayable'>;
 
+  accessList: TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
+
   acl: TypedContractMethod<[], [string], 'view'>;
+
+  addToAccessList: TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
 
   aggregator: TypedContractMethod<[], [string], 'view'>;
 
@@ -447,6 +460,8 @@ export interface MockTaskManager extends BaseContract {
 
   removeFirstLetter: TypedContractMethod<[str: string], [string], 'view'>;
 
+  removeFromAccessList: TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
+
   setACLContract: TypedContractMethod<[_aclAddress: AddressLike], [void], 'nonpayable'>;
 
   setAggregator: TypedContractMethod<[_aggregatorAddress: AddressLike], [void], 'nonpayable'>;
@@ -508,7 +523,9 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'MOCK_setInEuintKey'
   ): TypedContractMethod<[ctHash: BigNumberish, value: BigNumberish], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'accessList'): TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
   getFunction(nameOrSignature: 'acl'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'addToAccessList'): TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'aggregator'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'allow'
@@ -581,6 +598,9 @@ export interface MockTaskManager extends BaseContract {
     nameOrSignature: 'receiveCtHash'
   ): TypedContractMethod<[ctHash: BigNumberish, expectedSharer: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'removeFirstLetter'): TypedContractMethod<[str: string], [string], 'view'>;
+  getFunction(
+    nameOrSignature: 'removeFromAccessList'
+  ): TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'setACLContract'): TypedContractMethod<[_aclAddress: AddressLike], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'setAggregator'

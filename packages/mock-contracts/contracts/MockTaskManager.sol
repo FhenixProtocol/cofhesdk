@@ -3,7 +3,7 @@
 pragma solidity >=0.8.25 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
-import { ACP } from './Permissioned.sol';
+import { ACP } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 // import {PlaintextsStorage} from "./PlaintextsStorage.sol";
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
@@ -835,6 +835,21 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
+
+  // Access list (cofhe-contracts 1.0.2): the mock only records the accounts, nothing is gated.
+  mapping(address account => bool isAllowed) public accessList;
+
+  function addToAccessList(address[] calldata accounts) external {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      accessList[accounts[i]] = true;
+    }
+  }
+
+  function removeFromAccessList(address[] calldata accounts) external {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      accessList[accounts[i]] = false;
+    }
+  }
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
     if (!isValidSecurityZone(securityZone)) {
