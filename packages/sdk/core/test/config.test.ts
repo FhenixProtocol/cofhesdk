@@ -284,3 +284,18 @@ describe('createCofheConfigBase - stale key rejection', () => {
     expect(() => createCofheConfigBase({ ...validBaseConfig, defaultACPExpiration: 60 })).not.toThrow();
   });
 });
+
+describe('decryptConcurrency', () => {
+  it('defaults to 8 and accepts Infinity', () => {
+    expect(createCofheConfigBase({ supportedChains: [] }).decryptConcurrency).toBe(8);
+    expect(createCofheConfigBase({ supportedChains: [], decryptConcurrency: Infinity }).decryptConcurrency).toBe(
+      Infinity
+    );
+  });
+
+  it('rejects a cap below 1', () => {
+    expect(() => createCofheConfigBase({ supportedChains: [], decryptConcurrency: 0 })).toThrow(
+      'Invalid cofhe configuration'
+    );
+  });
+});

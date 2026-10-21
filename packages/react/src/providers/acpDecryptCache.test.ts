@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { removeDecryptsOfACPs, storedACPHashes } from './acpDecryptCache';
 
 const decryptKey = (ctHash: string, acpHash: string | undefined) => ['decryptCiphertext', 1, ctHash, 2, acpHash];
+const proofKey = (ctHash: string, acpHash: string | null) => ['decryptForTx', 1, ctHash, acpHash];
 
 describe('storedACPHashes', () => {
   it('collects the hashes of every stored ACP across chains and accounts, skipping empty slots', () => {
@@ -33,6 +34,21 @@ describe('removeDecryptsOfACPs', () => {
     expect(keys).toContainEqual(decryptKey('0x1', undefined));
     expect(keys).toContainEqual(decryptKey('0x3', 'other'));
     expect(keys).toContainEqual(['cofheReadContract', 1, '0x1', 'shared']);
+  });
+
+  it('drops the proofs keyed under the given ACP hashes, not those decrypted without an ACP', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(proofKey('0x1', 'shared'), { decryptedValue: 1n });
+    queryClient.setQueryData(proofKey('0x2', null), { decryptedValue: 2n });
+    queryClient.setQueryData(proofKey('0x3', 'other'), { decryptedValue: 3n });
+
+    removeDecryptsOfACPs(queryClient, new Set(['shared']));
+
+    const keys = queryClient
+      .getQueryCache()
+      .getAll()
+      .map((query) => query.queryKey);
+    expect(keys).toStrictEqual([proofKey('0x2', null), proofKey('0x3', 'other')]);
   });
 
   it('does nothing for an empty set', () => {

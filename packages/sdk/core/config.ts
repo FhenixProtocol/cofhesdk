@@ -18,6 +18,12 @@ export type CofheConfig = {
   /** Default acp expiration in seconds, default is 30 days */
   defaultACPExpiration: number;
   /**
+   * How many decrypts (`decryptForView` / `decryptForTx`) this client sends to the threshold
+   * network at a time; the rest wait their turn. A list of values decrypted at once stays within
+   * it without a limiter of its own. `Infinity` disables the cap. Default: 8
+   */
+  decryptConcurrency: number;
+  /**
    * Storage scheme for the fetched fhe keys
    * FHE keys are large, and caching prevents re-fetching them on each encryptInputs call
    * (defaults to indexedDB on web, filesystem on node)
@@ -117,6 +123,11 @@ export const CofheConfigSchema = z.object({
     .number()
     .optional()
     .default(60 * 60 * 24 * 30),
+  /** Decrypts sent to the threshold network at a time per client; `Infinity` disables the cap (default 8) */
+  decryptConcurrency: z
+    .union([z.number().min(1), z.literal(Infinity)])
+    .optional()
+    .default(8),
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
   fheKeyStorage: z
     .object({

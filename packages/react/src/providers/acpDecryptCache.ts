@@ -14,16 +14,26 @@ export function storedACPHashes(snapshot: ACPSnapshot): Set<string> {
 }
 
 /**
- * Drop every decrypt cached under one of `acpHashes`: the ACP-hash segment of the decrypt key
- * (see `constructCofheDecryptQueryKey`), the ACP each value was decrypted with.
+ * The ACP-hash segment of a decrypt key, the ACP the value was decrypted with: the last segment
+ * of a view decrypt (`constructCofheDecryptForViewQueryKey`) and of a tx decrypt
+ * (`constructCofheDecryptForTxQueryKey`); `undefined` for any other query.
+ */
+function decryptQueryACPHash(queryKey: readonly unknown[]): unknown {
+  if (queryKey[0] === 'decryptCiphertext') return queryKey[4];
+  if (queryKey[0] === 'decryptForTx') return queryKey[3];
+  return undefined;
+}
+
+/**
+ * Drop every decrypt — a plaintext or a proof — cached under one of `acpHashes`.
  */
 export function removeDecryptsOfACPs(queryClient: QueryClient, acpHashes: ReadonlySet<string>): void {
   if (acpHashes.size === 0) return;
   queryClient.removeQueries({
-    predicate: (query) =>
-      query.queryKey[0] === 'decryptCiphertext' &&
-      typeof query.queryKey[4] === 'string' &&
-      acpHashes.has(query.queryKey[4]),
+    predicate: (query) => {
+      const acpHash = decryptQueryACPHash(query.queryKey);
+      return typeof acpHash === 'string' && acpHashes.has(acpHash);
+    },
   });
 }
 

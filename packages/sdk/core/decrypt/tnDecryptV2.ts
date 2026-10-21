@@ -6,12 +6,19 @@ import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
-import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
+import {
+  DEFAULT_DECRYPT_TIMEOUT_MS,
+  classifySubmitResponse,
+  normalize404RetryTimeoutMs,
+  throwIfSubmitRetryTimedOut,
+  decryptAbortedError,
+  sleepUnlessAborted,
+  throwIfAborted,
+} from './submitRetry.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
 const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
-const DECRYPT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes total across submit + poll
 const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 
 type DecryptSubmitResponseV2 = {
@@ -182,7 +189,9 @@ async function submitDecryptRequestV2(
   acp: ACPPublic | null,
   overallStartTime: number,
   retry404TimeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction
+  timeoutMs: number,
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<DecryptSubmitResultV2> {
   const body: {
     ct_tempkey: string;
@@ -201,6 +210,7 @@ async function submitDecryptRequestV2(
   let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
+    throwIfAborted(signal, 'decrypt');
     let response: Response;
     try {
       response = await cofheFetch(
@@ -211,9 +221,11 @@ async function submitDecryptRequestV2(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
+          signal,
         }
       );
     } catch (e) {
+      throwIfAborted(signal, 'decrypt');
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
         message: `decrypt request failed`,
@@ -306,7 +318,7 @@ async function submitDecryptRequestV2(
       status: responseClassification.status,
       elapsedMs,
       retry404TimeoutMs,
-      overallTimeoutMs: DECRYPT_TIMEOUT_MS,
+      overallTimeoutMs: timeoutMs,
       thresholdNetworkUrl,
       body,
       attemptIndex,
@@ -319,10 +331,10 @@ async function submitDecryptRequestV2(
       attemptIndex,
       elapsedMs,
       intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-      timeoutMs: DECRYPT_TIMEOUT_MS,
+      timeoutMs,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+    await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'decrypt');
     attemptIndex += 1;
   }
 }
@@ -331,12 +343,15 @@ async function pollDecryptStatusV2(
   thresholdNetworkUrl: string,
   requestId: string,
   overallStartTime: number,
-  onPoll?: DecryptPollCallbackFunction
+  timeoutMs: number,
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
+    throwIfAborted(signal, 'decrypt');
     const elapsedMs = Date.now() - overallStartTime;
     const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
       minIntervalMs: POLL_INTERVAL_MS,
@@ -348,18 +363,18 @@ async function pollDecryptStatusV2(
       attemptIndex,
       elapsedMs,
       intervalMs,
-      timeoutMs: DECRYPT_TIMEOUT_MS,
+      timeoutMs,
     });
 
-    if (elapsedMs > DECRYPT_TIMEOUT_MS) {
+    if (elapsedMs > timeoutMs) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
-        message: `decrypt polling timed out after ${DECRYPT_TIMEOUT_MS}ms`,
+        message: `decrypt polling timed out after ${timeoutMs}ms`,
         hint: 'The request may still be processing. Try again later.',
         context: {
           thresholdNetworkUrl,
           requestId,
-          timeoutMs: DECRYPT_TIMEOUT_MS,
+          timeoutMs,
         },
       });
     }
@@ -373,6 +388,7 @@ async function pollDecryptStatusV2(
           headers: {
             'Content-Type': 'application/json',
           },
+          signal,
         }
       );
     } catch (e) {
@@ -441,7 +457,7 @@ async function pollDecryptStatusV2(
       });
     }
 
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    await sleepUnlessAborted(intervalMs, signal, 'decrypt');
     attemptIndex += 1;
   }
 
@@ -462,9 +478,14 @@ export async function tnDecryptV2(params: {
   acp: ACPPublic | null;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
+  /** The whole budget, submit retries and status polling together; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
+  timeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
+  /** Stops the decrypt at its next await: the pending fetch is aborted, and `execute()` rejects with `Aborted`. */
+  signal?: AbortSignal;
 }): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll, signal } = params;
+  const timeoutMs = params.timeoutMs ?? DEFAULT_DECRYPT_TIMEOUT_MS;
   const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
     timeoutMs: retry404TimeoutMs,
     operationLabel: 'decrypt',
@@ -478,12 +499,21 @@ export async function tnDecryptV2(params: {
     acp,
     overallStartTime,
     normalized404RetryTimeoutMs,
-    onPoll
+    timeoutMs,
+    onPoll,
+    signal
   );
 
   if (submitResult.kind === 'completed') {
     return submitResult;
   }
 
-  return await pollDecryptStatusV2(thresholdNetworkUrl, submitResult.requestId, overallStartTime, onPoll);
+  return await pollDecryptStatusV2(
+    thresholdNetworkUrl,
+    submitResult.requestId,
+    overallStartTime,
+    timeoutMs,
+    onPoll,
+    signal
+  );
 }

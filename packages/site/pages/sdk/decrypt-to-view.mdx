@@ -436,6 +436,54 @@ const plaintext = await client
 plaintext;
 ```
 
+### `.setTimeout(timeoutMs)` — optional
+
+The whole budget of the decrypt: submit attempts, `204`/`404` submit retries and status polling share it (see [Decryption Lifecycle](/reference/decryption-lifecycle#shared-timeout-budget)). The default is 5 minutes. Past it, `execute()` rejects with `SealOutputFailed`; a request still processing on the threshold network is not cancelled.
+
+Use this when a view would rather report a failure after, say, 20 seconds than wait out the default.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .setTimeout(20_000) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+### `.setSignal(signal)` — optional
+
+Stops the decrypt when the `AbortSignal` fires: the pending request is aborted, no further attempt is sent, and `execute()` rejects with `Aborted`. A request already processing on the threshold network is not cancelled.
+
+Use this to tie a decrypt to the screen that needs it, so leaving the screen stops the polling.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const controller = new AbortController();
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .setSignal(controller.signal) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
 ### `.withACP(...)` — optional
 
 Select which ACP to use:

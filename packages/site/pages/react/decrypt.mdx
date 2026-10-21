@@ -1,0 +1,149 @@
+# Decrypting in React
+
+Three hooks decrypt a ciphertext handle in React, one per shape of work. All three go through the SDK client; none asks the user to sign anything, so a view never prompts for an ACP — it waits for one (see [ACPs in React](/react/acp)).
+
+Declarative by default: a value a component renders, and a proof a page will send, are query hooks, so the cache, the ACP gate, retries and the activity panel come for free and the component re-renders as results arrive. The rule: a query hook whenever the handle is in the component, with `enabled` for the click; the imperative `useCofheDecrypter` only when the handle is born in the handler (the user typed an address, its handle is read right there), or for a long list that is just an input to one aggregate (hundreds of history entries summed into one number, where mounting a query per entry is the wrong tool). Reaching for it because the decrypt happens "on click" is the wrong reason; flip `enabled` on click instead.
+
+Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is a cached query keyed by the handle, never a mutation: a plaintext for the UI and a plaintext with the network's signature for a transaction are both decrypted once and kept. Only encryption (`useCofheEncrypt`) is a mutation — it makes a fresh ciphertext and proof on every call.
+
+| Work                                      | Hook                                                                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A value a component renders               | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
+| A list of values, or a total over them    | `useCofheDecryptForViewList`, one query per handle                                                   |
+| A plaintext plus proof for a transaction  | `useCofheDecryptForTx`, mounted on the page that sends it                                            |
+| Proofs for a list of handles              | `useCofheDecryptForTxList`, one query per handle                                                     |
+| Handles discovered in a handler, or a sum | `useCofheDecrypter`, from that handler                                                               |
+
+## `useCofheDecrypt` — a value to render
+
+A query. It runs only with a valid ACP, caches the plaintext under `[chainId, ctHash, utype, acpHash]`, persists what the user own ACP decrypts across reloads, and lists the decrypt in the activity panel.
+
+```tsx
+import { useCofheDecrypt } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+function Amount({ handle }: { handle: `0x${string}` }) {
+  const { data, isFetching, error } = useCofheDecrypt(
+    { input: { ctHash: handle, utype: FheTypes.Uint64 }, meta: { label: 'Vault balance' } },
+    { staleTime: Infinity }
+  );
+  if (error) return <span>could not decrypt</span>;
+  return <span>{isFetching ? '…' : data?.toString()}</span>;
+}
+```
+
+Options: `chainId` (the chain the handle lives on, the connected chain by default), `acp` (decrypt with this ACP instead of the enclosing scope or the active one), `timeoutMs` (the decrypt's whole budget, 5 minutes by default), `onPoll`, `meta` and `context` for the activity panel, and any React Query option as the second argument.
+
+## `useCofheDecryptForViewList` — a list of values
+
+`useCofheDecrypt` for a list: one query per handle, the same keys, gate, persistence and activity rows, returned in the order of `inputs`. For a list a component renders, or a total it derives from every value, when the handles are known at render time. The client's `decryptConcurrency` cap bounds how many requests run at once, so a long list is safe.
+
+```tsx
+import { useMemo } from 'react';
+import { useCofheDecryptForViewList } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+type Bid = { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` };
+
+function useBidTotals(bids: Bid[], enabled: boolean) {
+  const results = useCofheDecryptForViewList(
+    {
+      inputs: bids.flatMap((bid) => [
+        { ctHash: bid.eQuantity, utype: FheTypes.Uint64 },
+        { ctHash: bid.ePaid, utype: FheTypes.Uint64 },
+      ]),
+      meta: (_input, index) => ({ label: `Bid ${bids[Math.floor(index / 2)].id}` }),
+    },
+    { enabled, staleTime: Infinity }
+  );
+  return useMemo(() => {
+    const allRevealed = results.length > 0 && results.every((r) => r.data !== undefined);
+    const paid = allRevealed ? results.filter((_r, i) => i % 2 === 1).reduce((sum, r) => sum + r.data!, 0n) : null;
+    return { allRevealed, paid, revealing: results.some((r) => r.isFetching), error: results.find((r) => r.error)?.error };
+  }, [results]);
+}
+```
+
+`meta` is one object for every entry or a function of the entry and its index. A zero handle reads as the type's zero without a request; an `undefined` entry stays idle. Options and the second argument are those of `useCofheDecrypt`; `enabled: false` holds the whole list, e.g. until the user clicks "Reveal".
+
+## `useCofheDecryptForTxList` — proofs for a list
+
+`useCofheDecryptForTx` for a list: one proof query per handle, the same keys, gate and persistence, returned in the order of `inputs`. For a page that will send one transaction per item (a settlement that publishes each price level) or one transaction over all of them (a reveal-all), with the handles known at render time: every proof is ready before the click, and the handler only writes.
+
+```tsx
+import { useCofheDecryptForTxList } from '@cofhe/react';
+
+function useLevelProofs(levelHandles: `0x${string}`[]) {
+  const proofs = useCofheDecryptForTxList({ inputs: levelHandles, acp: null, meta: (_h, i) => ({ label: `Level ${i}` }) });
+  const ready = proofs.length > 0 && proofs.every((p) => p.data !== undefined);
+  return { ready, proofs: proofs.map((p) => p.data), error: proofs.find((p) => p.error)?.error };
+}
+```
+
+Options are those of `useCofheDecryptForTx`; `meta` is one object for every entry or a function of the handle and its index. The zero handle and an `undefined` entry stay idle.
+
+## `useCofheDecrypter` — a job over many handles
+
+The imperative counterpart: a hook whose `decryptForView` decrypts one handle on demand, for work a component does not render per value — a history to sum, a set of bids to reveal. Each call is the same query `useCofheDecrypt` would run: same key, same gate, same persistence, same activity row. A handle decrypted either way is decrypted once, and a cached plaintext comes back without a request.
+
+```tsx
+import { useState } from 'react';
+import { useCofheDecrypter } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+type Bid = { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` };
+
+function useRevealBids(bids: Bid[]) {
+  const { decryptForView, isReady } = useCofheDecrypter();
+  const [revealed, setRevealed] = useState<Map<string, { quantity: bigint; paid: bigint }>>(new Map());
+  const [revealing, setRevealing] = useState(false);
+
+  const revealAll = async () => {
+    if (revealing || !isReady) return;
+    setRevealing(true);
+    const u64 = (ctHash: `0x${string}`, label: string) =>
+      decryptForView({ ctHash, utype: FheTypes.Uint64 }, { meta: { label } });
+    const next = new Map(revealed);
+    await Promise.all(
+      bids.map(async (bid) => {
+        const [quantity, paid] = await Promise.all([u64(bid.eQuantity, `Bid ${bid.id}`), u64(bid.ePaid, `Bid ${bid.id}`)]);
+        next.set(bid.id, { quantity, paid });
+      })
+    );
+    setRevealed(next);
+    setRevealing(false);
+  };
+
+  return { revealed, revealing, canReveal: isReady, revealAll };
+}
+```
+
+Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over the whole list is fine; the client's own `decryptConcurrency` cap (8 by default) sits above every caller. The hook's own options are `chainId`, `acp` and `concurrency`; each call takes `meta`, `context`, `onPoll`, `timeoutMs`, `staleTime` (`Infinity` by default), `retry` and `signal`.
+
+`signal` is an `AbortSignal` for the job the call belongs to: when it fires, a call still waiting for a slot never starts, a request in flight is aborted, and the call rejects with a `CofheError` of code `Aborted`. Abort the job when the user navigates away, and nothing more is sent. A plaintext already in the cache is still returned, and a request already processing on the threshold network is not cancelled.
+
+`isReady` is `false` without a client or a valid ACP; `decryptForView` then rejects with a `CofheError` (`ACPRequired` / `ACPExpired`) and sends nothing. The returned `acp` says why. A SNAPSHOT share that does not list the handle rejects with `ACPDenied`. A zero handle — a value never set on chain — resolves to the type's zero without a request.
+
+It also returns `decryptForTx(ctHash, options)`: the same for a proof (see below), through the cache of `useCofheDecryptForTx`. It takes the options above plus `account`, `retry404TimeoutMs` and `acp: null` for a publicly allowed handle, which then needs only the client, not `isReady`. The zero handle rejects: there is nothing to prove.
+
+## `useCofheDecryptForTx` — a plaintext with proof
+
+A query around `client.decryptForTx`: the plaintext and the threshold network's signature over it, for a contract to verify (`FHE.verifyDecryptResult`). The contract checks only `(ctHash, value, signature)` — no nonce, no sender, no deadline — so the proof is a pure function of the handle, cached under `[chainId, ctHash, acpHash]` with `staleTime: Infinity`. Mount the hook on the page that will send the transaction and the proof is ready before the click:
+
+```tsx
+import { useCofheDecryptForTx } from '@cofhe/react';
+
+function ClaimButton({ handle }: { handle: `0x${string}` }) {
+  // `acp: null`: the contract allowed this handle publicly, no ACP is needed
+  const { data: proof, isFetching, error } = useCofheDecryptForTx({ ctHash: handle, acp: null });
+  const claim = () => {
+    if (!proof) return;
+    // … write the transaction with (proof.decryptedValue, proof.signature)
+  };
+  return <button onClick={claim} disabled={!proof || isFetching}>Claim</button>;
+}
+```
+
+In a click handler that first discovers the handle, fetch the proof through the same cache with `useCofheDecrypter().decryptForTx(ctHash, { acp: null })`.
+
+`acp` chooses the mode: `null` for a publicly allowed handle (`withoutACP()`, which then needs no ACP at all), omitted for the enclosing scope or the active ACP, or an ACP / stored hash. `chainId`, `account`, `onPoll`, `timeoutMs` and `retry404TimeoutMs` map onto the builder; `meta` and `context` and any React Query option work as on `useCofheDecrypt`. A proof decrypted with the user own ACP, or with none, persists across reloads; one decrypted with a shared ACP stays in memory and goes with the share.
