@@ -64,6 +64,24 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'MOCK_setAccessListManager',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'isManager',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'MOCK_setInEuintKey',
       inputs: [
         {
@@ -82,6 +100,57 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'accessList',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'isAllowed',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'accessListEnabled',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'accessListManagers',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'isManager',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'acl',
       inputs: [],
       outputs: [
@@ -92,6 +161,19 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'addToAccessList',
+      inputs: [
+        {
+          name: 'accounts',
+          type: 'address[]',
+          internalType: 'address[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',
@@ -307,6 +389,20 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'disableAccessList',
+      inputs: [],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'enableAccessList',
+      inputs: [],
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',
@@ -709,6 +805,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'removeFromAccessList',
+      inputs: [
+        {
+          name: 'accounts',
+          type: 'address[]',
+          internalType: 'address[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'setACLContract',
       inputs: [
         {
@@ -991,6 +1100,45 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'view',
+    },
+    {
+      type: 'event',
+      name: 'AccessGranted',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'AccessListEnabledSet',
+      inputs: [
+        {
+          name: 'enabled',
+          type: 'bool',
+          indexed: false,
+          internalType: 'bool',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'AccessRevoked',
+      inputs: [
+        {
+          name: 'account',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
     },
     {
       type: 'event',
@@ -1316,6 +1464,28 @@ export const MockTaskManagerArtifact = {
       type: 'error',
       name: 'LengthMismatch',
       inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotOnAccessList',
+      inputs: [
+        {
+          name: 'caller',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'OnlyAccessListManagerAllowed',
+      inputs: [
+        {
+          name: 'caller',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
     },
     {
       type: 'error',

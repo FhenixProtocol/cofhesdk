@@ -80,8 +80,13 @@ export interface MockTaskManagerInterface extends Interface {
     nameOrSignature:
       | 'MOCK_dispatchOperation'
       | 'MOCK_logAllow'
+      | 'MOCK_setAccessListManager'
       | 'MOCK_setInEuintKey'
+      | 'accessList'
+      | 'accessListEnabled'
+      | 'accessListManagers'
       | 'acl'
+      | 'addToAccessList'
       | 'aggregator'
       | 'allow'
       | 'allowForDecryption'
@@ -92,6 +97,8 @@ export interface MockTaskManagerInterface extends Interface {
       | 'createRandomTask'
       | 'createTask'
       | 'decryptResultSigner'
+      | 'disableAccessList'
+      | 'enableAccessList'
       | 'exists'
       | 'getDecryptResult'
       | 'getDecryptResultSafe'
@@ -110,6 +117,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'publishDecryptResultBatch'
       | 'receiveCtHash'
       | 'removeFirstLetter'
+      | 'removeFromAccessList'
       | 'setACLContract'
       | 'setAggregator'
       | 'setDecryptResultSigner'
@@ -128,7 +136,14 @@ export interface MockTaskManagerInterface extends Interface {
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: 'DecryptionResult' | 'MockGasConsumed' | 'ProtocolNotification' | 'TaskCreated'
+    nameOrSignatureOrTopic:
+      | 'AccessGranted'
+      | 'AccessListEnabledSet'
+      | 'AccessRevoked'
+      | 'DecryptionResult'
+      | 'MockGasConsumed'
+      | 'ProtocolNotification'
+      | 'TaskCreated'
   ): EventFragment;
 
   encodeFunctionData(
@@ -136,8 +151,13 @@ export interface MockTaskManagerInterface extends Interface {
     values: [BigNumberish, BigNumberish, BigNumberish[], BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: 'MOCK_logAllow', values: [string, BigNumberish, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'MOCK_setAccessListManager', values: [AddressLike, boolean]): string;
   encodeFunctionData(functionFragment: 'MOCK_setInEuintKey', values: [BigNumberish, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'accessList', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'accessListEnabled', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'accessListManagers', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'acl', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'addToAccessList', values: [AddressLike[]]): string;
   encodeFunctionData(functionFragment: 'aggregator', values?: undefined): string;
   encodeFunctionData(functionFragment: 'allow', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'allowForDecryption', values: [BigNumberish]): string;
@@ -154,6 +174,8 @@ export interface MockTaskManagerInterface extends Interface {
     values: [BigNumberish, BigNumberish, BigNumberish[], BigNumberish[]]
   ): string;
   encodeFunctionData(functionFragment: 'decryptResultSigner', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'disableAccessList', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'enableAccessList', values?: undefined): string;
   encodeFunctionData(functionFragment: 'exists', values?: undefined): string;
   encodeFunctionData(functionFragment: 'getDecryptResult', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'getDecryptResultSafe', values: [BigNumberish]): string;
@@ -178,6 +200,7 @@ export interface MockTaskManagerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: 'receiveCtHash', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'removeFirstLetter', values: [string]): string;
+  encodeFunctionData(functionFragment: 'removeFromAccessList', values: [AddressLike[]]): string;
   encodeFunctionData(functionFragment: 'setACLContract', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setAggregator', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setDecryptResultSigner', values: [AddressLike]): string;
@@ -205,8 +228,13 @@ export interface MockTaskManagerInterface extends Interface {
 
   decodeFunctionResult(functionFragment: 'MOCK_dispatchOperation', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_logAllow', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'MOCK_setAccessListManager', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_setInEuintKey', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'accessList', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'accessListEnabled', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'accessListManagers', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'acl', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'addToAccessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'aggregator', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowForDecryption', data: BytesLike): Result;
@@ -217,6 +245,8 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'createRandomTask', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'createTask', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'decryptResultSigner', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'disableAccessList', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'enableAccessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'getDecryptResult', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'getDecryptResultSafe', data: BytesLike): Result;
@@ -235,6 +265,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'publishDecryptResultBatch', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'receiveCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'removeFirstLetter', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'removeFromAccessList', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setACLContract', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setAggregator', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setDecryptResultSigner', data: BytesLike): Result;
@@ -250,6 +281,42 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'verifyDecryptResultBatch', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResultBatchSafe', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResultSafe', data: BytesLike): Result;
+}
+
+export namespace AccessGrantedEvent {
+  export type InputTuple = [account: AddressLike];
+  export type OutputTuple = [account: string];
+  export interface OutputObject {
+    account: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace AccessListEnabledSetEvent {
+  export type InputTuple = [enabled: boolean];
+  export type OutputTuple = [enabled: boolean];
+  export interface OutputObject {
+    enabled: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace AccessRevokedEvent {
+  export type InputTuple = [account: AddressLike];
+  export type OutputTuple = [account: string];
+  export interface OutputObject {
+    account: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace DecryptionResultEvent {
@@ -355,9 +422,19 @@ export interface MockTaskManager extends BaseContract {
 
   MOCK_logAllow: TypedContractMethod<[operation: string, ctHash: BigNumberish, account: AddressLike], [void], 'view'>;
 
+  MOCK_setAccessListManager: TypedContractMethod<[account: AddressLike, isManager: boolean], [void], 'nonpayable'>;
+
   MOCK_setInEuintKey: TypedContractMethod<[ctHash: BigNumberish, value: BigNumberish], [void], 'nonpayable'>;
 
+  accessList: TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
+
+  accessListEnabled: TypedContractMethod<[], [boolean], 'view'>;
+
+  accessListManagers: TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
+
   acl: TypedContractMethod<[], [string], 'view'>;
+
+  addToAccessList: TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
 
   aggregator: TypedContractMethod<[], [string], 'view'>;
 
@@ -390,6 +467,10 @@ export interface MockTaskManager extends BaseContract {
   >;
 
   decryptResultSigner: TypedContractMethod<[], [string], 'view'>;
+
+  disableAccessList: TypedContractMethod<[], [void], 'nonpayable'>;
+
+  enableAccessList: TypedContractMethod<[], [void], 'nonpayable'>;
 
   exists: TypedContractMethod<[], [boolean], 'view'>;
 
@@ -446,6 +527,8 @@ export interface MockTaskManager extends BaseContract {
   receiveCtHash: TypedContractMethod<[ctHash: BigNumberish, expectedSharer: AddressLike], [void], 'nonpayable'>;
 
   removeFirstLetter: TypedContractMethod<[str: string], [string], 'view'>;
+
+  removeFromAccessList: TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
 
   setACLContract: TypedContractMethod<[_aclAddress: AddressLike], [void], 'nonpayable'>;
 
@@ -506,9 +589,16 @@ export interface MockTaskManager extends BaseContract {
     nameOrSignature: 'MOCK_logAllow'
   ): TypedContractMethod<[operation: string, ctHash: BigNumberish, account: AddressLike], [void], 'view'>;
   getFunction(
+    nameOrSignature: 'MOCK_setAccessListManager'
+  ): TypedContractMethod<[account: AddressLike, isManager: boolean], [void], 'nonpayable'>;
+  getFunction(
     nameOrSignature: 'MOCK_setInEuintKey'
   ): TypedContractMethod<[ctHash: BigNumberish, value: BigNumberish], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'accessList'): TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'accessListEnabled'): TypedContractMethod<[], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'accessListManagers'): TypedContractMethod<[account: AddressLike], [boolean], 'view'>;
   getFunction(nameOrSignature: 'acl'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'addToAccessList'): TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'aggregator'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'allow'
@@ -543,6 +633,8 @@ export interface MockTaskManager extends BaseContract {
     'nonpayable'
   >;
   getFunction(nameOrSignature: 'decryptResultSigner'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'disableAccessList'): TypedContractMethod<[], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'enableAccessList'): TypedContractMethod<[], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'exists'): TypedContractMethod<[], [boolean], 'view'>;
   getFunction(nameOrSignature: 'getDecryptResult'): TypedContractMethod<[ctHash: BigNumberish], [bigint], 'view'>;
   getFunction(
@@ -581,6 +673,9 @@ export interface MockTaskManager extends BaseContract {
     nameOrSignature: 'receiveCtHash'
   ): TypedContractMethod<[ctHash: BigNumberish, expectedSharer: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'removeFirstLetter'): TypedContractMethod<[str: string], [string], 'view'>;
+  getFunction(
+    nameOrSignature: 'removeFromAccessList'
+  ): TypedContractMethod<[accounts: AddressLike[]], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'setACLContract'): TypedContractMethod<[_aclAddress: AddressLike], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'setAggregator'
@@ -630,6 +725,19 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractMethod<[ctHash: BigNumberish, result: BigNumberish, signature: BytesLike], [boolean], 'view'>;
 
   getEvent(
+    key: 'AccessGranted'
+  ): TypedContractEvent<AccessGrantedEvent.InputTuple, AccessGrantedEvent.OutputTuple, AccessGrantedEvent.OutputObject>;
+  getEvent(
+    key: 'AccessListEnabledSet'
+  ): TypedContractEvent<
+    AccessListEnabledSetEvent.InputTuple,
+    AccessListEnabledSetEvent.OutputTuple,
+    AccessListEnabledSetEvent.OutputObject
+  >;
+  getEvent(
+    key: 'AccessRevoked'
+  ): TypedContractEvent<AccessRevokedEvent.InputTuple, AccessRevokedEvent.OutputTuple, AccessRevokedEvent.OutputObject>;
+  getEvent(
     key: 'DecryptionResult'
   ): TypedContractEvent<
     DecryptionResultEvent.InputTuple,
@@ -655,6 +763,39 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractEvent<TaskCreatedEvent.InputTuple, TaskCreatedEvent.OutputTuple, TaskCreatedEvent.OutputObject>;
 
   filters: {
+    'AccessGranted(address)': TypedContractEvent<
+      AccessGrantedEvent.InputTuple,
+      AccessGrantedEvent.OutputTuple,
+      AccessGrantedEvent.OutputObject
+    >;
+    AccessGranted: TypedContractEvent<
+      AccessGrantedEvent.InputTuple,
+      AccessGrantedEvent.OutputTuple,
+      AccessGrantedEvent.OutputObject
+    >;
+
+    'AccessListEnabledSet(bool)': TypedContractEvent<
+      AccessListEnabledSetEvent.InputTuple,
+      AccessListEnabledSetEvent.OutputTuple,
+      AccessListEnabledSetEvent.OutputObject
+    >;
+    AccessListEnabledSet: TypedContractEvent<
+      AccessListEnabledSetEvent.InputTuple,
+      AccessListEnabledSetEvent.OutputTuple,
+      AccessListEnabledSetEvent.OutputObject
+    >;
+
+    'AccessRevoked(address)': TypedContractEvent<
+      AccessRevokedEvent.InputTuple,
+      AccessRevokedEvent.OutputTuple,
+      AccessRevokedEvent.OutputObject
+    >;
+    AccessRevoked: TypedContractEvent<
+      AccessRevokedEvent.InputTuple,
+      AccessRevokedEvent.OutputTuple,
+      AccessRevokedEvent.OutputObject
+    >;
+
     'DecryptionResult(uint256,uint256,address)': TypedContractEvent<
       DecryptionResultEvent.InputTuple,
       DecryptionResultEvent.OutputTuple,

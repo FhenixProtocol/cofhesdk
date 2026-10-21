@@ -3,7 +3,7 @@
 pragma solidity >=0.8.25 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
-import { ACP } from './Permissioned.sol';
+import { ACP } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 // import {PlaintextsStorage} from "./PlaintextsStorage.sol";
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
@@ -29,6 +29,8 @@ error InvalidSigner(address signer, address expectedSigner);
 error InvalidAddress();
 error OnlyOwnerAllowed(address caller);
 error OnlyAggregatorAllowed(address caller);
+error OnlyAccessListManagerAllowed(address caller);
+error NotOnAccessList(address caller);
 
 // Operation-specific errors
 error RandomFunctionNotSupported();
@@ -204,6 +206,59 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   modifier onlyOwner() {
     if (msg.sender != owner) revert OnlyOwnerAllowed(msg.sender);
     _;
+  }
+
+  // Optional access list, as in the real task manager: off by default, and once enabled only
+  // listed callers can create tasks or verify inputs. The real contract gates management behind
+  // ACCESS_LIST_MANAGER_ROLE; here the owner and the accounts it names in
+  // `MOCK_setAccessListManager` stand in for that role.
+  bool public accessListEnabled;
+  mapping(address account => bool isAllowed) public accessList;
+  mapping(address account => bool isManager) public accessListManagers;
+
+  event AccessListEnabledSet(bool enabled);
+  event AccessGranted(address indexed account);
+  event AccessRevoked(address indexed account);
+
+  modifier onlyAccessListManager() {
+    if (msg.sender != owner && !accessListManagers[msg.sender]) revert OnlyAccessListManagerAllowed(msg.sender);
+    _;
+  }
+
+  modifier onlyAccessListed() {
+    if (accessListEnabled && !accessList[msg.sender]) revert NotOnAccessList(msg.sender);
+    _;
+  }
+
+  /// @dev Mock-only stand-in for granting ACCESS_LIST_MANAGER_ROLE.
+  function MOCK_setAccessListManager(address account, bool isManager) external onlyOwner {
+    accessListManagers[account] = isManager;
+  }
+
+  function enableAccessList() external onlyAccessListManager {
+    accessListEnabled = true;
+    emit AccessListEnabledSet(true);
+  }
+
+  function disableAccessList() external onlyAccessListManager {
+    accessListEnabled = false;
+    emit AccessListEnabledSet(false);
+  }
+
+  function addToAccessList(address[] calldata accounts) external onlyAccessListManager {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      if (accounts[i] == address(0)) revert InvalidAddress();
+      accessList[accounts[i]] = true;
+      emit AccessGranted(accounts[i]);
+    }
+  }
+
+  function removeFromAccessList(address[] calldata accounts) external onlyAccessListManager {
+    for (uint256 i = 0; i < accounts.length; i++) {
+      if (accounts[i] == address(0)) revert InvalidAddress();
+      accessList[accounts[i]] = false;
+      emit AccessRevoked(accounts[i]);
+    }
   }
 
   function setSecurityZones(int32 minSZ, int32 maxSZ) external onlyOwner {
@@ -532,7 +587,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     FunctionId funcId,
     uint256[] memory encryptedHashes,
     uint256[] memory extraInputs
-  ) external returns (uint256) {
+  ) external onlyAccessListed returns (uint256) {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
@@ -668,7 +723,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     UnsignedEncryptedInput[] memory inputs,
     address sender,
     bytes memory signature
-  ) external returns (uint256[] memory) {
+  ) external onlyAccessListed returns (uint256[] memory) {
     uint256 len = inputs.length;
     // When signer is set to 0 address we skip this logic to be able to support debug use cases.
     // In debug use cases we assume that the verifier is not necessarily running.
@@ -836,7 +891,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
-  function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
+  function createRandomTask(
+    uint8 returnType,
+    uint256 seed,
+    int32 securityZone
+  ) external onlyAccessListed returns (uint256) {
     if (!isValidSecurityZone(securityZone)) {
       revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
     }
