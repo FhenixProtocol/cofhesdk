@@ -4,6 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { ACPUtils, acpStore, type ACP } from '@/acps';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
+import type { DecryptLimiter } from '../decrypt/decryptLimiter.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { tnDecryptV2 } from '../decrypt/tnDecryptV2';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2';
@@ -560,6 +561,32 @@ describe('execute – expired acp (regression, issue #272)', () => {
       await selectTxACP('active acp', acp).setTimeout(20_000).execute();
 
       expect(tnDecryptV2).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
+    });
+
+    it('runs the threshold network call through the client limiter it was given', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+      const labels: string[] = [];
+      const limit: DecryptLimiter = (task, label) => {
+        labels.push(label);
+        return task();
+      };
+      const builder = new DecryptForTxBuilder({
+        config: mockConfig,
+        publicClient,
+        walletClient,
+        chainId: TEST_CHAIN_ID,
+        account: account.address,
+        ctHash: TEST_CT_HASH,
+        requireConnected: undefined,
+        limit,
+      });
+
+      await builder.withACP(acp).execute();
+
+      expect(labels).toEqual(['decrypt']);
+      expect(tnDecryptV2).toHaveBeenCalledOnce();
     });
 
     it('passes the abort signal to the threshold network call', async () => {

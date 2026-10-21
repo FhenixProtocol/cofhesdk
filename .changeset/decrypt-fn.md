@@ -12,4 +12,5 @@
 **@cofhe/sdk**
 
 - New `.setTimeout(timeoutMs)` on `decryptForView` and `decryptForTx`: the whole budget of one decrypt, submit retries and status polling together. Previously it was fixed at 5 minutes, which stays the default.
+- New `decryptConcurrency` config option (8 by default, `Infinity` disables): a client sends at most that many decrypts to the threshold network at a time, further calls wait their turn, so a list decrypted at once needs no limiter of its own.
 - New `.setSignal(signal)` on both: an `AbortSignal` that stops the decrypt at its next await, aborting the pending request; `execute()` then rejects with the new `CofheErrorCode.Aborted`.

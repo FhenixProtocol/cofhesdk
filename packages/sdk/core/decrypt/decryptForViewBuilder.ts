@@ -14,6 +14,7 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import { assertDecryptTimeoutMs } from './submitRetry.js';
+import type { DecryptLimiter } from './decryptLimiter.js';
 
 const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
 
@@ -43,6 +44,8 @@ type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   utype: U;
   acpHash?: string;
   acp?: ACP;
+  /** The client's decrypt cap; a builder made without one runs unlimited. */
+  limit?: DecryptLimiter;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
@@ -54,6 +57,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private timeoutMs?: number;
   private signal?: AbortSignal;
+  private limit: DecryptLimiter;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -69,6 +73,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.utype = params.utype;
     this.acpHash = params.acpHash;
     this.acp = params.acp;
+    this.limit = params.limit ?? ((task) => task());
   }
 
   /**
@@ -313,16 +318,21 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const wireAcp = ACPUtils.getPublic(acp, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
-    const sealed = await tnSealOutputV2({
-      ctHash: this.ctHash,
-      chainId: this.chainId,
-      acp: wireAcp,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: this.retry404TimeoutMs,
-      timeoutMs: this.timeoutMs,
-      onPoll: this.pollCallback,
-      signal: this.signal,
-    });
+    const sealed = await this.limit(
+      () =>
+        tnSealOutputV2({
+          ctHash: this.ctHash,
+          chainId: this.chainId,
+          acp: wireAcp,
+          thresholdNetworkUrl,
+          retry404TimeoutMs: this.retry404TimeoutMs,
+          timeoutMs: this.timeoutMs,
+          onPoll: this.pollCallback,
+          signal: this.signal,
+        }),
+      'sealOutput',
+      this.signal
+    );
     return ACPUtils.unseal(acp, sealed);
   }
 

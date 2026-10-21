@@ -12,6 +12,7 @@ import { getPublicClientChainID, sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 import { assertDecryptTimeoutMs } from './submitRetry';
+import type { DecryptLimiter } from './decryptLimiter';
 
 const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
 
@@ -41,6 +42,8 @@ type DecryptForTxACPSelection = 'unset' | 'with-acp' | 'without-acp';
 
 type DecryptForTxBuilderParams = BaseBuilderParams & {
   ctHash: bigint | string;
+  /** The client's decrypt cap; a builder made without one runs unlimited. */
+  limit?: DecryptLimiter;
 };
 
 export type DecryptForTxResult = {
@@ -68,6 +71,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private timeoutMs?: number;
   private signal?: AbortSignal;
+  private limit: DecryptLimiter;
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -80,6 +84,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     });
 
     this.ctHash = params.ctHash;
+    this.limit = params.limit ?? ((task) => task());
   }
 
   /**
@@ -348,16 +353,21 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
     const wireAcp = acp ? ACPUtils.getPublic(acp, true) : null;
-    const { decryptedValue, signature } = await tnDecryptV2({
-      ctHash: this.ctHash,
-      chainId: this.chainId,
-      acp: wireAcp,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: this.retry404TimeoutMs,
-      timeoutMs: this.timeoutMs,
-      onPoll: this.pollCallback,
-      signal: this.signal,
-    });
+    const { decryptedValue, signature } = await this.limit(
+      () =>
+        tnDecryptV2({
+          ctHash: this.ctHash,
+          chainId: this.chainId,
+          acp: wireAcp,
+          thresholdNetworkUrl,
+          retry404TimeoutMs: this.retry404TimeoutMs,
+          timeoutMs: this.timeoutMs,
+          onPoll: this.pollCallback,
+          signal: this.signal,
+        }),
+      'decrypt',
+      this.signal
+    );
 
     return {
       ctHash: this.ctHash,
