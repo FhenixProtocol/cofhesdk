@@ -326,7 +326,7 @@ const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => 
     functionName: 'revokeSingle',
     args: [BigInt(acp.revokerData)],
     account: walletClient.account,
-    chain: walletClient.chain,
+    chain: walletClient.chain ?? null,
   });
 };
 
@@ -362,7 +362,7 @@ const revokeAllACPs = async (
     functionName: 'revokeAllExisting',
     args: [],
     account: walletClient.account,
-    chain: walletClient.chain,
+    chain: walletClient.chain ?? null,
   });
 };
 
