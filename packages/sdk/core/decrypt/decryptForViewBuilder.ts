@@ -53,6 +53,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private timeoutMs?: number;
+  private signal?: AbortSignal;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -144,6 +145,16 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   setTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
     assertDecryptTimeoutMs(timeoutMs, 'decryptForView');
     this.timeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * Stops the decrypt when `signal` fires: the pending request is aborted, no further attempt is
+   * sent, and `execute()` rejects with `Aborted`. A request already processing on the threshold
+   * network is not cancelled.
+   */
+  setSignal(signal: AbortSignal): DecryptForViewBuilder<U> {
+    this.signal = signal;
     return this;
   }
 
@@ -310,6 +321,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       retry404TimeoutMs: this.retry404TimeoutMs,
       timeoutMs: this.timeoutMs,
       onPoll: this.pollCallback,
+      signal: this.signal,
     });
     return ACPUtils.unseal(acp, sealed);
   }

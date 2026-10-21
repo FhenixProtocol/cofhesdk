@@ -10,6 +10,9 @@ import {
   classifySubmitResponse,
   normalize404RetryTimeoutMs,
   throwIfSubmitRetryTimedOut,
+  decryptAbortedError,
+  sleepUnlessAborted,
+  throwIfAborted,
 } from './submitRetry.js';
 import {} from './tnDecryptUtils.js';
 
@@ -146,7 +149,8 @@ async function submitSealOutputRequest(
   overallStartTime: number,
   retry404TimeoutMs: number,
   timeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<SealOutputSubmitResult> {
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
@@ -157,6 +161,7 @@ async function submitSealOutputRequest(
   let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
+    throwIfAborted(signal, 'sealOutput');
     let response: Response;
     try {
       response = await cofheFetch(
@@ -167,9 +172,11 @@ async function submitSealOutputRequest(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
+          signal,
         }
       );
     } catch (e) {
+      throwIfAborted(signal, 'sealOutput');
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput request failed`,
@@ -275,7 +282,7 @@ async function submitSealOutputRequest(
       timeoutMs,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+    await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'sealOutput');
     attemptIndex += 1;
   }
 }
@@ -288,12 +295,14 @@ async function pollSealOutputStatus(
   requestId: string,
   overallStartTime: number,
   timeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<EthEncryptedData> {
   let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
+    throwIfAborted(signal, 'sealOutput');
     const elapsedMs = Date.now() - overallStartTime;
     const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
       minIntervalMs: POLL_INTERVAL_MS,
@@ -331,6 +340,7 @@ async function pollSealOutputStatus(
           headers: {
             'Content-Type': 'application/json',
           },
+          signal,
         }
       );
     } catch (e) {
@@ -401,7 +411,7 @@ async function pollSealOutputStatus(
     }
 
     // Still processing, wait before next poll
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    await sleepUnlessAborted(intervalMs, signal, 'sealOutput');
     attemptIndex += 1;
   }
 
@@ -425,8 +435,10 @@ export async function tnSealOutputV2(params: {
   /** The whole budget, submit retries and status polling together; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
   timeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
+  /** Stops the decrypt at its next await: the pending fetch is aborted, and `execute()` rejects with `Aborted`. */
+  signal?: AbortSignal;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll, signal } = params;
   const timeoutMs = params.timeoutMs ?? DEFAULT_DECRYPT_TIMEOUT_MS;
   const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
     timeoutMs: retry404TimeoutMs,
@@ -444,7 +456,8 @@ export async function tnSealOutputV2(params: {
     overallStartTime,
     normalized404RetryTimeoutMs,
     timeoutMs,
-    onPoll
+    onPoll,
+    signal
   );
 
   if (submitResult.kind === 'completed') {
@@ -452,5 +465,12 @@ export async function tnSealOutputV2(params: {
   }
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, submitResult.requestId, overallStartTime, timeoutMs, onPoll);
+  return await pollSealOutputStatus(
+    thresholdNetworkUrl,
+    submitResult.requestId,
+    overallStartTime,
+    timeoutMs,
+    onPoll,
+    signal
+  );
 }

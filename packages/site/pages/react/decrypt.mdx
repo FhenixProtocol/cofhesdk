@@ -66,7 +66,9 @@ function useRevealBids(bids: Bid[]) {
 }
 ```
 
-Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over the whole list is fine. The hook's own options are `chainId`, `acp` and `concurrency`; each call takes `meta`, `context`, `onPoll`, `timeoutMs`, `staleTime` (`Infinity` by default) and `retry`.
+Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over the whole list is fine. The hook's own options are `chainId`, `acp` and `concurrency`; each call takes `meta`, `context`, `onPoll`, `timeoutMs`, `staleTime` (`Infinity` by default), `retry` and `signal`.
+
+`signal` is an `AbortSignal` for the job the call belongs to: when it fires, a call still waiting for a slot never starts, a request in flight is aborted, and the call rejects with a `CofheError` of code `Aborted`. Abort the job when the user navigates away, and nothing more is sent. A plaintext already in the cache is still returned, and a request already processing on the threshold network is not cancelled.
 
 `isReady` is `false` without a client or a valid ACP; `decryptForView` then rejects with a `CofheError` (`ACPRequired` / `ACPExpired`) and sends nothing. The returned `acp` says why. A SNAPSHOT share that does not list the handle rejects with `ACPDenied`. A zero handle — a value never set on chain — resolves to the type's zero without a request.
 

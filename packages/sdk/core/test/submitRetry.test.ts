@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { classifySubmitResponse, throwIfSubmitRetryTimedOut } from '../decrypt/submitRetry.js';
+import {
+  classifySubmitResponse,
+  sleepUnlessAborted,
+  throwIfAborted,
+  throwIfSubmitRetryTimedOut,
+} from '../decrypt/submitRetry.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 
 const makeResponse = (opts: {
@@ -178,5 +183,60 @@ describe('throwIfSubmitRetryTimedOut', () => {
       expect(cofheError.apiErrorCode).toBeUndefined();
       expect(cofheError.message).toBe('decrypt submit retried without receiving request_id for 300000ms');
     }
+  });
+});
+
+describe('abort helpers', () => {
+  it('throwIfAborted is a no-op without a signal or before it fires, and throws Aborted after', () => {
+    const controller = new AbortController();
+    expect(() => throwIfAborted(undefined, 'decrypt')).not.toThrow();
+    expect(() => throwIfAborted(controller.signal, 'decrypt')).not.toThrow();
+
+    controller.abort(new Error('navigated away'));
+
+    let thrown: unknown;
+    try {
+      throwIfAborted(controller.signal, 'decrypt');
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(CofheError);
+    expect((thrown as CofheError).code).toBe(CofheErrorCode.Aborted);
+    expect((thrown as CofheError).message).toMatch(/^decrypt aborted by the caller/);
+    expect((thrown as CofheError).cause?.message).toBe('navigated away');
+  });
+
+  it('sleepUnlessAborted resolves after the wait, and rejects the moment the signal fires', async () => {
+    vi.useFakeTimers();
+    try {
+      const resolved = vi.fn();
+      sleepUnlessAborted(1_000, undefined, 'decrypt').then(resolved);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(resolved).toHaveBeenCalledOnce();
+
+      const controller = new AbortController();
+      const waiting = sleepUnlessAborted(60_000, controller.signal, 'sealOutput');
+      const rejected = vi.fn();
+      waiting.catch(rejected);
+      await vi.advanceTimersByTimeAsync(10);
+      expect(rejected).not.toHaveBeenCalled();
+
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(rejected).toHaveBeenCalledOnce();
+      expect(rejected.mock.calls[0][0]).toMatchObject({ code: CofheErrorCode.Aborted });
+      expect(rejected.mock.calls[0][0].message).toMatch(/^sealOutput aborted by the caller/);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('sleepUnlessAborted rejects at once for a signal that already fired', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(sleepUnlessAborted(60_000, controller.signal, 'decrypt')).rejects.toMatchObject({
+      code: CofheErrorCode.Aborted,
+    });
   });
 });

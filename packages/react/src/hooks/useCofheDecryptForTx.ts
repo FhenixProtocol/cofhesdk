@@ -7,6 +7,7 @@ import type { ACP } from '@cofhe/sdk/acps';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { CofheDecryptMeta, CofheQueryMeta } from '@/meta';
+import { anySignal } from '@/utils/abortSignal';
 
 /**
  * The cache key of one tx decrypt: a handle decrypted on one chain into a plaintext with the
@@ -46,17 +47,19 @@ export function cofheDecryptForTxQuery(params: {
   onPoll?: DecryptPollCallbackFunction;
   timeoutMs?: number;
   retry404TimeoutMs?: number;
+  /** The caller's abort signal; React Query's own (query cancelled) is joined to it in `queryFn`. */
+  signal?: AbortSignal;
   meta?: CofheDecryptMeta;
   context?: CofheDecryptContext;
 }): {
   queryKey: readonly unknown[];
-  queryFn: () => Promise<DecryptForTxResult>;
+  queryFn: (context?: { signal?: AbortSignal }) => Promise<DecryptForTxResult>;
   // Also a plain record: that is what `fetchQuery` and `useQuery` type `meta` as.
   meta: Record<string, unknown> & CofheQueryMeta & { persist: boolean };
 } {
   const { client, ctHash, decryptChainId, chainId, account, acp, scoped, onPoll, timeoutMs, retry404TimeoutMs } =
     params;
-  const { meta, context } = params;
+  const { signal, meta, context } = params;
   const scopedACP = scoped && acp ? acp : undefined;
   return {
     queryKey: constructCofheDecryptForTxQueryKey({
@@ -64,7 +67,7 @@ export function cofheDecryptForTxQuery(params: {
       chainId: decryptChainId,
       acpHash: acp === null ? null : acp?.hash,
     }),
-    queryFn: async () => {
+    queryFn: async (queryContext) => {
       assert(ctHash !== undefined, 'a tx decrypt query only runs with a handle');
       const builder = client.decryptForTx(ctHash);
       if (chainId !== undefined) builder.setChainId(chainId);
@@ -72,6 +75,8 @@ export function cofheDecryptForTxQuery(params: {
       if (onPoll) builder.onPoll(onPoll);
       if (timeoutMs !== undefined) builder.setTimeout(timeoutMs);
       if (retry404TimeoutMs !== undefined) builder.set404RetryTimeout(retry404TimeoutMs);
+      const abort = anySignal([signal, queryContext?.signal]);
+      if (abort) builder.setSignal(abort);
       const selected = acp === null ? builder.withoutACP() : scopedACP ? builder.withACP(scopedACP) : builder.withACP();
       return selected.execute();
     },

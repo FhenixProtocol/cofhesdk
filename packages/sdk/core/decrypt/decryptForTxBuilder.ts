@@ -67,6 +67,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private timeoutMs?: number;
+  private signal?: AbortSignal;
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -165,6 +166,18 @@ export class DecryptForTxBuilder extends BaseBuilder {
   setTimeout(timeoutMs: number): DecryptForTxBuilder {
     assertDecryptTimeoutMs(timeoutMs, 'decryptForTx');
     this.timeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * Stops the decrypt when `signal` fires: the pending request is aborted, no further attempt is
+   * sent, and `execute()` rejects with `Aborted`. A request already processing on the threshold
+   * network is not cancelled.
+   */
+  setSignal(this: DecryptForTxBuilderUnset, signal: AbortSignal): DecryptForTxBuilderUnset;
+  setSignal(this: DecryptForTxBuilderSelected, signal: AbortSignal): DecryptForTxBuilderSelected;
+  setSignal(signal: AbortSignal): DecryptForTxBuilder {
+    this.signal = signal;
     return this;
   }
 
@@ -343,6 +356,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       retry404TimeoutMs: this.retry404TimeoutMs,
       timeoutMs: this.timeoutMs,
       onPoll: this.pollCallback,
+      signal: this.signal,
     });
 
     return {

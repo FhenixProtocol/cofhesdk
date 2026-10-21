@@ -368,6 +368,31 @@ const result = await client
 result.signature;
 ```
 
+### `.setSignal(signal)` — optional
+
+Stops the decrypt when the `AbortSignal` fires: the pending request is aborted, no further attempt is sent, and `execute()` rejects with `Aborted`. A request already processing on the threshold network is not cancelled.
+
+Use this to tie a decrypt to the screen that needs it, so leaving the screen stops the polling.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const controller = new AbortController();
+
+const result = await client
+  .decryptForTx(ctHash)
+  .withoutACP()
+  .setSignal(controller.signal) // [!code focus]
+  .execute();
+
+result;
+```
+
 ### `.withACP(...)` — required unless using `.withoutACP()`
 
 Decrypt using an ACP:

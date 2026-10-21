@@ -148,3 +148,33 @@ export function throwIfSubmitRetryTimedOut(params: {
     });
   }
 }
+
+/** The error a decrypt rejects with once its `AbortSignal` has fired. */
+export function decryptAbortedError(operationLabel: string, signal: AbortSignal): CofheError {
+  return new CofheError({
+    code: CofheErrorCode.Aborted,
+    message: `${operationLabel} aborted by the caller`,
+    cause: signal.reason instanceof Error ? signal.reason : undefined,
+  });
+}
+
+/** Rejects at once when `signal` has already fired, so an aborted call sends nothing more. */
+export function throwIfAborted(signal: AbortSignal | undefined, operationLabel: string): void {
+  if (signal?.aborted) throw decryptAbortedError(operationLabel, signal);
+}
+
+/** Waits `ms`, or rejects the moment `signal` fires: the wait between two attempts honours an abort. */
+export function sleepUnlessAborted(ms: number, signal: AbortSignal | undefined, operationLabel: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(decryptAbortedError(operationLabel, signal));
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(decryptAbortedError(operationLabel, signal!));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}

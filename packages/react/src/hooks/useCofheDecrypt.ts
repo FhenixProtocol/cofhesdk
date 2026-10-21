@@ -20,6 +20,7 @@ import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta, CofheQueryMeta } from '@/meta';
+import { anySignal } from '@/utils/abortSignal';
 
 /**
  * The cache key of one decrypt: a ciphertext handle decrypted on one chain, shaped like the read
@@ -67,15 +68,17 @@ export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
   scoped: boolean;
   onPoll?: DecryptPollCallbackFunction;
   timeoutMs?: number;
+  /** The caller's abort signal; React Query's own (query cancelled) is joined to it in `queryFn`. */
+  signal?: AbortSignal;
   meta?: CofheDecryptMeta;
   context?: CofheDecryptContext;
 }): {
   queryKey: readonly unknown[];
-  queryFn: () => Promise<UnsealedItem<U>>;
+  queryFn: (context?: { signal?: AbortSignal }) => Promise<UnsealedItem<U>>;
   // Also a plain record: that is what `fetchQuery` and `useQuery` type `meta` as.
   meta: Record<string, unknown> & CofheQueryMeta & { persist: boolean };
 } {
-  const { client, input, decryptChainId, chainId, acp, scoped, onPoll, timeoutMs, meta, context } = params;
+  const { client, input, decryptChainId, chainId, acp, scoped, onPoll, timeoutMs, signal, meta, context } = params;
   const scopedACP = scoped ? acp : undefined;
   return {
     queryKey: constructCofheDecryptForViewQueryKey({
@@ -84,13 +87,15 @@ export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
       chainId: decryptChainId,
       acpHash: acp?.hash,
     }),
-    queryFn: async () => {
+    queryFn: async (queryContext) => {
       assert(input, 'a decrypt query only runs with an input');
       const builder = client.decryptForView(input.ctHash, input.utype);
       if (chainId !== undefined) builder.setChainId(chainId);
       if (scopedACP) builder.withACP(scopedACP);
       if (onPoll) builder.onPoll(onPoll);
       if (timeoutMs !== undefined) builder.setTimeout(timeoutMs);
+      const abort = anySignal([signal, queryContext?.signal]);
+      if (abort) builder.setSignal(abort);
       return builder.execute();
     },
     meta: {

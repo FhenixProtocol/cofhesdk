@@ -42,6 +42,12 @@ export type CofheDecryptForViewFnOptions = {
   staleTime?: number;
   /** Retry policy of a failed request; by default a `CofheError` is final and anything else is retried 3 times. */
   retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
+  /**
+   * Stops the call when it fires: a call still waiting for a concurrency slot never starts, a
+   * request in flight is aborted, and the call rejects with `Aborted`. A plaintext already in the
+   * cache is still returned.
+   */
+  signal?: AbortSignal;
 };
 
 /** Decrypts one handle; see `useCofheDecrypter`. */
@@ -125,12 +131,40 @@ function assertACPDecrypts(effectiveACP: CofheEffectiveACP, ctHash: bigint | str
   }
 }
 
-/** Runs tasks at most `max` at a time, in call order. */
-function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
+function abortedError(operation: string, signal: AbortSignal): CofheError {
+  return new CofheError({
+    code: CofheErrorCode.Aborted,
+    message: `${operation} aborted by the caller`,
+    cause: signal.reason instanceof Error ? signal.reason : undefined,
+  });
+}
+
+/**
+ * Runs tasks at most `max` at a time, in call order. A task whose `signal` fires while it waits
+ * for a slot leaves the queue and rejects without ever starting.
+ */
+function createLimiter(
+  max: number
+): <T>(task: () => Promise<T>, operation: string, signal?: AbortSignal) => Promise<T> {
   let active = 0;
   const waiting: Array<() => void> = [];
-  return async (task) => {
-    if (active >= max) await new Promise<void>((resume) => waiting.push(resume));
+  return async (task, operation, signal) => {
+    if (signal?.aborted) throw abortedError(operation, signal);
+    if (active >= max) {
+      await new Promise<void>((resume, reject) => {
+        const onAbort = () => {
+          const index = waiting.indexOf(start);
+          if (index >= 0) waiting.splice(index, 1);
+          reject(abortedError(operation, signal!));
+        };
+        const start = () => {
+          signal?.removeEventListener('abort', onAbort);
+          resume();
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
+        waiting.push(start);
+      });
+    }
     active += 1;
     try {
       return await task();
@@ -191,17 +225,21 @@ export function useCofheDecrypter({
         scoped,
         onPoll: options?.onPoll,
         timeoutMs: options?.timeoutMs,
+        signal: options?.signal,
         meta: options?.meta,
         context: options?.context,
       });
-      return limit(() =>
-        queryClient.fetchQuery({
-          queryKey: query.queryKey,
-          queryFn: query.queryFn,
-          meta: query.meta,
-          staleTime: options?.staleTime ?? Infinity,
-          retry: options?.retry ?? defaultDecryptRetry,
-        })
+      return limit(
+        () =>
+          queryClient.fetchQuery({
+            queryKey: query.queryKey,
+            queryFn: query.queryFn,
+            meta: query.meta,
+            staleTime: options?.staleTime ?? Infinity,
+            retry: options?.retry ?? defaultDecryptRetry,
+          }),
+        'decryptForView',
+        options?.signal
       );
     },
     [client, queryClient, decryptChainId, chainId, decryptACP, scoped, effectiveACP, limit]
@@ -232,17 +270,21 @@ export function useCofheDecrypter({
         onPoll: options?.onPoll,
         timeoutMs: options?.timeoutMs,
         retry404TimeoutMs: options?.retry404TimeoutMs,
+        signal: options?.signal,
         meta: options?.meta,
         context: options?.context,
       });
-      return limit(() =>
-        queryClient.fetchQuery({
-          queryKey: query.queryKey,
-          queryFn: query.queryFn,
-          meta: query.meta,
-          staleTime: options?.staleTime ?? Infinity,
-          retry: options?.retry ?? defaultDecryptRetry,
-        })
+      return limit(
+        () =>
+          queryClient.fetchQuery({
+            queryKey: query.queryKey,
+            queryFn: query.queryFn,
+            meta: query.meta,
+            staleTime: options?.staleTime ?? Infinity,
+            retry: options?.retry ?? defaultDecryptRetry,
+          }),
+        'decryptForTx',
+        options?.signal
       );
     },
     [client, queryClient, decryptChainId, chainId, decryptACP, scoped, effectiveACP, limit]

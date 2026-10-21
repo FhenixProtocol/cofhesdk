@@ -44,6 +44,7 @@ function fakeClient(result: unknown = 5n) {
     withACP: vi.fn(() => builder),
     onPoll: vi.fn(() => builder),
     setTimeout: vi.fn(() => builder),
+    setSignal: vi.fn(() => builder),
     execute: vi.fn(async () => result),
   };
   const proof = { ctHash: '42', decryptedValue: 9n, signature: '0xsig' };
@@ -55,6 +56,7 @@ function fakeClient(result: unknown = 5n) {
     set404RetryTimeout: vi.fn(() => txBuilder),
     withACP: vi.fn(() => txBuilder),
     withoutACP: vi.fn(() => txBuilder),
+    setSignal: vi.fn(() => txBuilder),
     execute: vi.fn(async () => proof),
   };
   return {
@@ -160,6 +162,54 @@ describe('useCofheDecrypter', () => {
     resolvers[1](2n);
     resolvers[2](3n);
     await expect(all).resolves.toEqual([1n, 2n, 3n]);
+  });
+
+  describe('signal', () => {
+    it('forwards the signal to the builder', async () => {
+      const { client, builder } = fakeClient();
+      state.client = client;
+      renderToString(<Probe />);
+      const { signal } = new AbortController();
+
+      await hook.decryptForView(UINT64, { signal });
+
+      expect(builder.setSignal).toHaveBeenCalledWith(signal);
+    });
+
+    it('rejects a call whose signal already fired, without a request', async () => {
+      renderToString(<Probe />);
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(hook.decryptForView(UINT64, { signal: controller.signal })).rejects.toMatchObject({
+        code: CofheErrorCode.Aborted,
+      });
+      expect(state.fetchQuery).not.toHaveBeenCalled();
+    });
+
+    it('a call aborted while waiting for a slot never starts, and the slot goes to the next', async () => {
+      const resolvers: Array<(value: bigint) => void> = [];
+      state.fetchQuery = vi.fn(() => new Promise<bigint>((resolve) => resolvers.push(resolve)));
+      renderToString(<Probe concurrency={1} />);
+      const controller = new AbortController();
+
+      const first = hook.decryptForView(UINT64);
+      const second = hook.decryptForView(UINT64, { signal: controller.signal });
+      const third = hook.decryptForView(UINT64);
+      await Promise.resolve();
+      expect(state.fetchQuery).toHaveBeenCalledTimes(1);
+
+      controller.abort();
+      await expect(second).rejects.toMatchObject({ code: CofheErrorCode.Aborted });
+      expect(state.fetchQuery).toHaveBeenCalledTimes(1);
+
+      resolvers[0](1n);
+      await expect(first).resolves.toBe(1n);
+      await Promise.resolve();
+      expect(state.fetchQuery).toHaveBeenCalledTimes(2);
+      resolvers[1](3n);
+      await expect(third).resolves.toBe(3n);
+    });
   });
 
   describe('decryptForTx', () => {

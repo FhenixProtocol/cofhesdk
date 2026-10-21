@@ -65,6 +65,8 @@ export enum CofheErrorCode {
   ACPVerifierTimeout = 'ACP_VERIFIER_TIMEOUT',
   ACPRequired = 'ACP_REQUIRED',
   SealFailed = 'SEAL_FAILED',
+  /** The caller's `AbortSignal` fired; the operation stopped at its next await. */
+  Aborted = 'ABORTED',
 }
 
 export type CofheErrorParams = {

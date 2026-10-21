@@ -239,6 +239,15 @@ describe('DecryptForTxBuilder', () => {
       expect(() => builder.setTimeout(0)).toThrow('setTimeout(timeoutMs) expects');
       expect(() => builder.setTimeout(Number.NaN)).toThrow('setTimeout(timeoutMs) expects');
     });
+
+    it('should allow configuring an abort signal', () => {
+      const builder = createTxBuilder();
+      const { signal } = new AbortController();
+      const result = builder.setSignal(signal);
+
+      expect(result).toBe(builder);
+      expect((builder as any).signal).toBe(signal);
+    });
   });
 
   // --- execute error paths ---
@@ -397,6 +406,15 @@ describe('DecryptForViewBuilder', () => {
       expect(() => builder.setTimeout(0)).toThrow('setTimeout(timeoutMs) expects');
       expect(() => builder.setTimeout(-5)).toThrow('setTimeout(timeoutMs) expects');
     });
+
+    it('should allow configuring an abort signal', () => {
+      const builder = createViewBuilder(FheTypes.Uint32);
+      const { signal } = new AbortController();
+      const result = builder.setSignal(signal);
+
+      expect(result).toBe(builder);
+      expect((builder as any).signal).toBe(signal);
+    });
   });
 
   // --- execute error paths ---
@@ -542,6 +560,17 @@ describe('execute – expired acp (regression, issue #272)', () => {
       await selectTxACP('active acp', acp).setTimeout(20_000).execute();
 
       expect(tnDecryptV2).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
+    });
+
+    it('passes the abort signal to the threshold network call', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+      const { signal } = new AbortController();
+
+      await selectTxACP('active acp', acp).setSignal(signal).execute();
+
+      expect(tnDecryptV2).toHaveBeenCalledWith(expect.objectContaining({ signal }));
     });
   });
 
