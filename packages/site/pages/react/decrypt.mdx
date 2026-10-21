@@ -11,6 +11,7 @@ Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is
 | A value a component renders               | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
 | A list of values, or a total over them    | `useCofheDecryptForViewList`, one query per handle                                                   |
 | A plaintext plus proof for a transaction  | `useCofheDecryptForTx`, mounted on the page that sends it                                            |
+| Proofs for a list of handles              | `useCofheDecryptForTxList`, one query per handle                                                     |
 | Handles discovered in a handler, or a sum | `useCofheDecrypter`, from that handler                                                               |
 
 ## `useCofheDecrypt` — a value to render
@@ -64,6 +65,22 @@ function useBidTotals(bids: Bid[], enabled: boolean) {
 ```
 
 `meta` is one object for every entry or a function of the entry and its index. A zero handle reads as the type's zero without a request; an `undefined` entry stays idle. Options and the second argument are those of `useCofheDecrypt`; `enabled: false` holds the whole list, e.g. until the user clicks "Reveal".
+
+## `useCofheDecryptForTxList` — proofs for a list
+
+`useCofheDecryptForTx` for a list: one proof query per handle, the same keys, gate and persistence, returned in the order of `inputs`. For a page that will send one transaction per item (a settlement that publishes each price level) or one transaction over all of them (a reveal-all), with the handles known at render time: every proof is ready before the click, and the handler only writes.
+
+```tsx
+import { useCofheDecryptForTxList } from '@cofhe/react';
+
+function useLevelProofs(levelHandles: `0x${string}`[]) {
+  const proofs = useCofheDecryptForTxList({ inputs: levelHandles, acp: null, meta: (_h, i) => ({ label: `Level ${i}` }) });
+  const ready = proofs.length > 0 && proofs.every((p) => p.data !== undefined);
+  return { ready, proofs: proofs.map((p) => p.data), error: proofs.find((p) => p.error)?.error };
+}
+```
+
+Options are those of `useCofheDecryptForTx`; `meta` is one object for every entry or a function of the handle and its index. The zero handle and an `undefined` entry stay idle.
 
 ## `useCofheDecrypter` — a job over many handles
 

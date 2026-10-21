@@ -71,6 +71,7 @@ export {
   type CofheDecryptContext,
 } from '@/hooks/useCofheDecrypt';
 export { useCofheDecryptForViewList, type UseCofheDecryptForViewListInput } from '@/hooks/useCofheDecryptForViewList';
+export { useCofheDecryptForTxList, type UseCofheDecryptForTxListInput } from '@/hooks/useCofheDecryptForTxList';
 export {
   useCofheDecrypter,
   type CofheDecryptForViewFn,

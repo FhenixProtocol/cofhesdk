@@ -5,6 +5,7 @@
 
 **@cofhe/react**
 
+- New `useCofheDecryptForTxList`: `useCofheDecryptForTx` for a list, one proof query per handle in the order of `inputs`, for a page that sends one transaction per item or one over all of them.
 - New `useCofheDecryptForViewList`: `useCofheDecrypt` for a list, one query per handle in the order of `inputs`, with per-entry `meta`; a zero handle reads as the type's zero without a request.
 - New `useCofheDecrypter`: its `decryptForView` decrypts one handle on demand, for a job over many handles (a history to sum, a set of bids to reveal) run from a click handler. Each call is the same query `useCofheDecrypt` runs — same cache key, same ACP gate, same persistence, same activity row — so a handle decrypted either way is decrypted once. Calls run at most `concurrency` at a time (4 by default). Its `decryptForTx` is the same for a proof.
 - New `useCofheDecryptForTx`: a query around `client.decryptForTx` — the plaintext with the threshold network's signature, for a contract to verify. A proof is a read (the contract checks only `(ctHash, value, signature)`), so it is cached under `[chainId, ctHash, acpHash]` with `staleTime: Infinity`, persisted under the same rule as a view decrypt, and can be fetched on the page before the transaction is sent; `acp: null` decrypts a publicly allowed handle without an ACP.
