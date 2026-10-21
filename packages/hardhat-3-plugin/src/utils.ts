@@ -8,16 +8,9 @@ const _require = createRequire(import.meta.url);
 
 // ─── Mock contract source discovery ──────────────────────────────────────────
 
-// The ACP contracts the mocks deploy as-is. They live in the cofhe-contracts package, and Hardhat 3
-// only writes artifacts for root files, so they are compiled as roots next to the mocks.
-const COFHE_CONTRACTS_NPM_PATHS = [
-  'npm:@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/ACPTimestampRevoker.sol',
-  'npm:@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/ACPShareRegistry.sol',
-];
-
 /**
- * Returns Hardhat 3 `npm:` paths for every `.sol` file in `@cofhe/mock-contracts/contracts/` plus
- * the cofhe-contracts files the mocks deploy, used to compile the contracts at startup.
+ * Returns Hardhat 3 `npm:` paths for every `.sol` file in
+ * `@cofhe/mock-contracts/contracts/`, used to compile the contracts at startup.
  */
 export function getMockContractsNpmPaths(): string[] {
   let contractsDir: string;
@@ -32,11 +25,10 @@ export function getMockContractsNpmPaths(): string[] {
     return [];
   }
 
-  const mockPaths = fs
+  return fs
     .readdirSync(contractsDir)
     .filter((f) => f.endsWith('.sol'))
     .map((f) => `npm:@cofhe/mock-contracts/contracts/${f}`);
-  return [...mockPaths, ...COFHE_CONTRACTS_NPM_PATHS];
 }
 
 // ─── Mock storage helpers ─────────────────────────────────────────────────────
