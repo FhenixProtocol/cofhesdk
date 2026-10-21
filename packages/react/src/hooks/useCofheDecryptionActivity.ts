@@ -12,7 +12,7 @@ import type { CofheQueryMeta } from '@/meta';
 // queries on the SDK's internal QueryClient:
 //   A) FETCH  — read the ciphertext handle on-chain  (`cofheReadContract`),
 //               whose data carries the `ctHash`.
-//   B) DECRYPT— decrypt that handle off-chain         (`decryptCiphertext`, keyed
+//   B) DECRYPT— decrypt that handle off-chain         (`decryptForView`, keyed
 //               by chain AND ctHash).
 //
 // This hook observes the cache, correlates the two stages by ctHash, and returns
@@ -234,7 +234,7 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     for (const q of queries) {
       const k = q.queryKey;
       // [prefix, chainId, ctHash, utype, acpHash] — see constructCofheDecryptForViewQueryKey.
-      if (!Array.isArray(k) || k[0] !== 'decryptCiphertext') continue;
+      if (!Array.isArray(k) || k[0] !== 'decryptForView') continue;
       const ct = normalizeCt(k[2]);
       if (!ct || isZeroCt(ct)) continue;
       const base = { key: q.queryKey, meta: q.meta };

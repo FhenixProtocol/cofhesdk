@@ -89,8 +89,8 @@ describe('useCofheDecrypter', () => {
 
     expect(hook.isReady).toBe(true);
     const options = state.fetchQuery.mock.calls[0][0] as FetchQueryOptions;
-    expect(options.queryKey).toEqual(['decryptCiphertext', 11155111, '42', FheTypes.Uint64, '0x1']);
-    expect(options.meta).toMatchObject({ kind: 'cofheDecrypt', ctHash: '42', chainId: 11155111, persist: true });
+    expect(options.queryKey).toEqual(['decryptForView', 11155111, '42', FheTypes.Uint64, '0x1']);
+    expect(options.meta).toMatchObject({ kind: 'cofheDecryptForView', ctHash: '42', chainId: 11155111, persist: true });
     expect(options.staleTime).toBe(Infinity);
     expect(options.retry(0, new Error('temporary'))).toBe(true);
     expect(options.retry(0, new CofheError({ code: CofheErrorCode.InternalError, message: 'final' }))).toBe(false);

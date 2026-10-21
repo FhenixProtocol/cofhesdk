@@ -36,7 +36,7 @@ export function constructCofheDecryptForViewQueryKey(params: {
   chainId: number | undefined;
   acpHash?: string;
 }): readonly unknown[] {
-  return ['decryptCiphertext', params.chainId, params.ctHash, params.utype, params.acpHash];
+  return ['decryptForView', params.chainId, params.ctHash, params.utype, params.acpHash];
 }
 
 /** What a zero handle (a value never set on chain) reads as, per type: the type's zero. */
@@ -109,7 +109,7 @@ export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
       // Persist only what the user own ACP decrypts, whether chosen or active: plaintext decrypted
       // with a shared ACP must not outlive the share, so it stays in memory.
       persist: acp?.type === 'self',
-      kind: 'cofheDecrypt',
+      kind: 'cofheDecryptForView',
       ctHash: input?.ctHash?.toString(),
       chainId: context?.chainId ?? decryptChainId,
       address: context?.address,
