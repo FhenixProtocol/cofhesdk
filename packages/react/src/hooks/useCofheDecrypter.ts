@@ -11,13 +11,14 @@ import {
   cofheDecryptForViewQuery,
   defaultDecryptRetry,
   useDropDecryptsOfInvalidACP,
+  zeroPlaintext,
   type CofheDecryptContext,
 } from './useCofheDecrypt';
 import { cofheDecryptForTxQuery } from './useCofheDecryptForTx';
 import {
   CofheError,
   CofheErrorCode,
-  FheTypes,
+  type FheTypes,
   type DecryptForTxResult,
   type DecryptPollCallbackFunction,
   type UnsealedItem,
@@ -104,13 +105,6 @@ export type UseCofheDecrypterResult = {
   /** The ACP `decryptForView` uses, with its status: why `isReady` is false, when it is. */
   acp: CofheEffectiveACP;
 };
-
-/** What a zero handle (a value never set on chain) reads as, per type: the type's zero. */
-function zeroPlaintext<U extends FheTypes>(utype: U): UnsealedItem<U> {
-  if (utype === FheTypes.Bool) return false as UnsealedItem<U>;
-  if (utype === FheTypes.Uint160) return '0x0000000000000000000000000000000000000000' as UnsealedItem<U>;
-  return 0n as UnsealedItem<U>;
-}
 
 /** The reasons a call must not be sent: no valid ACP, or a SNAPSHOT share that does not list the handle. */
 function assertACPDecrypts(effectiveACP: CofheEffectiveACP, ctHash: bigint | string, operation: string): void {

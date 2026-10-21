@@ -9,6 +9,7 @@ Every decrypt is a read. A handle maps to one plaintext forever, so a decrypt is
 | Work                                      | Hook                                                                                                 |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | A value a component renders               | `useCofheDecrypt` (or `useCofheReadContractAndDecrypt` when the handle comes from one contract read) |
+| A list of values, or a total over them    | `useCofheDecrypts`, one query per handle                                                             |
 | A plaintext plus proof for a transaction  | `useCofheDecryptForTx`, mounted on the page that sends it                                            |
 | Handles discovered in a handler, or a sum | `useCofheDecrypter`, from that handler                                                               |
 
@@ -31,6 +32,38 @@ function Amount({ handle }: { handle: `0x${string}` }) {
 ```
 
 Options: `chainId` (the chain the handle lives on, the connected chain by default), `acp` (decrypt with this ACP instead of the enclosing scope or the active one), `timeoutMs` (the decrypt's whole budget, 5 minutes by default), `onPoll`, `meta` and `context` for the activity panel, and any React Query option as the second argument.
+
+## `useCofheDecrypts` — a list of values
+
+`useCofheDecrypt` for a list: one query per handle, the same keys, gate, persistence and activity rows, returned in the order of `inputs`. For a list a component renders, or a total it derives from every value, when the handles are known at render time. The client's `decryptConcurrency` cap bounds how many requests run at once, so a long list is safe.
+
+```tsx
+import { useMemo } from 'react';
+import { useCofheDecrypts } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+type Bid = { id: string; eQuantity: `0x${string}`; ePaid: `0x${string}` };
+
+function useBidTotals(bids: Bid[], enabled: boolean) {
+  const results = useCofheDecrypts(
+    {
+      inputs: bids.flatMap((bid) => [
+        { ctHash: bid.eQuantity, utype: FheTypes.Uint64 },
+        { ctHash: bid.ePaid, utype: FheTypes.Uint64 },
+      ]),
+      meta: (_input, index) => ({ label: `Bid ${bids[Math.floor(index / 2)].id}` }),
+    },
+    { enabled, staleTime: Infinity }
+  );
+  return useMemo(() => {
+    const allRevealed = results.length > 0 && results.every((r) => r.data !== undefined);
+    const paid = allRevealed ? results.filter((_r, i) => i % 2 === 1).reduce((sum, r) => sum + r.data!, 0n) : null;
+    return { allRevealed, paid, revealing: results.some((r) => r.isFetching), error: results.find((r) => r.error)?.error };
+  }, [results]);
+}
+```
+
+`meta` is one object for every entry or a function of the entry and its index. A zero handle reads as the type's zero without a request; an `undefined` entry stays idle. Options and the second argument are those of `useCofheDecrypt`; `enabled: false` holds the whole list, e.g. until the user clicks "Reveal".
 
 ## `useCofheDecrypter` — a job over many handles
 

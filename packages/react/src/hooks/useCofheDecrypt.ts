@@ -39,6 +39,13 @@ export function constructCofheDecryptForViewQueryKey(params: {
   return ['decryptCiphertext', params.chainId, params.ctHash, params.utype, params.acpHash];
 }
 
+/** What a zero handle (a value never set on chain) reads as, per type: the type's zero. */
+export function zeroPlaintext<U extends FheTypes>(utype: U): UnsealedItem<U> {
+  if (utype === FheTypes.Bool) return false as UnsealedItem<U>;
+  if (utype === FheTypes.Uint160) return '0x0000000000000000000000000000000000000000' as UnsealedItem<U>;
+  return 0n as UnsealedItem<U>;
+}
+
 /** Structural context from the originating read (address/method), for recognition in activity views. */
 export type CofheDecryptContext = { chainId?: number; address?: string; functionName?: string };
 

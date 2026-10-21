@@ -70,6 +70,7 @@ export {
   constructCofheDecryptForViewQueryKey,
   type CofheDecryptContext,
 } from '@/hooks/useCofheDecrypt';
+export { useCofheDecrypts, type UseCofheDecryptsInput } from '@/hooks/useCofheDecrypts';
 export {
   useCofheDecrypter,
   type CofheDecryptForViewFn,
