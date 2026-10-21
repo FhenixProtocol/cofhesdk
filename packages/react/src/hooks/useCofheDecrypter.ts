@@ -170,9 +170,10 @@ function createLimiter(
 }
 
 /**
- * The imperative counterpart of `useCofheDecrypt`: a function that decrypts one handle on demand,
- * for the work a component does not render per value — a job the user starts over a list of
- * handles (a history to sum, a set of bids to reveal), from the handler that starts it.
+ * The imperative counterpart of `useCofheDecrypt`: functions that decrypt one handle on demand,
+ * from the handler that needs the value. The rule: a query hook whenever the handle is in the
+ * component (`enabled` for the click); this hook only when the handle is born in the handler, or
+ * for a long list that is just an input to one aggregate (a history summed into one number).
  *
  * Each call is the same query `useCofheDecrypt` would run — same cache key, same gate, same
  * persistence, same activity row — so a handle decrypted either way is decrypted once, and
