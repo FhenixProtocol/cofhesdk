@@ -868,8 +868,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     );
 
     // NOTE: MOCK - the real task manager leaves the value to the coprocessor; store one here.
+    // An ebool is stored as 0 or 1, but its type mask keeps 8 bits, so take one bit for it.
     (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
-    _set(ctHash, uint256(keccak256(abi.encode(ctHash))));
+    uint256 value = uint256(keccak256(abi.encode(ctHash)));
+    if (returnType == Utils.EBOOL_TFHE) value &= 1;
+    _set(ctHash, value);
     _mockGasTrackEnd(mode, startGas);
 
     return ctHash;
