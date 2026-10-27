@@ -9,6 +9,7 @@ import { createKeysStore } from './keyStore.js';
 import { acps } from './acps.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
+import { createDecryptLimiter } from './decrypt/decryptLimiter.js';
 import { verifyDecryptResult as verifyDecryptResultStandalone } from './decrypt/verifyDecryptResult.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientACPs } from './clientTypes.js';
@@ -177,12 +178,16 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
+  // One cap for every decrypt this client sends, whatever hook or loop asks for it.
+  const decryptLimiter = createDecryptLimiter(opts.config.decryptConcurrency);
+
   function decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
     return new DecryptForViewBuilder({
       ctHash,
       utype,
+      limit: decryptLimiter,
       chainId: state.chainId,
       account: state.account,
 
@@ -199,6 +204,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     return new DecryptForTxBuilder({
       ctHash,
+      limit: decryptLimiter,
       chainId: state.chainId,
       account: state.account,
 

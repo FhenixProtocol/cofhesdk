@@ -48,6 +48,7 @@ const config = createCofheConfig({
 
   // Optional knobs
   // defaultACPExpiration: 60 * 60 * 24 * 30,
+  // decryptConcurrency: 8, // decrypts in flight to the threshold network at a time; Infinity disables
   // useWorkers: true,
   // tfheThreads: 'auto',
 });
