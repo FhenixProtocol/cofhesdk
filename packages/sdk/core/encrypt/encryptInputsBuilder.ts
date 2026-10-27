@@ -21,7 +21,7 @@ import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheM
 import { hardhat } from 'viem/chains';
 import { fetchKeys, type FheKeyDeserializer } from '../fetchKeys.js';
 import { getZkVerifierUrlOrThrow } from '../config.js';
-import { type WalletClient } from 'viem';
+import { type WalletClient, isAddress } from 'viem';
 import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { type KeysStorage } from '../keyStore.js';
@@ -256,19 +256,37 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * Asserts that this.consumingContract is populated
-   * @throws {CofheError} If consumingContract is not set
+   * Asserts that this.consumingContract is populated and is an address.
+   * Runs before TFHE init, key fetching and proving, so a bad address costs
+   * nothing: the contract is bound into the proof, and a proof built for a
+   * non-address could only fail at the verifier, after the expensive step.
+   * @throws {CofheError} If consumingContract is not set or is not an address
    */
   private assertConsumingContract(): asserts this is this & { consumingContract: string } {
-    if (this.consumingContract) return;
-    throw new CofheError({
-      code: CofheErrorCode.ConsumingContractUninitialized,
-      message: 'Consuming contract is not set',
-      hint: 'Use setConsumingContract(...) to set the contract that will consume the encrypted inputs.',
-      context: {
-        consumingContract: this.consumingContract,
-      },
-    });
+    if (!this.consumingContract) {
+      throw new CofheError({
+        code: CofheErrorCode.ConsumingContractUninitialized,
+        message: 'Consuming contract is not set',
+        hint: 'Use setConsumingContract(...) to set the contract that will consume the encrypted inputs.',
+        context: {
+          consumingContract: this.consumingContract,
+        },
+      });
+    }
+    // strict: false — 20 bytes of hex in any case, no EIP-55 checksum check. The
+    // verifier decodes the address case-insensitively and the chain compares bytes,
+    // so a mixed-case address with a wrong checksum works end to end and a patch
+    // release must keep accepting it.
+    if (!isAddress(this.consumingContract, { strict: false })) {
+      throw new CofheError({
+        code: CofheErrorCode.ConsumingContractInvalid,
+        message: 'Consuming contract is not an address',
+        hint: 'setConsumingContract(...) takes the 20-byte address of the contract that will consume the encrypted inputs.',
+        context: {
+          consumingContract: this.consumingContract,
+        },
+      });
+    }
   }
 
   /**
@@ -567,7 +585,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepStart(EncryptStep.Prove);
 
     // Construct metadata once (used by both worker and main thread paths)
-    const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId);
+    const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
     let proof: Uint8Array | null = null;
     let usedWorker = false;

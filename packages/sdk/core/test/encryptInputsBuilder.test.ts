@@ -10,7 +10,7 @@ import {
 } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
-import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
+import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
@@ -53,9 +53,9 @@ const unpackMetadata = (metadata: string) => {
 
 export const deconstructZkPoKMetadata = (
   metadata: Uint8Array
-): { accountAddr: string; securityZone: number; chainId: number } => {
-  if (metadata.length < 53) {
-    // 1 + 20 + 32 = 53 bytes minimum
+): { accountAddr: string; securityZone: number; chainId: number; contractAddr: string } => {
+  if (metadata.length < 73) {
+    // 1 + 20 + 32 + 20 = 73 bytes minimum
     throw new CofheError({
       code: CofheErrorCode.InternalError,
       message: 'Invalid metadata: insufficient length',
@@ -78,10 +78,14 @@ export const deconstructZkPoKMetadata = (
     chainId = (chainId << 8) | chainIdBytes[i];
   }
 
+  // Extract the consuming contract (last 20 bytes)
+  const contractAddr = '0x' + toHexString(metadata.slice(53, 73));
+
   return {
     accountAddr,
     securityZone,
     chainId,
+    contractAddr,
   };
 };
 
@@ -445,6 +449,38 @@ describe('EncryptInputsBuilder', () => {
         expect((error as CofheError).code).toBe(CofheErrorCode.ConsumingContractUninitialized);
       }
     });
+
+    it('accepts a mixed-case consuming contract whose checksum is wrong', async () => {
+      // The verifier decodes the address case-insensitively and the chain compares
+      // 20 bytes, so a 1.0.0 dApp with such an address must keep working.
+      const wrongChecksum = '0xBEEFbeefBEEFbeefBEEFbeefBEEFbeefBEEFbeef';
+      expect(isAddress(wrongChecksum)).toBe(false);
+      expect(isAddress(wrongChecksum, { strict: false })).toBe(true);
+
+      const result = await new EncryptInputsBuilder(createDefaultParams())
+        .setConsumingContract(wrongChecksum)
+        .execute();
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('rejects a consuming contract that is not an address before any encrypt step runs', async () => {
+      for (const notAnAddress of ['0x0', 'not-an-address', '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbee']) {
+        const steps = vi.fn();
+        const invalid = new EncryptInputsBuilder(createDefaultParams())
+          .setConsumingContract(notAnAddress)
+          .onStep(steps);
+        try {
+          await invalid.execute();
+          expect.unreachable(`execute() should have thrown for ${notAnAddress}`);
+        } catch (error) {
+          expect(error, notAnAddress).toBeInstanceOf(CofheError);
+          expect((error as CofheError).code, notAnAddress).toBe(CofheErrorCode.ConsumingContractInvalid);
+        }
+        // Rejected before initTfhe, so no step (and no proving) ever started.
+        expect(steps, notAnAddress).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe('zkVerifierUrl', () => {
@@ -593,6 +629,22 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata.signer).toBe(defaultSender);
       expect(encryptedMetadata.securityZone).toBe(0);
       expect(encryptedMetadata.chainId).toBe(defaultChainId);
+    });
+
+    it('binds the consuming contract into the proof metadata', async () => {
+      mockFetch.mockClear();
+
+      await builder.execute();
+
+      const verifyCall = mockFetch.mock.calls.find(([url]) => url === `${MockZkVerifierUrl}/verifyBatch`);
+      expect(verifyCall).toBeDefined();
+      const body = JSON.parse(verifyCall![1].body as string);
+      const { metadata } = parseWithBigInt(new TextDecoder().decode(fromHexString(body.packed_list)));
+      const embedded = deconstructZkPoKMetadata(Uint8Array.from(Object.values(metadata) as number[]));
+      expect(embedded.accountAddr).toBe(defaultSender);
+      expect(embedded.securityZone).toBe(0);
+      expect(embedded.chainId).toBe(defaultChainId);
+      expect(embedded.contractAddr).toBe(defaultConsumingContract);
     });
 
     it('should use overridden account when set', async () => {
