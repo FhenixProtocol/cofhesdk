@@ -5,7 +5,9 @@
  * `useCofheIncomingShares`, imports it with `useCofheImportShared({ activate: false })` so her own ACP
  * stays active, and the inbox then excludes it. `useCofheACPStatus` reports the share as valid on both
  * sides; when Bob revokes it with `useCofheRevokeACP` his status re-reads to revoked at once. Alice
- * dismisses the registry entry with `useCofheRemoveShare`.
+ * dismisses the registry entry with `useCofheRemoveShare`. Each write lands in the transaction store
+ * (the floating button's Activity) and is confirmed there once mined; a write the registry would
+ * reject (the same share posted twice) fails in the simulation, before anything is sent or recorded.
  */
 import React, { useEffect, useState } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -29,6 +31,7 @@ import { createCofheClient } from '@cofhe/sdk/web';
 import {
   CofheProvider,
   createCofheConfig,
+  TransactionActionType,
   useCofheACPStatus,
   useCofheImportShared,
   useCofheIncomingShares,
@@ -36,6 +39,8 @@ import {
   useCofheRevokeACP,
   useCofheShareLabels,
   useCofheShareOnChain,
+  useTransactionStore,
+  type TransactionActionType as ActionType,
 } from '@cofhe/react';
 
 const ANVIL_RPC = 'http://127.0.0.1:8546';
@@ -78,6 +83,7 @@ function Issuer({ acp }: { acp: ACP }) {
       <button onClick={() => share.mutate(acp)}>share</button>
       <button onClick={() => revoke.mutate(acp)}>revoke</button>
       <output aria-label="share result">{share.data?.shareId ?? (share.error ? share.error.message : '')}</output>
+      <output aria-label="share error">{share.error?.message ?? ''}</output>
       <output aria-label="revoke result">{revoke.data ?? (revoke.error ? revoke.error.message : '')}</output>
       <output aria-label="issuer status">{status}</output>
     </>
@@ -139,7 +145,21 @@ function LabelReader() {
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 
-afterEach(() => acpStore.resetStore());
+/**
+ * The Activity rows of one account, oldest first, by action type. The hooks record a row when the
+ * write is sent; the floating button's receipt watcher (not mounted here) is what confirms it.
+ */
+const activityOf = (account: Address): ActionType[] =>
+  useTransactionStore
+    .getState()
+    .getAllTransactions(31337, account)
+    .map((tx) => tx.actionType)
+    .reverse();
+
+afterEach(() => {
+  acpStore.resetStore();
+  useTransactionStore.getState().clearTransactions();
+});
 
 const describeOnAnvil = SIMPLE_TEST && SHARE_REGISTRY ? describe : describe.skip;
 
@@ -187,10 +207,17 @@ describeOnAnvil('react hooks: on-chain sharing (Anvil)', () => {
     await waitFor(() => expect(shown('incoming')).toBe('0'), { timeout: 30_000 });
     await waitFor(() => expect(shown('issuer status')).toBe('valid'), { timeout: 30_000 });
 
-    // Bob posts the share; Alice discovers it.
+    // Bob posts the share; Alice discovers it. The write is in Bob's Activity.
     click('share');
     await waitFor(() => expect(shown('share result')).toMatch(/^0x[0-9a-f]{64}$/), { timeout: 60_000 });
     await waitFor(() => expect(shown('incoming')).toBe('1'), { timeout: 30_000 });
+    expect(activityOf(BOB.address)).toStrictEqual([TransactionActionType.ShareACP]);
+
+    // The same share again: the registry rejects it, so the simulation fails before anything is
+    // sent — an error on the hook, no transaction and no Activity row.
+    click('share');
+    await waitFor(() => expect(shown('share error')).toMatch(/AlreadyShared|revert/i), { timeout: 60_000 });
+    expect(activityOf(BOB.address)).toHaveLength(1);
 
     // Alice imports without activating: her own ACP stays active, the inbox no longer lists the share.
     click('import');
@@ -203,11 +230,13 @@ describeOnAnvil('react hooks: on-chain sharing (Anvil)', () => {
     click('dismiss');
     await waitFor(() => expect(shown('dismissed')).toBe('yes'), { timeout: 60_000 });
     expect(await aliceClient.acp.getIncomingShares()).toHaveLength(0);
+    expect(activityOf(ALICE.address)).toStrictEqual([TransactionActionType.RemoveShare]);
 
     // Bob revokes: his status re-reads at once, without waiting for the periodic check.
     click('revoke');
     await waitFor(() => expect(shown('revoke result')).toMatch(/^0x/), { timeout: 60_000 });
     await waitFor(() => expect(shown('issuer status')).toBe('revoked'), { timeout: 30_000 });
+    expect(activityOf(BOB.address)).toStrictEqual([TransactionActionType.ShareACP, TransactionActionType.RevokeACP]);
   }, 180_000);
 
   it('a labelled SNAPSHOT share: posted with its labels, described and verified by the recipient', async () => {
