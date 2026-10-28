@@ -331,9 +331,23 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     // Ensure acp validity
     ACPUtils.validate(acp);
 
+    if (this.chainId !== undefined && this.chainId !== acp._signedDomain?.chainId) {
+      throw new CofheError({
+        code: CofheErrorCode.ChainIdMismatch,
+        message: `decryptForView: builder chainId (${this.chainId}) does not match ACP signed chainId (${acp._signedDomain?.chainId})`,
+        context: {
+          builderChainId: this.chainId,
+          acpChainId: acp._signedDomain?.chainId,
+        },
+      });
+    }
+
     // Extract chainId from signed acp
     // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
     const chainId = acp._signedDomain!.chainId;
+    if (this.chainId === undefined) {
+      this.chainId = chainId;
+    }
 
     // Check acp validity on-chain
     // TODO: ACPUtils.validateOnChain(acp, this.publicClient);
