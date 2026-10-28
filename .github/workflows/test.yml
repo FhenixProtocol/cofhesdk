@@ -203,12 +203,11 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
-  # Next.js 16 defaults to Turbopack for `next build`. A client import of
-  # `@cofhe/sdk/web` used to hang forever while Turbopack followed the lazy
-  # `import('tfhe')` (#467). This smoke builds the SDK, then runs a timed
-  # Turbopack `next build` against a minimal App Router fixture.
-  test-next-turbopack:
-    name: Test (Next.js Turbopack)
+  # Next.js 16 defaults to Turbopack for `next build`, which hangs on tfhe's
+  # wasm-bindgen-rayon worker graph when a client imports `@cofhe/sdk/web`
+  # (#467 / vercel/next.js#100131). Assert the supported workaround stays green.
+  test-next-webpack:
+    name: Test (Next.js webpack)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -229,7 +228,7 @@ jobs:
       - name: Build @cofhe/sdk
         run: pnpm --filter @cofhe/sdk build
 
-      - name: Next.js Turbopack smoke (import @cofhe/sdk/web)
+      - name: Next.js webpack smoke (import @cofhe/sdk/web)
         env:
-          NEXT_TURBOPACK_TIMEOUT_MS: '180000'
-        run: pnpm --filter @cofhe/sdk run check:next-turbopack
+          NEXT_WEBPACK_TIMEOUT_MS: '180000'
+        run: pnpm --filter @cofhe/sdk run check:next-webpack
