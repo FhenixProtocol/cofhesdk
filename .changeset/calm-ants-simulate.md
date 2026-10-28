@@ -2,4 +2,4 @@
 '@cofhe/react': patch
 ---
 
-Fix simulation query keys to include all result-affecting request options, keep `enabled` out of cache identity, and compact binary blobs to content hashes.
+Corrects `useCofheSimulateWriteContract` to key its cache on every simulation option that affects the result, such as `blockNumber`, `blockTag` and `stateOverride`, and to leave `enabled` out of the key. Previously two simulations that differed only in those options shared one cached result.
