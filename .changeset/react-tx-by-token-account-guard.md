@@ -2,4 +2,4 @@
 '@cofhe/react': patch
 ---
 
-Guard `getAllTransactionsByToken` when filtering by account so legacy entries without `account` do not throw (sibling of #425).
+Corrects `getAllTransactionsByToken` to keep persisted transactions that have no `account` when filtering by account, as `getAllTransactions` already does. Previously such an entry threw a `TypeError` and the whole token history failed to load.
