@@ -280,7 +280,22 @@ describe('createCofheConfigBase - stale key rejection', () => {
     ).toThrow(/Invalid cofhe configuration/);
   });
 
+  it('rejects unknown keys in mocks, such as the pre-0.3 sealOutputDelay', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, mocks: { sealOutputDelay: 1000 } } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
+  it('rejects unknown keys in acp', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, acp: { defaultRevokers: {} } } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
   it('still accepts a valid config', () => {
     expect(() => createCofheConfigBase({ ...validBaseConfig, defaultACPExpiration: 60 })).not.toThrow();
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, mocks: { decryptDelay: 10 }, acp: { app: 'my-app' } })
+    ).not.toThrow();
   });
 });
