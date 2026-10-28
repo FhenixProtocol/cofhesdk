@@ -34,7 +34,7 @@ In practice, this usually means one of the following:
 
 At this stage there is no decryption request yet, so there is no `request_id` to poll.
 
-The SDK does not automatically retry this `404` case for you. It surfaces the error, and the caller should retry later if the handle is expected to become available soon.
+The SDK retries this `404` for a short window (see State 2 below). If the handle is still not found when the window ends, it fails with `CtNotFound`, and the caller should retry later if the handle is expected to become available soon.
 
 ## State 2: `ctHash` known, but no `request_id` yet
 
@@ -50,7 +50,7 @@ This means:
 
 This is the case the SDK now handles automatically.
 
-The SDK also treats short-lived submit-time `404 Not Found` responses as retryable during an initial indexing window — but only while the backend's error body reports `ct_not_found` (the "ciphertext not indexed yet" case). A `404` carrying any other error code is surfaced immediately as that code's dedicated error, not retried. By default, the `ct_not_found` retry window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder.
+The SDK also treats short-lived submit-time `404 Not Found` responses as retryable during an initial indexing window, whatever error code the body carries. A `404` that lasts past the window fails with `CtNotFound` (`apiErrorCode: 'ct_not_found'`). By default, the window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder.
 
 For both `decryptForTx` and `decryptForView`, the SDK will:
 
@@ -119,9 +119,8 @@ Interpretation:
 ```text
 decrypt call starts
   -> submit request
-    -> 404, error: ct_not_found, within retry window: SDK retries submit automatically
-    -> 404, error: ct_not_found, after retry window: fail and surface submit-time error
-    -> 404, any other error code: fail immediately, not retried
+    -> 404, within retry window: SDK retries submit automatically
+    -> 404, after retry window: fail with CtNotFound
     -> 204 without request_id: SDK retries submit automatically
     -> 200 with request_id: SDK starts status polling
       -> PROCESSING: keep polling
@@ -131,7 +130,7 @@ decrypt call starts
 ## Practical guidance
 
 - If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
-- If you get a submit-time `404` reporting `ct_not_found`, the SDK now retries automatically for a short window; increase `.set404RetryTimeout(...)` if your backend indexes handles more slowly. A `404` reporting anything else fails immediately.
+- A submit-time `404` is retried automatically for a short window; if decrypts fail with `CtNotFound` because your backend indexes handles more slowly, increase `.set404RetryTimeout(...)`.
 - If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as `waiting for request creation`.
 - If you are debugging slow decrypts, separate `coprocessor has not created a request yet` from `Threshold Network is processing an existing request`.
 

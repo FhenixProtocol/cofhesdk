@@ -26,7 +26,7 @@ This directory contains configuration and changeset files for managing versionin
 pnpm changeset
 ```
 
-2. Commit the generated file under `.changeset/*.md` with your PR.
+2. Write its text following `../.memory/changesets.md` (verb first, the exported name, the symptom a user saw; no `fix(sdk):` prefix) and commit the file under `.changeset/*.md` with your PR.
 
 3. When your PR is merged to `master`:
    - CI will publish a canary snapshot to npm under the `canary` dist‑tag using a timestamp‑suffixed prerelease version.
@@ -77,7 +77,7 @@ pnpm changeset status
 ## Best practices
 
 - Always include a changeset with user‑visible changes.
-- Keep descriptions clear; they become the changelog.
+- Keep descriptions clear; they become the changelog. How to word them: `.memory/changesets.md`.
 - Merge the “Version Packages” PR only when you’re ready for a stable release.
 - For emergency hotfixes, prefer a small changeset + fast Version PR merge rather than local/manual publishes.
 

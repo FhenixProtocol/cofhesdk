@@ -239,13 +239,24 @@ export const zkProve = async (
 };
 
 /**
- * Constructs the ZK Proof of Knowledge metadata for the proof
+ * Constructs the ZK Proof of Knowledge metadata for the proof:
+ * `securityZone (1) || account (20) || chainId (32, big-endian) || consumingContract (20)`.
+ *
+ * The verifier rebuilds the same bytes from the request fields before it checks the proof, so the
+ * proof is bound to the consuming contract itself, not only to the signature the verifier returns.
  * @internal - Used internally within the encrypt module
  */
-export const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
-  // Decode the account address from hex
+export const constructZkPoKMetadata = (
+  accountAddr: string,
+  securityZone: number,
+  chainId: number,
+  consumingContract: string
+): Uint8Array => {
+  // Decode the account and contract addresses from hex
   const accountAddrNoPrefix = accountAddr.startsWith('0x') ? accountAddr.slice(2) : accountAddr;
   const accountBytes = hexToBytes(accountAddrNoPrefix);
+  const contractNoPrefix = consumingContract.startsWith('0x') ? consumingContract.slice(2) : consumingContract;
+  const contractBytes = hexToBytes(contractNoPrefix);
 
   // Encode chainId as 32 bytes (u256) in big-endian format
   const chainIdBytes = new Uint8Array(32);
@@ -259,10 +270,11 @@ export const constructZkPoKMetadata = (accountAddr: string, securityZone: number
     value = value >>> 8;
   }
 
-  const metadata = new Uint8Array(1 + accountBytes.length + 32);
+  const metadata = new Uint8Array(1 + accountBytes.length + 32 + contractBytes.length);
   metadata[0] = securityZone;
   metadata.set(accountBytes, 1);
   metadata.set(chainIdBytes, 1 + accountBytes.length);
+  metadata.set(contractBytes, 1 + accountBytes.length + 32);
 
   return metadata;
 };

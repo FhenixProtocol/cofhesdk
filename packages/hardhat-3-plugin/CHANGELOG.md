@@ -1,5 +1,13 @@
 # @cofhe/hardhat-3-plugin
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [fcc819c]
+  - @cofhe/sdk@1.0.1
+  - @cofhe/mock-contracts@1.0.1
+
 ## 1.0.0
 
 ### Minor Changes
