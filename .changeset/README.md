@@ -26,7 +26,7 @@ This directory contains configuration and changeset files for managing versionin
 pnpm changeset
 ```
 
-2. Commit the generated file under `.changeset/*.md` with your PR.
+2. Write its text following `../.memory/changesets.md` (verb first, the exported name, the symptom a user saw; no `fix(sdk):` prefix) and commit the file under `.changeset/*.md` with your PR.
 
 3. When your PR is merged to `master`:
    - CI will publish a canary snapshot to npm under the `canary` dist‑tag using a timestamp‑suffixed prerelease version.
