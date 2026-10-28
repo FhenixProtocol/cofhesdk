@@ -5,8 +5,14 @@
 '@cofhe/hardhat-3-plugin': patch
 ---
 
-The mocks take `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` from `@fhenixprotocol/cofhe-contracts` 1.0.2 instead of carrying verbatim copies; the `update:cofhe-contracts` script and its manifest are gone. The old `@cofhe/mock-contracts/contracts/<name>.sol` import paths keep working and forward to `@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/<name>.sol`.
+**@cofhe/mock-contracts**
 
-`MockTaskManager` gains the access list that cofhe-contracts 1.0.2 adds to `ITaskManager`: `enableAccessList`, `disableAccessList`, `addToAccessList` and `removeFromAccessList`, callable by the owner or an account named in `MOCK_setAccessListManager`, and gating `createTask`, `createRandomTask` and `batchVerifyInputs` while enabled. It is off by default, so existing tests are unaffected; a contract made a manager can use `FHE.addToAccessList` / `FHE.removeFromAccessList`.
+Changes the mocks to import `Permissioned`, `ACPShareRegistry` and `ACPTimestampRevoker` from `@fhenixprotocol/cofhe-contracts` instead of bundling copies, so they can no longer drift from the real contracts. The `@cofhe/mock-contracts/contracts/<name>.sol` paths still resolve. Requires `@fhenixprotocol/cofhe-contracts` 1.0.2 or later, the first release that publishes those files.
 
-Both Hardhat plugins now require `@fhenixprotocol/cofhe-contracts` >= 1.0.2 in the project (the mocks import its ACP contracts); the Hardhat 3 plugin compiles `ACPTimestampRevoker` and `ACPShareRegistry` from that package as roots.
+**@cofhe/hardhat-plugin**, **@cofhe/hardhat-3-plugin**
+
+Changes the required `@fhenixprotocol/cofhe-contracts` in your project to 1.0.2 or later. The Hardhat 3 plugin compiles `ACPTimestampRevoker` and `ACPShareRegistry` from that package as root files so their artifacts are available to the mock deploy.
+
+**@cofhe/foundry-plugin**
+
+Changes `CofheClient` and `CofheTest` to import the ACP contracts from `@fhenixprotocol/cofhe-contracts`, which the existing `@fhenixprotocol/cofhe-contracts/` remapping already resolves.
