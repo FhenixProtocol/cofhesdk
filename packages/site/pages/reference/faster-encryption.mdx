@@ -132,6 +132,24 @@ module.exports = {
 };
 ```
 
+:::warning Turbopack and `@cofhe/sdk/web`
+Next.js 16 defaults to Turbopack for `next build`. Older `@cofhe/sdk` releases
+can hang forever at "Creating an optimized production build…" when a client
+component imports `@cofhe/sdk/web`, because Turbopack statically follows the
+lazy `import('tfhe')`. `@cofhe/sdk` 1.0.2+ marks that import (and the proof
+worker URL) with `webpackIgnore` so Turbopack skips them.
+
+Until you can upgrade, force webpack:
+
+```bash
+next build --webpack
+next dev --webpack
+```
+
+Or set `"scripts": { "build": "next build --webpack", "dev": "next dev --webpack" }`
+in `package.json` (as [create-cofhe-app](https://github.com/ZenWeb3/create-cofhe-app) does).
+:::
+
 ### Vercel
 
 ```json [vercel.json]

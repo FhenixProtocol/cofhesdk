@@ -41,11 +41,15 @@ class ZkProveWorkerManager {
           return;
         }
 
-        // Create worker
-        // Note: In production, this will try to load the worker from the same directory
-        // The bundler should handle this Worker instantiation
+        // Create worker. webpackIgnore tells Turbopack/webpack not to rewrite
+        // or inline this URL — the published package already ships
+        // `zkProve.worker.js` next to `web.js`, and forcing the bundler to
+        // analyse the worker pulls `tfhe` into the app graph (see #467).
         try {
-          this.worker = new Worker(new URL('./zkProve.worker.js', import.meta.url), { type: 'module' }) as any;
+          this.worker = new Worker(
+            new URL(/* webpackIgnore: true */ './zkProve.worker.js', import.meta.url),
+            { type: 'module' }
+          ) as any;
         } catch (error) {
           // If Worker creation fails, reject immediately
           reject(new Error(`Failed to create worker: ${error}`));

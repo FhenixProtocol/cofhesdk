@@ -70,7 +70,12 @@ const initTfhe: TfheInitializer = async () => {
   }
 
   tfheInitPromise = (async () => {
-    const mod = await import('tfhe');
+    // webpackIgnore (honoured by webpack and Turbopack) keeps bundlers from
+    // statically following this lazy import. Without it, Next.js 16's default
+    // Turbopack build hangs while trying to analyse/bundle `tfhe` just because
+    // `@cofhe/sdk/web` was imported — even though tfhe is only needed at
+    // encrypt time. See FhenixProtocol/cofhesdk#467.
+    const mod = await import(/* webpackIgnore: true */ 'tfhe');
     await mod.default();
     await mod.init_panic_hook();
     tfheModule = mod;

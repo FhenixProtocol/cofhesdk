@@ -35,8 +35,9 @@ let threadPool: TfheThreadPoolResult | null = null;
 function initTfhe(tfheThreads: TfheThreadsSetting = 'auto'): Promise<void> {
   initPromise ??= (async () => {
     try {
-      // Dynamic import of tfhe module
-      tfheModule = await import('tfhe');
+      // Dynamic import of tfhe. webpackIgnore keeps Turbopack/webpack from
+      // statically bundling tfhe when they analyse this worker module (see #467).
+      tfheModule = await import(/* webpackIgnore: true */ 'tfhe');
       await tfheModule.default();
       await tfheModule.init_panic_hook();
 
