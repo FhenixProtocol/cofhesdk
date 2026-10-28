@@ -320,6 +320,32 @@ describe('ACPUtils Tests', () => {
       expect(acp.recipientSignature).not.toBe('0x');
       expect(acp._signedDomain).toBeDefined();
     });
+
+    it('should reject a share addressed to another account', async () => {
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600,
+        issuerSignature: '0x1234567890abcdef',
+      };
+
+      await expect(ACPUtils.importSharedAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /addressed to/
+      );
+    });
+
+    it('should reject an expired share', async () => {
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) - 60,
+        issuerSignature: '0x1234567890abcdef',
+      };
+
+      await expect(ACPUtils.importSharedAndSign(options, publicClient, aliceWalletClient)).rejects.toThrow(
+        'Cannot import an expired share'
+      );
+    });
   });
 
   describe('sign', () => {
