@@ -33,7 +33,7 @@ class ZkProveWorkerManager {
       return this.initializationPromise;
     }
 
-    this.initializationPromise = new Promise((resolve, reject) => {
+    const initialization: Promise<void> = new Promise<void>((resolve, reject) => {
       try {
         // Check if Worker is supported
         if (typeof Worker === 'undefined') {
@@ -112,9 +112,22 @@ class ZkProveWorkerManager {
       } catch (error) {
         reject(error);
       }
+    }).catch((error) => {
+      // A failed start is not cached: drop this worker so the next request starts a fresh one
+      // instead of every later proof falling back to the main thread.
+      if (this.initializationPromise === initialization) this.discardWorker();
+      throw error;
     });
 
-    return this.initializationPromise;
+    this.initializationPromise = initialization;
+    return initialization;
+  }
+
+  private discardWorker(): void {
+    (this.worker as any)?.terminate();
+    this.worker = null;
+    this.workerReady = false;
+    this.initializationPromise = null;
   }
 
   /**
@@ -162,12 +175,7 @@ class ZkProveWorkerManager {
    * Terminate the worker and clean up
    */
   terminate(): void {
-    if (this.worker) {
-      (this.worker as any).terminate();
-      this.worker = null;
-      this.workerReady = false;
-      this.initializationPromise = null;
-    }
+    this.discardWorker();
 
     // Reject all pending requests
     this.pendingRequests.forEach(({ reject, timeoutId }) => {
