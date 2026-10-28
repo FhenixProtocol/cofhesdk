@@ -205,13 +205,14 @@ async function submitDecryptRequestV2(
     try {
       response = await cofheFetch(
         `${thresholdNetworkUrl}/v2/decrypt`,
-        /*op:decrypt*/ {
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
-        }
+        },
+        { op: 'decrypt' }
       );
     } catch (e) {
       throw new CofheError({
@@ -368,12 +369,13 @@ async function pollDecryptStatusV2(
     try {
       response = await cofheFetch(
         `${thresholdNetworkUrl}/v2/decrypt/${requestId}`,
-        /*op:decrypt-poll*/ {
+        {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-        }
+        },
+        { op: 'decrypt-poll' }
       );
     } catch (e) {
       throw new CofheError({
