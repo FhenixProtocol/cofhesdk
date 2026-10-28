@@ -136,6 +136,7 @@ export {
   type Transaction,
   type BuiltInTransactionActionType,
   type CustomTransactionActionType,
+  type SharingTransactionActionType,
   type JsonValue,
   type NewTransaction,
   type TransactionActionString,

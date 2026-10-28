@@ -6,7 +6,13 @@ import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js'
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
-import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
+import {
+  acps,
+  type ImportSharedOptions,
+  type RevokerWrite,
+  type ShareOnChainOptions,
+  type ShareRegistryWrite,
+} from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
@@ -114,6 +120,11 @@ export type CofheClientACPs = {
 
   // Revocation (on-chain, require connection)
   revokeACP: (acp: ACP) => Promise<`0x${string}`>;
+  /**
+   * The revoker write `revokeACP` sends, built but not sent — for an app that sends through its own
+   * path (a simulation first, a transaction store). Issuer only; throws for an acp without a revoker.
+   */
+  prepareRevokeACP: (acp: ACP) => RevokerWrite;
   revokeAllACPs: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isACPRevoked: (acp: ACP) => Promise<boolean>;
   /**
@@ -129,6 +140,16 @@ export type CofheClientACPs = {
    * optionally with the labels of its handles (`options.labels`, one per handle) or an encoded blob.
    */
   shareOnChain: (acp: ACP, options?: ShareOnChainOptions) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
+  /**
+   * The registry write `shareOnChain` sends and the share id it gets, built but not sent — for an
+   * app that sends through its own path (a simulation first, a transaction store). Issuer only.
+   */
+  prepareShareOnChain: (
+    acp: ACP,
+    options?: ShareOnChainOptions
+  ) => Promise<{ write: ShareRegistryWrite<'share'>; shareId: `0x${string}` }>;
+  /** The registry write `dismissShare` / `cancelShare` sends, built but not sent. */
+  prepareRemoveShare: (shareId: `0x${string}`) => Promise<ShareRegistryWrite<'removeShare'>>;
   /** Importable shares addressed to the connected account (unexpired, not revoked), with their metadata. */
   getIncomingShares: () => Promise<IncomingShare[]>;
   /** One share by id, as posted; null when unknown or removed. */

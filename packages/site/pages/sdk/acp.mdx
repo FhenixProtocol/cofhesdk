@@ -351,6 +351,8 @@ const { txHash, shareId } = await client.acp.shareOnChain(sharingAcp);
 
 Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. To retract a pending share, call `client.acp.cancelShare(shareId)`.
 
+To send a sharing write through your own path (simulate it first, record it in your own transaction store), `client.acp.prepareShareOnChain(acp)` returns the registry call and the share id without sending anything; `client.acp.prepareRemoveShare(shareId)` and `client.acp.prepareRevokeACP(acp)` do the same for the other two writes. The React hooks are built on them.
+
 :::warning
 Everything posted is cleartext — the same data as the exported JSON — so posting on-chain makes the issuer→recipient relationship public. The ACP `name` is never posted: it is the only free-text field of a share, and on-chain it would be public forever.
 :::
