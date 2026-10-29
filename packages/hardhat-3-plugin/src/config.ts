@@ -1,13 +1,22 @@
 import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
 import type { LogMocksDeploy } from './deploy.js';
 
+const configsWithInjectedLocalcofhe = new WeakSet<HardhatConfig>();
+
+export function hasInjectedLocalcofhe(config: HardhatConfig): boolean {
+  return configsWithInjectedLocalcofhe.has(config);
+}
+
 /**
  * Extends the resolved config with plugin defaults and network presets.
  * Mirrors the logic from the v2 plugin's extendConfig callback.
  */
 export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfig: HardhatConfig): void {
+  const usesInjectedLocalcofhe = userConfig.networks?.['localcofhe'] === undefined;
+
   // Inject localcofhe network preset if the user hasn't defined it
-  if (!userConfig.networks?.['localcofhe']) {
+  if (usesInjectedLocalcofhe) {
+    configsWithInjectedLocalcofhe.add(resolvedConfig);
     (resolvedConfig.networks as Record<string, unknown>)['localcofhe'] = {
       type: 'http',
       url: 'http://127.0.0.1:42069',
