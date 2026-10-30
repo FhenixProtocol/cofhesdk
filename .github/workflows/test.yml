@@ -202,3 +202,33 @@ jobs:
           TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
+  # Next.js 16 defaults to Turbopack for `next build`, which hangs on tfhe's
+  # wasm-bindgen-rayon worker graph when a client imports `@cofhe/sdk/web`
+  # (#467 / vercel/next.js#100131). Assert the supported workaround stays green.
+  test-next-webpack:
+    name: Test (Next.js webpack)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Build @cofhe/sdk
+        run: pnpm --filter @cofhe/sdk build
+
+      - name: Next.js webpack smoke (import @cofhe/sdk/web)
+        env:
+          NEXT_WEBPACK_TIMEOUT_MS: '180000'
+        run: pnpm --filter @cofhe/sdk run check:next-webpack

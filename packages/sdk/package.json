@@ -66,7 +66,8 @@
     "test:live": "vitest run core/test/decrypt.test.ts acps/share-metadata/test/live.test.ts node/test/inherited.test.ts web/test/inherited.web.test.ts",
     "test:threadpool": "vitest run web/test/threadPoolOff.web.test.ts web/test/threadPoolOn.web.test.ts web/test/mainThreadPool.web.test.ts web/test/workerInitRace.web.test.ts --no-file-parallelism",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:next-webpack": "node ./scripts/check-next-webpack.mjs"
   },
   "dependencies": {
     "iframe-shared-storage": "1.0.34",
