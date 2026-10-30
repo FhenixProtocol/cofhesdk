@@ -15,7 +15,7 @@ export type CofheConfig = {
   environment: 'node' | 'hardhat' | 'web' | 'react';
   /** List of supported chains */
   supportedChains: CofheChain[];
-  /** Default acp expiration in seconds, default is 30 days */
+  /** How long the acps the client creates last, in seconds after the latest block. Default is 7 days */
   defaultACPExpiration: number;
   /**
    * Storage scheme for the fetched fhe keys
@@ -112,11 +112,13 @@ export const CofheConfigSchema = z.object({
   environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** Default acp expiration in seconds, default is 30 days */
+  /** How long the acps the client creates last, in seconds after the latest block. Default is 7 days */
   defaultACPExpiration: z
     .number()
+    .int()
+    .positive()
     .optional()
-    .default(60 * 60 * 24 * 30),
+    .default(60 * 60 * 24 * 7),
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
   fheKeyStorage: z
     .object({

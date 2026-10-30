@@ -346,6 +346,22 @@ describe('ACPUtils Tests', () => {
         'Cannot import an expired share'
       );
     });
+
+    it('should reject a share expired at the latest block though not by the local clock', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: now + 3600,
+        issuerSignature: '0x1234567890abcdef',
+      };
+      // A chain clock 2 hours ahead of the local one, as in a Hardhat test after `time.increase`.
+      const chainAhead = { getBlock: async () => ({ timestamp: BigInt(now + 7200) }) } as unknown as PublicClient;
+
+      await expect(ACPUtils.importSharedAndSign(options, chainAhead, aliceWalletClient)).rejects.toThrow(
+        'Cannot import an expired share'
+      );
+    });
   });
 
   describe('sign', () => {
