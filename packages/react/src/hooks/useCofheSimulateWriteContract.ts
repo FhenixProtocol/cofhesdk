@@ -106,7 +106,7 @@ export function constructCofheSimulateWriteContractQueryKey(params: {
     }
 
     normalizedCallArgs.account = resolvedAccountAddress;
-    normalizedCallArgs.chainId =
+    normalizedCallArgs.chainOverrideId =
       isRecord(callArgs.chain) && typeof callArgs.chain.id === 'number' ? callArgs.chain.id : undefined;
     serialized = serializeBigintRecursively(normalizedCallArgs);
   }

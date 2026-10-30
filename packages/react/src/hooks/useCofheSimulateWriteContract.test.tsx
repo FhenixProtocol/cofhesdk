@@ -92,7 +92,7 @@ describe('constructCofheSimulateWriteContractQueryKey', () => {
     );
   });
 
-  it('uses the resolved account and chain id instead of client objects', () => {
+  it('uses the resolved account and chain override id instead of client objects', () => {
     const first = constructCofheSimulateWriteContractQueryKey({
       cofheChainId: 11155111,
       callArgs: {
@@ -113,7 +113,31 @@ describe('constructCofheSimulateWriteContractQueryKey', () => {
     });
 
     expect(first).toEqual(second);
-    expect(first).toContainEqual(expect.objectContaining({ account: ACCOUNT, chainId: 1 }));
+    expect(first).toContainEqual(expect.objectContaining({ account: ACCOUNT, chainOverrideId: 1 }));
+  });
+
+  it('keeps a transaction chain id distinct from the chain override', () => {
+    const first = constructCofheSimulateWriteContractQueryKey({
+      cofheChainId: 11155111,
+      callArgs: {
+        ...CALL_ARGS,
+        chainId: 1,
+        chain: { id: 11155111 },
+      },
+      resolvedAccountAddress: ACCOUNT,
+    });
+    const second = constructCofheSimulateWriteContractQueryKey({
+      cofheChainId: 11155111,
+      callArgs: {
+        ...CALL_ARGS,
+        chainId: 2,
+        chain: { id: 11155111 },
+      },
+      resolvedAccountAddress: ACCOUNT,
+    });
+
+    expect(first).not.toEqual(second);
+    expect(first).toContainEqual(expect.objectContaining({ chainId: 1, chainOverrideId: 11155111 }));
   });
 
   it('keeps byte-array blobs compact in the cache key', () => {
