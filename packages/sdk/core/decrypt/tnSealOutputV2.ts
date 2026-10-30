@@ -156,13 +156,14 @@ async function submitSealOutputRequest(
     try {
       response = await cofheFetch(
         `${thresholdNetworkUrl}/v2/sealoutput`,
-        /*op:sealoutput*/ {
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
-        }
+        },
+        { op: 'sealoutput' }
       );
     } catch (e) {
       throw new CofheError({
@@ -320,12 +321,13 @@ async function pollSealOutputStatus(
     try {
       response = await cofheFetch(
         `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
-        /*op:sealoutput-poll*/ {
+        {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-        }
+        },
+        { op: 'sealoutput-poll' }
       );
     } catch (e) {
       throw new CofheError({
