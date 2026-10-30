@@ -134,6 +134,30 @@ describe('createCofheConfigBase', () => {
     expectInvalidConfigItem('fheKeyStorage', invalidStorageNotAFunction);
   });
 
+  it('fheKeyStorage keeps a class instance intact', async () => {
+    class MapStorage {
+      private data = new Map<string, string>();
+      async getItem(name: string) {
+        return this.data.get(name) ?? null;
+      }
+      async setItem(name: string, value: string) {
+        this.data.set(name, value);
+      }
+      async removeItem(name: string) {
+        this.data.delete(name);
+      }
+    }
+
+    const storage = new MapStorage();
+    const result = createCofheConfigBase({ ...validBaseConfig, fheKeyStorage: storage });
+
+    expect(result.fheKeyStorage).toBe(storage);
+    await result.fheKeyStorage!.setItem('test', 'value');
+    expect(await result.fheKeyStorage!.getItem('test')).toBe('value');
+    await result.fheKeyStorage!.removeItem('test');
+    expect(await result.fheKeyStorage!.getItem('test')).toBeNull();
+  });
+
   it('mocks', () => {
     expectInvalidConfigItem('mocks', 'not-an-object');
     expectInvalidConfigItem('mocks', null);
