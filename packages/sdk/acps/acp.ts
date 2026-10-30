@@ -30,6 +30,15 @@ import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain 
 import { encodeShareMetadata } from './share-metadata/encode.js';
 import { UNLABELLED } from './share-metadata/presets';
 
+// The ACL checks the issuer signature against `acp.issuer`, so an ACP signed by any other
+// account could never be used.
+const assertSignerIsIssuer = (acp: ACP, walletClient: WalletClient): void => {
+  const account = walletClient?.account?.address;
+  if (account != null && account.toLowerCase() !== acp.issuer.toLowerCase()) {
+    throw new Error(`Cannot sign an ACP for issuer ${acp.issuer} as ${account}`);
+  }
+};
+
 /** The name of an imported acp unless the recipient gives one: who it came from. */
 const sharedByName = (issuer: Hex): string => `Shared by ${issuer.slice(0, 6)}…${issuer.slice(-4)}`;
 
@@ -180,6 +189,7 @@ export const ACPUtils = {
     walletClient: WalletClient
   ): Promise<SelfACP> => {
     const acp = ACPUtils.createSelf(options);
+    assertSignerIsIssuer(acp, walletClient);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
@@ -192,6 +202,7 @@ export const ACPUtils = {
     walletClient: WalletClient
   ): Promise<SharingACP> => {
     const acp = ACPUtils.createSharing(options);
+    assertSignerIsIssuer(acp, walletClient);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
