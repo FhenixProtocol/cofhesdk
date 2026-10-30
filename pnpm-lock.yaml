@@ -164,8 +164,8 @@ importers:
         specifier: workspace:*
         version: link:../mock-contracts
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.2
+        version: 1.0.2
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -188,6 +188,9 @@ importers:
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@fhenixprotocol/cofhe-contracts':
+        specifier: '>=1.0.2'
+        version: 1.0.2
       chalk:
         specifier: 4.1.2
         version: 4.1.2
@@ -220,8 +223,8 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: '>=1.0.0'
-        version: 1.0.0
+        specifier: '>=1.0.2'
+        version: 1.0.2
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
@@ -299,8 +302,8 @@ importers:
   packages/mock-contracts:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.2
+        version: 1.0.2
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -656,6 +659,9 @@ importers:
       '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
+      '@fhenixprotocol/cofhe-contracts':
+        specifier: 1.0.2
+        version: 1.0.2
       '@nomicfoundation/hardhat-node-test-runner':
         specifier: 3.0.12
         version: 3.0.12(hardhat@3.1.12)
@@ -687,8 +693,8 @@ importers:
         specifier: workspace:*
         version: link:../setup
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.2
+        version: 1.0.2
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.1.0
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
@@ -783,8 +789,8 @@ importers:
   test/setup:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.2
+        version: 1.0.2
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -2619,11 +2625,12 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@fhenixprotocol/cofhe-contracts@1.0.0:
-    resolution: {integrity: sha512-ThkpKiGog+v0peA8U6R7Goow4Cvlp4pXlAeRZN8VCnE5+7C71ozZciybDLExRbdHo4sKo2B/UN554qBMHOLZdw==}
+  /@fhenixprotocol/cofhe-contracts@1.0.2:
+    resolution: {integrity: sha512-PUyEWAUiEy3JAQTpdB6nrAlcsAW9BnT7KhNWvjLWydgvfzRteCC4vbDO2ut9bpB+gFHHBadV7ieuiXbrNG5+4A==}
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
+      '@openzeppelin/contracts-upgradeable': 5.4.0(@openzeppelin/contracts@5.4.0)
 
   /@fhenixprotocol/cofhe-errors@1.0.2:
     resolution: {integrity: sha512-4dw4TU4ki+W+EV7JEEocpgZbdVOmvq4i9b14ltmiOMKhlMZtpqd2FoSGvS1eMe1LDRw+Dq/skIGzmx1/EPRCoQ==}

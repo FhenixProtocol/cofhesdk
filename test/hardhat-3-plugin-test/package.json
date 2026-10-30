@@ -12,6 +12,7 @@
     "@cofhe/sdk": "workspace:*",
     "@cofhe/test-setup": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
+    "@fhenixprotocol/cofhe-contracts": "1.0.2",
     "@nomicfoundation/hardhat-node-test-runner": "3.0.12",
     "@types/node": "20.19.15",
     "hardhat": "3.1.12",
