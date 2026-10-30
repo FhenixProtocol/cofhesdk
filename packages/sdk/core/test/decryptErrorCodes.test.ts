@@ -213,5 +213,28 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       await expect(promise).rejects.toMatchObject({ code: fallback });
       expect(statusJson).not.toHaveBeenCalled();
     });
+
+    it('throws on a 200 status response with an unknown status instead of polling until the timeout', async () => {
+      const fetchMock = vi.fn(async (url: string) => {
+        if (url === `${thresholdNetworkUrl}${submitPath}`) {
+          return makeMockResponse({ ok: true, json: async () => ({ request_id: requestId }) });
+        }
+        if (url === `${thresholdNetworkUrl}${statusPath(requestId)}`) {
+          return makeMockResponse({
+            ok: true,
+            json: async () => ({ request_id: requestId, status: 'FAILED', submitted_at: '2026-01-01T00:00:00Z' }),
+          });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+      global.fetch = fetchMock as any;
+
+      const promise = run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any);
+      const assertion = expect(promise).rejects.toMatchObject({ code: fallback });
+      await vi.advanceTimersByTimeAsync(1000);
+
+      await assertion;
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

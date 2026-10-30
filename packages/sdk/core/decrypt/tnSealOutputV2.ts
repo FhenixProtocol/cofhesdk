@@ -385,6 +385,18 @@ async function pollSealOutputStatus(
       });
     }
 
+    if (statusResponse?.status !== 'PROCESSING' && statusResponse?.status !== 'COMPLETED') {
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
+        message: 'sealOutput status response has invalid status',
+        context: {
+          thresholdNetworkUrl,
+          requestId,
+          value: statusResponse,
+        },
+      });
+    }
+
     // Check if completed
     if (statusResponse.status === 'COMPLETED') {
       return parseCompletedSealOutputResponse({
