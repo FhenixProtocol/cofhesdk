@@ -14,10 +14,14 @@ pnpm add @cofhe/react @cofhe/sdk
 
 ### 1. Wrap your app with CofheProvider
 
-```tsx
-import { CofheProvider } from '@cofhe/react';
-import { createCofheClient } from '@cofhe/sdk/web';
+Create the config with `createCofheConfig` from `@cofhe/react`, not from `@cofhe/sdk/web`. `CofheProvider` only accepts a React config, or a client created from one; a client built from a `@cofhe/sdk/web` config fails with `Provided cofheClient must have react config`. The examples below use this `config`.
 
+```tsx
+import { CofheProvider, createCofheConfig } from '@cofhe/react';
+import { createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 
 function App() {
@@ -202,6 +206,7 @@ If you import components from `@cofhe/react/ui`, the package styles are loaded a
 - `react` ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 - `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 - `viem` ^2.38.6
+- `@tanstack/react-query` ^5.90.20
 
 ### CoFHE SDK Dependencies
 
@@ -211,4 +216,4 @@ If you import components from `@cofhe/react/ui`, the package styles are loaded a
 
 ## Example
 
-See the complete example application in the `/example` directory of this repository for interactive demonstrations of all features.
+See the complete example application in the [`examples/react`](https://github.com/FhenixProtocol/cofhesdk/tree/master/examples/react) directory of this repository for interactive demonstrations of all features.
