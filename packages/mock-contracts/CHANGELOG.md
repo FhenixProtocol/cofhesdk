@@ -1,5 +1,12 @@
 # @cofhe/mock-contracts Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- 5b3e61c: Corrects `MockTaskManager` to emit the TaskManager's `InputVerified`, `SecurityZonesChanged`, `VerifierSignerChanged`, `DecryptResultSignerChanged` and `ACLContractChanged` events, and to report the target type as `input2` of `TaskCreated` for `cast`. Previously none of these events were emitted and `cast` reported `input2` as `0`.
+- 0fed6d9: Corrects `MockTaskManager` to implement `addToAccessList` and `removeFromAccessList`, added to `ITaskManager` in `@fhenixprotocol/cofhe-contracts` 1.0.2. Previously, with cofhe-contracts 1.0.2 installed, the mocks failed to compile with `Contract "MockTaskManager" should be marked as abstract`.
+
 ## 1.0.1
 
 ## 1.0.0
