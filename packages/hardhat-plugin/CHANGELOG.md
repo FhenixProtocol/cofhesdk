@@ -1,5 +1,21 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [800cdb3]
+- Updated dependencies [5b3e61c]
+- Updated dependencies [0fed6d9]
+- Updated dependencies [ddd7026]
+- Updated dependencies [bbd9b03]
+- Updated dependencies [4418149]
+- Updated dependencies [b70a067]
+- Updated dependencies [f8c6219]
+- Updated dependencies [8fb65ec]
+  - @cofhe/sdk@1.0.2
+  - @cofhe/mock-contracts@1.0.2
+
 ## 1.0.1
 
 ### Patch Changes

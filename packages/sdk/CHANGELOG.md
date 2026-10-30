@@ -1,5 +1,17 @@
 # @cofhe/sdk Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- 800cdb3: Corrects `decryptForView` and `decryptForTx` to throw `CofheErrorCode.ChainIdMismatch` when the builder's `chainId` is set and differs from the chain the ACP was signed for, before anything is sent to the threshold network. Previously the ACP's chain silently won and the request failed later, or against the wrong chain. Adds `ChainIdMismatch` to the `CofheErrorCode` enum, so an exhaustive `switch` or `Record<CofheErrorCode, …>` over it needs a new case.
+- ddd7026: Corrects `createCofheConfig` to reject unknown keys inside `mocks` and `acp`, as it already does at the top level. Previously they were dropped without an error, so a config still using the pre-0.3 `mocks.sealOutputDelay` (now `decryptDelay`) silently ran with a `decryptDelay` of 0.
+- bbd9b03: Importing a share (`importShared`, `importFromChain`, `ACPUtils.importSharedAndSign`) now fails before signing when the connected account is not the share's recipient, or when the share has already expired. Such a share can never pass the ACL, and importing it used to replace the active ACP by default.
+- 4418149: `decryptForView` and `decryptForTx` on the mocks now fail with the same error codes as the threshold network: a rejected ACP throws `ACPDenied`, `ACPExpired` or `ACPInvalid`, and `decryptForTx().withoutACP()` on a value that is not public throws `NotPubliclyAllowed`, each with its `apiErrorCode`. Previously every mock rejection was a generic `SealOutputFailed` or `DecryptFailed`.
+- b70a067: Corrects `acp.revokeACP` and `acp.revokeAllACPs` to work with a wallet client that has no `chain`, as `acp.shareOnChain` already does. Previously they threw `No chain was provided to the request` with the client `hre.cofhe.createClientWithBatteries()` builds.
+- f8c6219: `encryptInputs(...).execute()` in `@cofhe/sdk/web` now starts a new proving worker when the previous one failed to start. Previously one failed start (for example the worker script failing to load) was kept for the rest of the session, so every later proof silently ran on the main thread.
+- 8fb65ec: Corrects `verifyDecryptResult` to return `false` for signatures that the on-chain `TaskManager` would reject: anything other than 65 bytes with `v` of 27 or 28 and a low `s` value. Previously a re-encoded but genuine signature verified off-chain and reverted on-chain with `InvalidSignature`.
+
 ## 1.0.1
 
 ### Patch Changes
