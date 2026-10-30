@@ -115,6 +115,8 @@ export const CofheConfigSchema = z.object({
   /** How long the acps the client creates last, in seconds after the latest block. Default is 7 days */
   defaultACPExpiration: z
     .number()
+    .int()
+    .positive()
     .optional()
     .default(60 * 60 * 24 * 7),
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */

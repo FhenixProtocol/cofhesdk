@@ -52,9 +52,10 @@ const walletClient = createWalletClient({
   account: privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'),
 });
 const ACCOUNT = walletClient.account.address;
+const getBlock = vi.fn();
 const publicClient = {
   getChainId: vi.fn().mockResolvedValue(CHAIN_ID),
-  getBlock: vi.fn().mockResolvedValue({ timestamp: BigInt(BLOCK_TIMESTAMP) }),
+  getBlock,
 } as unknown as PublicClient;
 
 const connectedClient = async (defaultACPExpiration?: number): Promise<CofheClient> => {
@@ -76,6 +77,7 @@ const connectedClient = async (defaultACPExpiration?: number): Promise<CofheClie
 describe('acps the client creates expire defaultACPExpiration seconds after the latest block', () => {
   beforeEach(() => {
     acpStore.store.setState({ acps: {}, activeACPHash: {} });
+    getBlock.mockResolvedValue({ timestamp: BigInt(BLOCK_TIMESTAMP) });
   });
 
   it('applies to self acps', async () => {
@@ -108,5 +110,39 @@ describe('acps the client creates expire defaultACPExpiration seconds after the 
     const acp = await client.acp.createSelf({ issuer: ACCOUNT, expiration: BLOCK_TIMESTAMP + 60 });
 
     expect(acp.expiration).toBe(BLOCK_TIMESTAMP + 60);
+  });
+});
+
+describe('get-or-create checks the stored acp against the latest block', () => {
+  beforeEach(() => {
+    acpStore.store.setState({ acps: {}, activeACPHash: {} });
+    getBlock.mockResolvedValue({ timestamp: BigInt(BLOCK_TIMESTAMP) });
+  });
+
+  it('creates a new self acp once the chain is past the active one', async () => {
+    const client = await connectedClient(3600);
+    const first = await client.acp.getOrCreateSelfACP();
+    expect((await client.acp.getOrCreateSelfACP()).hash).toBe(first.hash);
+
+    // `time.increase(7200)`: the local clock is still well before the acp's expiration.
+    getBlock.mockResolvedValue({ timestamp: BigInt(BLOCK_TIMESTAMP + 7200) });
+    const second = await client.acp.getOrCreateSelfACP();
+
+    expect(second.hash).not.toBe(first.hash);
+    expect(second.expiration).toBe(BLOCK_TIMESTAMP + 7200 + 3600);
+  });
+
+  it('creates a new sharing acp once the chain is past the active one', async () => {
+    const client = await connectedClient(3600);
+    const options = { issuer: ACCOUNT, recipient: RECIPIENT };
+    const first = await client.acp.getOrCreateSharingACP(options);
+    client.acp.selectActiveACP(first.hash);
+    expect((await client.acp.getOrCreateSharingACP(options)).hash).toBe(first.hash);
+
+    getBlock.mockResolvedValue({ timestamp: BigInt(BLOCK_TIMESTAMP + 7200) });
+    const second = await client.acp.getOrCreateSharingACP(options);
+
+    expect(second.hash).not.toBe(first.hash);
+    expect(second.expiration).toBe(BLOCK_TIMESTAMP + 7200 + 3600);
   });
 });

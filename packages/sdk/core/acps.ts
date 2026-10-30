@@ -173,7 +173,7 @@ const selectActiveACP = (chainId: number, account: string, hash: string): void =
  * Get the active self acp if a valid one exists, otherwise create a new one.
  *
  * An active acp is reused only when it is a self acp and is still valid
- * (signed and not expired). An expired or otherwise invalid active acp is
+ * (signed and not expired at `nowSec`). An expired or otherwise invalid active acp is
  * treated as missing and a fresh acp is created.
  *
  * @param publicClient - The public client
@@ -181,6 +181,7 @@ const selectActiveACP = (chainId: number, account: string, hash: string): void =
  * @param chainId - Optional chain ID (will use publicClient if not provided)
  * @param account - Optional account (will use walletClient if not provided)
  * @param options - The options for creating a self acp
+ * @param nowSec - The time to check expiry at, in unix seconds (defaults to the local clock)
  * @returns The existing valid acp or a newly created one
  */
 const getOrCreateSelfACP = async (
@@ -188,7 +189,8 @@ const getOrCreateSelfACP = async (
   walletClient: WalletClient,
   chainId?: number,
   account?: string,
-  options?: CreateSelfACPOptions
+  options?: CreateSelfACPOptions,
+  nowSec?: number
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -196,7 +198,7 @@ const getOrCreateSelfACP = async (
   // Try to get active acp first
   const activeACP = await getActiveACP(_chainId, _account);
 
-  if (activeACP && activeACP.type === 'self' && ACPUtils.isValid(activeACP).valid) {
+  if (activeACP && activeACP.type === 'self' && ACPUtils.isValid(activeACP, nowSec).valid) {
     return activeACP;
   }
 
@@ -217,6 +219,7 @@ const getOrCreateSelfACP = async (
  * @param options - The options for creating a sharing acp (required)
  * @param chainId - Optional chain ID (will use publicClient if not provided)
  * @param account - Optional account (will use walletClient if not provided)
+ * @param nowSec - The time to check expiry at, in unix seconds (defaults to the local clock)
  * @returns The existing valid active sharing acp, or a newly created (unactivated) one
  */
 const getOrCreateSharingACP = async (
@@ -224,7 +227,8 @@ const getOrCreateSharingACP = async (
   walletClient: WalletClient,
   options: CreateSharingACPOptions,
   chainId?: number,
-  account?: string
+  account?: string,
+  nowSec?: number
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -232,7 +236,7 @@ const getOrCreateSharingACP = async (
   // Try to get active acp first
   const activeACP = await getActiveACP(_chainId, _account);
 
-  if (activeACP && activeACP.type === 'sharing' && ACPUtils.isValid(activeACP).valid) {
+  if (activeACP && activeACP.type === 'sharing' && ACPUtils.isValid(activeACP, nowSec).valid) {
     return activeACP;
   }
 
@@ -244,7 +248,7 @@ const getOrCreateSharingACP = async (
 /**
  * Applies the config's ACP defaults to creation options. Explicit user options always win:
  *  - expiration: injected only when the options carry none, `defaultExpiration` seconds
- *    after the latest block's timestamp
+ *    after the latest block's timestamp (`blockTimestamp` when the caller already fetched it)
  *  - revoker: injected only when the options carry NO revoker pair. The contract is the
  *    config's `defaultRevoker` for the chain, else the one the ACL serves; the id
  *    (`revokerData`) is the latest block's timestamp ("every acp revocable by default")
@@ -265,14 +269,14 @@ const applyACPDefaultsFromChain = async <
   acpConfig: { defaultRevoker?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
   publicClient: PublicClient,
   chainId: number,
-  defaultExpiration?: number
+  defaultExpiration?: number,
+  blockTimestamp?: number
 ): Promise<T> => {
   const result = { ...options };
-  let latestBlockTimestamp: Promise<number> | undefined;
-  const blockTimestamp = () => (latestBlockTimestamp ??= getLatestBlockTimestamp(publicClient));
+  const latestBlockTimestamp = async () => (blockTimestamp ??= await getLatestBlockTimestamp(publicClient));
 
   if (options.expiration == null && defaultExpiration != null) {
-    result.expiration = (await blockTimestamp()) + defaultExpiration;
+    result.expiration = (await latestBlockTimestamp()) + defaultExpiration;
   }
 
   const hasRevokerOptions = options.revokerData != null || options.revokerContract != null;
@@ -281,7 +285,7 @@ const applyACPDefaultsFromChain = async <
       acpConfig?.defaultRevoker?.[chainId] ?? (await getAclServedAddresses(publicClient, chainId)).defaultRevoker;
     if (defaultRevoker != null) {
       result.revokerContract = defaultRevoker;
-      result.revokerData = await blockTimestamp();
+      result.revokerData = await latestBlockTimestamp();
     }
   }
 
@@ -558,6 +562,7 @@ export const acps = {
 
   getOrCreateSelfACP,
   getOrCreateSharingACP,
+  getLatestBlockTimestamp,
 
   getHash,
   export: exportShared,

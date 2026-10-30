@@ -83,6 +83,10 @@ describe('createCofheConfigBase', () => {
   it('defaultACPExpiration', () => {
     expectInvalidConfigItem('defaultACPExpiration', 'not-a-number');
     expectInvalidConfigItem('defaultACPExpiration', null);
+    // ACP expirations are whole seconds, and 0 or less would create an acp that is already expired
+    expectInvalidConfigItem('defaultACPExpiration', 3600.5);
+    expectInvalidConfigItem('defaultACPExpiration', 0);
+    expectInvalidConfigItem('defaultACPExpiration', -60);
 
     expectValidConfigItem('defaultACPExpiration', 5, 5);
     expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 7);
