@@ -790,7 +790,7 @@ describeOnAnvil('react hooks: chain-pinned reads (Anvil)', () => {
     expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
   }, 180_000);
 
-  it("decryption follows the read's chain: the pinned chain's ACP decrypts the pinned value", async () => {
+  it("decryption follows the read's chain: built for the pinned chain, with the pinned chain's ACP", async () => {
     const { publicClient, walletClient, pinnedClient, cofheClient, renderPinned } = setupPinned();
     // A nonzero encrypted value — a zero handle is a known zero, with nothing to decrypt.
     const hash = await walletClient.writeContract({
@@ -816,11 +816,18 @@ describeOnAnvil('react hooks: chain-pinned reads (Anvil)', () => {
     acpStore.setActiveACPHash(PINNED_CHAIN_ID, account, acp.hash);
     acpStore.removeACP(CHAIN_ID, account, acp.hash);
 
+    // That ACP was signed on the connected chain (both "chains" are one Anvil), so the decrypt built
+    // for the pinned chain refuses it before anything is sent, naming both chains. Before the
+    // builders checked this, the ACP's chain silently won and the "pinned" value was decrypted
+    // against the connected chain.
     await waitFor(
-      () => expect(screen.getByRole('status', { name: 'decrypted value' }).textContent).toBe('42'),
+      () =>
+        expect(screen.getByRole('status', { name: 'decrypt error' }).textContent).toContain(
+          `builder chainId (${PINNED_CHAIN_ID}) does not match ACP signed chainId (${CHAIN_ID})`
+        ),
       EVENTUALLY
     );
-    expect(screen.getByRole('status', { name: 'decrypt error' }).textContent).toBe('');
+    expect(screen.getByRole('status', { name: 'decrypted value' }).textContent).toBe('');
   }, 180_000);
 
   it('a write refreshes a target on ANOTHER chain plainly — only its own chain is block-aware', async () => {
