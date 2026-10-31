@@ -1288,6 +1288,11 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'error',
+      name: 'DecryptFunctionNotSupported',
+      inputs: [],
+    },
+    {
+      type: 'error',
       name: 'DecryptionResultNotReady',
       inputs: [
         {
@@ -1559,6 +1564,17 @@ export const MockTaskManagerArtifact = {
         },
         {
           name: 'maxAllowed',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'UnsupportedType',
+      inputs: [
+        {
+          name: 't',
           type: 'uint256',
           internalType: 'uint256',
         },
