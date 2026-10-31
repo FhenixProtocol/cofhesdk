@@ -18,6 +18,16 @@ describe('constructZkPoKMetadata', () => {
     expect('0x' + toHexString(metadata.slice(53))).toBe(contract);
   });
 
+  it('encodes a chain id of 2^32 or more in full', () => {
+    // 37714555429 = 0x08c7f67225: its top byte lies above 32 bits.
+    const metadata = constructZkPoKMetadata(account, 0, 37714555429, contract);
+
+    const chainId = metadata.slice(21, 53);
+    expect(Array.from(chainId.slice(0, 27))).toEqual(new Array(27).fill(0));
+    expect(Array.from(chainId.slice(27))).toEqual([0x08, 0xc7, 0xf6, 0x72, 0x25]);
+    expect(BigInt('0x' + toHexString(chainId))).toBe(37714555429n);
+  });
+
   it('accepts the consuming contract with or without the 0x prefix', () => {
     const withPrefix = constructZkPoKMetadata(account, 0, 1, contract);
     const withoutPrefix = constructZkPoKMetadata(account, 0, 1, contract.slice(2));
