@@ -30,6 +30,11 @@ export const toBigIntOrThrow = (value: bigint | string): bigint => {
     return value;
   }
 
+  // BigInt('') and BigInt('   ') are 0n, which would silently encrypt a missing value as zero
+  if (value.trim() === '') {
+    throw new Error('Invalid input: Unable to convert to bigint');
+  }
+
   try {
     return BigInt(value);
   } catch (error) {
