@@ -14,13 +14,16 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
   return {
     wei: amount,
     unit: amountBN,
-    formatted: displayDecimals
-      ? amountBN
-          .toFixed(displayDecimals)
-          // remove trailing zeros
-          .replace(/\.?0+$/, '')
-      : amountBN.toFixed(), // the only precise way, without parseFloat
+    formatted:
+      displayDecimals === undefined
+        ? amountBN.toFixed() // the only precise way, without parseFloat
+        : removeTrailingZeros(amountBN.toFixed(displayDecimals)),
   };
+}
+
+// only fractional zeros are trailing, "100" must stay "100"
+function removeTrailingZeros(value: string): string {
+  return value.includes('.') ? value.replace(/\.?0+$/, '') : value;
 }
 
 export function unitToWei(amount: string, decimals: number): bigint {
