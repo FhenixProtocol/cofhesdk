@@ -24,6 +24,7 @@ error InvalidInputForFunction(string functionName, uint8 inputType);
 error InvalidSecurityZone(int32 zone, int32 min, int32 max);
 error InvalidSignature();
 error InvalidSigner(address signer, address expectedSigner);
+error UnsupportedType(uint256 t);
 
 // Access control errors
 error InvalidAddress();
@@ -32,6 +33,7 @@ error OnlyAggregatorAllowed(address caller);
 
 // Operation-specific errors
 error RandomFunctionNotSupported();
+error DecryptFunctionNotSupported();
 
 library TMCommon {
   uint256 private constant HASH_MASK_FOR_METADATA = type(uint256).max - type(uint16).max; // 2 bytes reserved for metadata
@@ -414,6 +416,19 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return _securityZone >= securityZoneMin && _securityZone <= securityZoneMax;
   }
 
+  /// @dev The types the real task manager accepts. `Utils.EUINT256_TFHE` is still declared in
+  ///      ICofhe.sol, but the task manager no longer supports it.
+  function isValidType(uint256 t) internal pure returns (bool) {
+    return
+      t == Utils.EUINT8_TFHE ||
+      t == Utils.EUINT16_TFHE ||
+      t == Utils.EUINT32_TFHE ||
+      t == Utils.EUINT64_TFHE ||
+      t == Utils.EUINT128_TFHE ||
+      t == Utils.EADDRESS_TFHE ||
+      t == Utils.EBOOL_TFHE;
+  }
+
   function validateEncryptedHashes(uint256[] memory encryptedHashes) internal view {
     for (uint8 i = 0; i < encryptedHashes.length; i++) {
       checkAllowed(encryptedHashes[i]);
@@ -497,6 +512,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   ///      security zone must be in range. Without them `FHE.asEuint8(256)` would be stored masked
   ///      to 0 here while the real task manager reverts.
   function validateTrivialEncryptInputs(uint256[] memory extraInputs) internal view {
+    if (extraInputs[1] > type(uint8).max) {
+      revert UnsupportedType(extraInputs[1]);
+    }
+
     uint256 securityZone = extraInputs[2];
     if (securityZone > uint256(int256(type(int32).max)) || !isValidSecurityZone(int32(int256(securityZone)))) {
       revert InvalidSecurityZone(int32(int256(securityZone)), securityZoneMin, securityZoneMax);
@@ -512,7 +531,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     else if (toType == Utils.EUINT128_TFHE) max = type(uint128).max;
     else if (toType == Utils.EADDRESS_TFHE) max = type(uint160).max;
     else if (toType == Utils.EBOOL_TFHE) max = 1;
-    else return;
+    else revert UnsupportedType(toType);
 
     if (value > max) {
       revert InvalidInputForFunction('trivialEncrypt', uint8(toType));
@@ -542,6 +561,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
+    if (funcId == FunctionId.decrypt) {
+      revert DecryptFunctionNotSupported();
+    }
+    if (!isValidType(returnType)) {
+      revert UnsupportedType(returnType);
+    }
     string memory operation = Utils.functionIdToString(funcId);
     uint256 inputsLength = encryptedHashes.length + extraInputs.length;
     if (inputsLength > 3) {
@@ -551,6 +576,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     validateInputs(encryptedHashes, funcId, operation);
     if (funcId == FunctionId.trivialEncrypt) {
       validateTrivialEncryptInputs(extraInputs);
+    } else if (funcId == FunctionId.cast && extraInputs.length > 0 && !isValidType(extraInputs[0])) {
+      revert UnsupportedType(extraInputs[0]);
     }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
@@ -849,6 +876,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
+    if (!isValidType(returnType)) {
+      revert UnsupportedType(returnType);
+    }
+
     if (!isValidSecurityZone(securityZone)) {
       revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
     }
