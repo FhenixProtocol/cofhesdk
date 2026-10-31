@@ -9,7 +9,7 @@ import {
   MAX_UINT160,
 } from './zkPackProveVerify.js';
 import { toBigIntOrThrow, validateBigIntInRange } from '../utils.js';
-import { createWalletClient, http, encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
+import { createWalletClient, custom, encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -20,10 +20,11 @@ type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
 };
 
-function createMockZkVerifierSigner() {
+// sends through the caller's node, a bare http() transport would always target 127.0.0.1:8545
+function createMockZkVerifierSigner(publicClient: PublicClient) {
   return createWalletClient({
     chain: hardhat,
-    transport: http(),
+    transport: custom({ request: publicClient.request }),
     account: privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY),
   });
 }
@@ -261,7 +262,7 @@ export async function cofheMocksZkVerifySign(
   zkvWalletClient: WalletClient | undefined
 ): Promise<VerifyBatchResult> {
   // Use config._internal?.zkvWalletClient if provided, otherwise use a mock zk verifier signer
-  const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner();
+  const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner(publicClient);
 
   // Call MockZkVerifier contract to calculate the ctHashes
   const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
