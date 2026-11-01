@@ -29,6 +29,7 @@ export interface EncryptionProgressData {
 // Encryption result data
 export interface EncryptionResultData {
   value: string;
+  /** `[handle, signature]`: the encrypted input and the signature the consuming contract verifies it with. */
   encrypted: any;
 }
 

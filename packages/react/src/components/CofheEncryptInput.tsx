@@ -9,9 +9,9 @@ import type {
 } from '../types/component-types.js';
 import { cn } from '../utils/cn.js';
 import { debounce } from '../utils/debounce.js';
-import { FheTypesList } from '../utils/utils.js';
+import { FheTypesList, createEncryptableFromInput } from '../utils/utils.js';
 import { CheckIcon, ContentCopyIcon, KeyboardArrowDownIcon, SecurityIcon } from '@/components/Icons';
-import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
+import { type FheTypeValue } from '@cofhe/sdk';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { cofheLogger } from '@/utils/debug';
 
@@ -305,8 +305,9 @@ export const CofheEncryptInput: React.FC<CofheEncryptInputProps> = ({
         // Not really work, need to improve cofhejs side to make it non-blocking
         (async () => {
           try {
-            const [encryptionResult] = await encrypt({
-              items: [Encryptable.create(type, textValue)],
+            // `[handle, signature]`: the contract needs the batch signature alongside the handle.
+            const encryptionResult = await encrypt({
+              items: [createEncryptableFromInput(type, textValue)],
               consumingContract,
             });
 

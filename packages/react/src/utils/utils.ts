@@ -5,7 +5,7 @@ import {
   type ConfidentialToken,
   type Erc20Pair,
 } from '../types/token.js';
-import type { FheTypeValue } from '@cofhe/sdk';
+import { Encryptable, type EncryptableItem, type FheTypeValue } from '@cofhe/sdk';
 import { isValidElement } from 'react';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
@@ -137,6 +137,22 @@ export const FheTypesList: FheTypeOption[] = [
     description: 'Ethereum address (0x...)',
   },
 ];
+
+/**
+ * Builds the encryptable for a value typed as text under one of the {@link FheTypesList} types.
+ * The bool option accepts `true`, `false`, `1` and `0` (any case), while `Encryptable.create('bool', ...)`
+ * takes only a boolean, so the text is converted here.
+ */
+export function createEncryptableFromInput(type: FheTypeValue, value: string): EncryptableItem {
+  if (type === 'bool') {
+    const normalized = value.toLowerCase();
+    if (normalized !== 'true' && normalized !== 'false' && normalized !== '1' && normalized !== '0') {
+      throw new Error(`Invalid bool value "${value}": expected true, false, 1 or 0`);
+    }
+    return Encryptable.create('bool', normalized === 'true' || normalized === '1');
+  }
+  return Encryptable.create(type, value);
+}
 
 export const NOOP_CALLBACK = () => () => {};
 
