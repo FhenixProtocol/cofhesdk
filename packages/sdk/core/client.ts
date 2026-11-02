@@ -335,11 +335,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     getIncomingShares: async () => {
       _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
+      const { publicClient, account } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      const account = walletClient!.account!.address;
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.getIncomingShares(publicClient!, sharingRegistry, account, withAppKey());
+      return acps.getIncomingShares(publicClient!, sharingRegistry, account!, withAppKey());
     },
 
     getShareFromChain: async (shareId) => {
