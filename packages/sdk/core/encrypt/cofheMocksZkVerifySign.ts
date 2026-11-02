@@ -33,6 +33,14 @@ function createMockZkVerifierSigner() {
  * with the utype mask (e.g. uint8(256) -> 0) instead of rejecting it like the production path.
  */
 export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): Promise<void> {
+  if (items.length === 0) {
+    throw new CofheError({
+      code: CofheErrorCode.ZkPackFailed,
+      message: 'No items to encrypt',
+      hint: 'Pass at least one Encryptable to encryptInputs',
+    });
+  }
+
   let totalBits = 0;
   for (const item of items) {
     switch (item.utype) {
