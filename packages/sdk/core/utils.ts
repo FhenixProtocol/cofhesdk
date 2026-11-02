@@ -31,7 +31,7 @@ export const toBigIntOrThrow = (value: bigint | string): bigint => {
   }
 
   // BigInt('') and BigInt('   ') are 0n, which would silently encrypt a missing value as zero
-  if (value.trim() === '') {
+  if (typeof value === 'string' && value.trim() === '') {
     throw new Error('Invalid input: Unable to convert to bigint');
   }
 
