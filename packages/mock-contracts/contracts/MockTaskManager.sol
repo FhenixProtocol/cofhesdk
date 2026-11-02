@@ -195,6 +195,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
    * @param initialOwner  Initial owner address.
    */
   function initialize(address initialOwner) public {
+    if (initialized && msg.sender != owner) revert OnlyOwnerAllowed(msg.sender);
+
     owner = initialOwner;
     initialized = true;
     verifierSigner = address(0);

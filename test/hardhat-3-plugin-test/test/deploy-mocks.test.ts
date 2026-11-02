@@ -138,6 +138,34 @@ describe('Deploy Mocks', async () => {
     assert.equal(aclFromThreshold.toLowerCase(), aclFromTm.toLowerCase());
   });
 
+  it('can redeploy mocks at the fixed addresses', async () => {
+    const firstAcl = cofhe.mocks.MockACL.address;
+
+    await cofhe.mocks.deployMocks({ mocksDeployVerbosity: '' });
+
+    const taskManagerCode = await publicClient.getCode({ address: cofhe.mocks.MockTaskManager.address });
+    const thresholdNetworkCode = await publicClient.getCode({ address: cofhe.mocks.MockThresholdNetwork.address });
+    const aclFromTaskManager = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
+      functionName: 'acl',
+    });
+    const taskManagerFromThreshold = await publicClient.readContract({
+      ...cofhe.mocks.MockThresholdNetwork,
+      functionName: 'mockTaskManager',
+    });
+    const aclFromThreshold = await publicClient.readContract({
+      ...cofhe.mocks.MockThresholdNetwork,
+      functionName: 'mockAcl',
+    });
+
+    assert.notEqual(taskManagerCode, undefined);
+    assert.notEqual(thresholdNetworkCode, undefined);
+    assert.notEqual(aclFromTaskManager.toLowerCase(), firstAcl.toLowerCase());
+    assert.ok(await hasCode(publicClient, aclFromTaskManager));
+    assert.equal(taskManagerFromThreshold.toLowerCase(), MOCKS_TASK_MANAGER_ADDRESS.toLowerCase());
+    assert.equal(aclFromThreshold.toLowerCase(), aclFromTaskManager.toLowerCase());
+  });
+
   it('SimpleTest can be deployed explicitly when needed', async () => {
     const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
       client: {
