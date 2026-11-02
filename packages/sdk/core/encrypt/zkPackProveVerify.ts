@@ -1,7 +1,7 @@
 import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
 import { CofheError, CofheErrorCode } from '../error';
 import { type EncryptableItem, FheTypes, type TfheThreadsSetting } from '../types';
-import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
+import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes, sleep } from '../utils';
 
 // ===== TYPES =====
 
@@ -279,6 +279,20 @@ export const constructZkPoKMetadata = (
   return metadata;
 };
 
+/**
+ * The verifier sheds load with 503 + `Retry-After` before it looks at the request, so the same
+ * proof can be sent again. Bounded so a verifier that stays down still fails the encrypt.
+ */
+const ZK_VERIFY_BUSY_MAX_RETRIES = 3;
+const ZK_VERIFY_BUSY_DEFAULT_DELAY_MS = 1000;
+const ZK_VERIFY_BUSY_MAX_DELAY_MS = 5000;
+
+const busyRetryDelayMs = (response: Response): number => {
+  const seconds = Number(response.headers.get('Retry-After'));
+  if (!Number.isFinite(seconds) || seconds <= 0) return ZK_VERIFY_BUSY_DEFAULT_DELAY_MS;
+  return Math.min(seconds * 1000, ZK_VERIFY_BUSY_MAX_DELAY_MS);
+};
+
 export const zkVerifyBatch = async (
   verifierUrl: string,
   serializedBytes: Uint8Array,
@@ -305,13 +319,18 @@ export const zkVerifyBatch = async (
 
   // Send request to verification server
   try {
-    const response = await fetch(`${verifierUrl}/verifyBatch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body,
-    });
+    let response: Response;
+    for (let attempt = 0; ; attempt++) {
+      response = await fetch(`${verifierUrl}/verifyBatch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+      if (response.status !== 503 || attempt >= ZK_VERIFY_BUSY_MAX_RETRIES) break;
+      await sleep(busyRetryDelayMs(response));
+    }
 
     if (!response.ok) {
       // Get the response body as text for better error details
