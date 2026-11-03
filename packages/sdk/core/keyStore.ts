@@ -151,10 +151,11 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
   };
 
   const clearKeysStorage = async () => {
+    // Reset the in-memory keys too, otherwise the next set* call persists them again.
+    keysStore.setState({ fhe: {}, crs: {} });
     if (guarded) {
       await guarded.removeItem(KEYSTORE_NAME);
     }
-    // If no storage, this is a no-op
   };
 
   const storageStatus = () => guarded?.status() ?? 'memory';

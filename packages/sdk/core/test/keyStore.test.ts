@@ -135,10 +135,45 @@ describe('KeyStore', () => {
   });
 
   describe('Storage Utilities', () => {
+    const testChainId = 1337;
+
     it('should clear keys storage', async () => {
       await keysStorage.clearKeysStorage();
 
       expect(mockStorage.removeItem).toHaveBeenCalledWith(`cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`);
+    });
+
+    it('should not write cleared keys back on the next set', async () => {
+      const persisted = new Map<string, string>();
+      const memoryStorage = {
+        getItem: async (name: string) => persisted.get(name) ?? null,
+        setItem: async (name: string, value: string) => void persisted.set(name, value),
+        removeItem: async (name: string) => void persisted.delete(name),
+      };
+      const storeName = `cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`;
+      const persistedKeys = createKeysStore(memoryStorage);
+
+      persistedKeys.setFheKey(testChainId, 0, '0xoldkey');
+      persistedKeys.setCrs(testChainId, 0, '0xoldcrs');
+      await persistedKeys.clearKeysStorage();
+
+      expect(persisted.has(storeName)).toBe(false);
+      expect(persistedKeys.getFheKey(testChainId, 0)).toBeUndefined();
+      expect(persistedKeys.getCrs(testChainId, 0)).toBeUndefined();
+
+      persistedKeys.setFheKey(testChainId + 1, 0, '0xnewkey');
+
+      const written = JSON.parse(persisted.get(storeName)!);
+      expect(written.state).toEqual({ fhe: { [testChainId + 1]: { 0: '0xnewkey' } }, crs: {} });
+    });
+
+    it('should clear the keys of a non-persisted store', async () => {
+      const memoryOnlyKeys = createKeysStore(null);
+      memoryOnlyKeys.setFheKey(testChainId, 0, '0xoldkey');
+
+      await memoryOnlyKeys.clearKeysStorage();
+
+      expect(memoryOnlyKeys.getFheKey(testChainId, 0)).toBeUndefined();
     });
 
     it('should rehydrate keys store', async () => {
