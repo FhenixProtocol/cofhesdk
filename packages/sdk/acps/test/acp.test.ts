@@ -248,6 +248,17 @@ describe('ACPUtils Tests', () => {
       expect(acp.recipientSignature).toBe('0x');
       expect(acp._signedDomain).toBeDefined();
     });
+
+    it('should reject an issuer that is not the signing account', async () => {
+      const options: CreateSelfACPOptions = {
+        issuer: aliceAddress,
+        name: 'Test ACP',
+      };
+
+      await expect(ACPUtils.createSelfAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /Cannot sign an ACP for issuer/
+      );
+    });
   });
 
   describe('createSharingAndSign', () => {
@@ -265,6 +276,18 @@ describe('ACPUtils Tests', () => {
       expect(acp.issuerSignature).not.toBe('0x');
       expect(acp.recipientSignature).toBe('0x');
       expect(acp._signedDomain).toBeDefined();
+    });
+
+    it('should reject an issuer that is not the signing account', async () => {
+      const options: CreateSharingACPOptions = {
+        issuer: aliceAddress,
+        recipient: bobAddress,
+        name: 'Test Sharing ACP',
+      };
+
+      await expect(ACPUtils.createSharingAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /Cannot sign an ACP for issuer/
+      );
     });
   });
 

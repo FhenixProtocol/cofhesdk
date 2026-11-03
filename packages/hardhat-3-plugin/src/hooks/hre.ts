@@ -5,6 +5,7 @@ import { createPublicClient, createWalletClient, custom, type PublicClient, type
 import { privateKeyToAccount } from 'viem/accounts';
 
 import type { ArtifactManager } from 'hardhat/types/artifacts';
+import type { HardhatConfig } from 'hardhat/types/config';
 
 import {
   MockCoFHEAddressBookArtifact,
@@ -31,7 +32,9 @@ function createCofheConnection(
   /** Reusable transport factory derived from the walletClient's request method */
   transport: ReturnType<typeof custom>,
   artifacts: ArtifactManager,
-  deployedMockContracts: DeployedMockContracts
+  deployedMockContracts: DeployedMockContracts,
+  /** The resolved `cofhe` config, which `mocks.deployMocks` falls back to */
+  pluginConfig: HardhatConfig['cofhe']
 ): CofheConnection {
   return {
     async createConfig(config: Partial<CofheInputConfig> = {}) {
@@ -85,7 +88,15 @@ function createCofheConnection(
 
     mocks: {
       async deployMocks(options?: DeployMocksArgs) {
-        await deployMocks({ publicClient, walletClient, artifacts }, options);
+        await deployMocks(
+          { publicClient, walletClient, artifacts },
+          {
+            gasWarning: pluginConfig.gasWarning,
+            mocksDeployVerbosity: pluginConfig.mocksDeployVerbosity,
+            logMocks: pluginConfig.logMocks,
+            ...options,
+          }
+        );
       },
 
       async withLogs(closureName: string, closure: () => Promise<void>) {
@@ -205,7 +216,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
           walletClient,
           connTransport,
           hre.artifacts,
-          deployedMockContracts
+          deployedMockContracts,
+          hre.config.cofhe
         );
         return conn;
       },
