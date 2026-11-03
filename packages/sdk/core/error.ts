@@ -15,6 +15,7 @@ export enum CofheErrorCode {
   CannotRemoveLastACP = 'CANNOT_REMOVE_LAST_ACP',
   AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
   ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
+  ChainIdMismatch = 'CHAIN_ID_MISMATCH',
   ConsumingContractUninitialized = 'CONSUMING_CONTRACT_UNINITIALIZED',
   ConsumingContractInvalid = 'CONSUMING_CONTRACT_INVALID',
   SealOutputFailed = 'SEAL_OUTPUT_FAILED',

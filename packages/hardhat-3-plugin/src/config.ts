@@ -1,22 +1,14 @@
 import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
 import type { LogMocksDeploy } from './deploy.js';
-
-const configsWithInjectedLocalcofhe = new WeakSet<HardhatConfig>();
-
-export function hasInjectedLocalcofhe(config: HardhatConfig): boolean {
-  return configsWithInjectedLocalcofhe.has(config);
-}
+import { getMockContractsNpmFiles } from './utils.js';
 
 /**
  * Extends the resolved config with plugin defaults and network presets.
  * Mirrors the logic from the v2 plugin's extendConfig callback.
  */
 export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfig: HardhatConfig): void {
-  const usesInjectedLocalcofhe = userConfig.networks?.['localcofhe'] === undefined;
-
   // Inject localcofhe network preset if the user hasn't defined it
-  if (usesInjectedLocalcofhe) {
-    configsWithInjectedLocalcofhe.add(resolvedConfig);
+  if (!userConfig.networks?.['localcofhe']) {
     (resolvedConfig.networks as Record<string, unknown>)['localcofhe'] = {
       type: 'http',
       url: 'http://127.0.0.1:42069',
@@ -63,6 +55,12 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
       httpHeaders: {},
     };
   }
+
+  // Build the mock contracts with the project: a full build removes the artifacts of any file it
+  // did not build, including the mocks compiled at startup
+  resolvedConfig.solidity.npmFilesToBuild = [
+    ...new Set([...resolvedConfig.solidity.npmFilesToBuild, ...getMockContractsNpmFiles()]),
+  ];
 
   // Resolve cofhe plugin config
   resolvedConfig.cofhe = {

@@ -7,6 +7,7 @@ import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
+import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
 
 const UINT_TYPE_MASK = 0x7fn;
 const TYPE_BYTE_OFFSET = 8n;
@@ -54,17 +55,12 @@ export async function cofheMocksDecryptForTx(
     });
   }
 
-  if (error != '') {
+  if (error != '' || allowed == false) {
+    const apiErrorCode = mockRejectionToApiErrorCode(error || 'NotAllowed', acp !== null);
     throw new CofheError({
-      code: CofheErrorCode.DecryptFailed,
-      message: `mocks decryptForTx call failed: ${error}`,
-    });
-  }
-
-  if (allowed == false) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptFailed,
-      message: `mocks decryptForTx call failed: ACL Access Denied (NotAllowed)`,
+      code: mapApiErrorCodeToCofheErrorCode(apiErrorCode, CofheErrorCode.DecryptFailed),
+      apiErrorCode,
+      message: `mocks decryptForTx call failed: ${error || 'ACL Access Denied (NotAllowed)'}`,
     });
   }
 

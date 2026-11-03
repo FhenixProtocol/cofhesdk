@@ -103,8 +103,11 @@ export function useCofheTokenDecryptedBalance(
         refetchOnMount: false,
         enabled: userEnabled && !!token,
       },
+      // Caller options shape the decrypt query, which is the one that produces the balance. They
+      // are typed for the bigint balance; cast so they don't drive the decrypt query's inference.
       decryptingQueryOptions: {
         refetchOnMount: false,
+        ...(restOptions as object),
         select: (amountWei) => {
           assert(token, 'ConfidentialToken must be defined to format confidential balance');
           if (typeof amountWei !== 'bigint') {
@@ -114,7 +117,6 @@ export function useCofheTokenDecryptedBalance(
         },
       },
       meta: decryptMeta,
-      ...restOptions,
     }
   );
 

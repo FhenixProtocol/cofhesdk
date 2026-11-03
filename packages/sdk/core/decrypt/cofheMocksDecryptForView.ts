@@ -5,6 +5,7 @@ import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
+import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
 
 export async function cofheMocksDecryptForView(
   ctHash: bigint | string,
@@ -26,17 +27,12 @@ export async function cofheMocksDecryptForView(
     args: [BigInt(ctHash), BigInt(utype), permissionWithBigInts],
   });
 
-  if (error != '') {
+  if (error != '' || allowed == false) {
+    const apiErrorCode = mockRejectionToApiErrorCode(error || 'NotAllowed', true);
     throw new CofheError({
-      code: CofheErrorCode.SealOutputFailed,
-      message: `mocks querySealOutput call failed: ${error}`,
-    });
-  }
-
-  if (allowed == false) {
-    throw new CofheError({
-      code: CofheErrorCode.SealOutputFailed,
-      message: `mocks querySealOutput call failed: ACL Access Denied (NotAllowed)`,
+      code: mapApiErrorCodeToCofheErrorCode(apiErrorCode, CofheErrorCode.SealOutputFailed),
+      apiErrorCode,
+      message: `mocks querySealOutput call failed: ${error || 'ACL Access Denied (NotAllowed)'}`,
     });
   }
 

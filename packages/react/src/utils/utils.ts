@@ -103,31 +103,31 @@ export const FheTypesList: FheTypeOption[] = [
   {
     label: 'Encrypted Uint8',
     value: 'uint8',
-    maxValue: BigInt(2 ** 8 - 1), // 255
+    maxValue: 2n ** 8n - 1n, // 255
     description: '8-bit unsigned integer (0 to 255)',
   },
   {
     label: 'Encrypted Uint16',
     value: 'uint16',
-    maxValue: BigInt(2 ** 16 - 1), // 65,535
+    maxValue: 2n ** 16n - 1n, // 65,535
     description: '16-bit unsigned integer (0 to 65,535)',
   },
   {
     label: 'Encrypted Uint32',
     value: 'uint32',
-    maxValue: BigInt(2 ** 32 - 1), // 4,294,967,295
+    maxValue: 2n ** 32n - 1n, // 4,294,967,295
     description: '32-bit unsigned integer (0 to 4,294,967,295)',
   },
   {
     label: 'Encrypted Uint64',
     value: 'uint64',
-    maxValue: BigInt(2 ** 64 - 1), // 18,446,744,073,709,551,615
+    maxValue: 2n ** 64n - 1n, // 18,446,744,073,709,551,615
     description: '64-bit unsigned integer (0 to 18,446,744,073,709,551,615)',
   },
   {
     label: 'Encrypted Uint128',
     value: 'uint128',
-    maxValue: BigInt(2 ** 128 - 1), // Very large number
+    maxValue: 2n ** 128n - 1n, // Very large number
     description: '128-bit unsigned integer',
   },
   {

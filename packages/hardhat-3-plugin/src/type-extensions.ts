@@ -127,8 +127,8 @@ declare module 'hardhat/types/network' {
   interface NetworkConnection {
     /**
      * CoFHE helpers attached to every network connection.
-     * Core mocks are deployed automatically only for trusted local presets;
-     * other connections can opt in with `cofhe.mocks.deployMocks()`.
+     * Core mocks are deployed automatically only for in-process Hardhat networks;
+     * HTTP connections can opt in with `cofhe.mocks.deployMocks()`.
      * Contracts like SimpleTest should be deployed explicitly when a test needs them.
      */
     cofhe: CofheConnection;

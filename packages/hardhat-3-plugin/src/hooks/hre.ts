@@ -5,6 +5,7 @@ import { createPublicClient, createWalletClient, custom, type PublicClient, type
 import { privateKeyToAccount } from 'viem/accounts';
 
 import type { ArtifactManager } from 'hardhat/types/artifacts';
+import type { HardhatConfig } from 'hardhat/types/config';
 
 import {
   MockCoFHEAddressBookArtifact,
@@ -18,7 +19,6 @@ import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node';
 import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
 
 import { deployMocks, type DeployMocksArgs, type DeployedMockContracts } from '../deploy.js';
-import { hasInjectedLocalcofhe } from '../config.js';
 import { mock_setLoggingEnabled, mock_withLogs } from '../logging.js';
 import { mock_getPlaintext, mock_expectPlaintext, getMockContractsNpmPaths } from '../utils.js';
 import { mock_getAdjustedGasBreakdown, mock_getAdjustedGasUsed, registerGasSummaryConnection } from '../gas.js';
@@ -32,7 +32,9 @@ function createCofheConnection(
   /** Reusable transport factory derived from the walletClient's request method */
   transport: ReturnType<typeof custom>,
   artifacts: ArtifactManager,
-  deployedMockContracts: DeployedMockContracts
+  deployedMockContracts: DeployedMockContracts,
+  /** The resolved `cofhe` config, which `mocks.deployMocks` falls back to */
+  pluginConfig: HardhatConfig['cofhe']
 ): CofheConnection {
   const mockContracts = {
     MockCoFHEAddressBook: {
@@ -117,7 +119,15 @@ function createCofheConnection(
 
     mocks: {
       async deployMocks(options?: DeployMocksArgs) {
-        const deployed = await deployMocks({ publicClient, walletClient, artifacts }, options);
+        const deployed = await deployMocks(
+          { publicClient, walletClient, artifacts },
+          {
+            gasWarning: pluginConfig.gasWarning,
+            mocksDeployVerbosity: pluginConfig.mocksDeployVerbosity,
+            logMocks: pluginConfig.logMocks,
+            ...options,
+          }
+        );
         updateMockContractAddresses(deployed);
       },
 
@@ -188,8 +198,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
       }
     }
 
-    // Register a permanent newConnection handler so that trusted development
-    // connections automatically deploy mocks and every connection gets conn.cofhe.
+    // Register a permanent newConnection handler so that in-process networks
+    // automatically deploy mocks and every connection gets conn.cofhe.
     const networkHandlers: Partial<NetworkHooks> = {
       async newConnection(context, next) {
         const conn = await next(context);
@@ -200,25 +210,19 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         // request method — lets us create account-bound clients later.
         const connTransport = custom({ request: (args: any) => (walletClient as any).request(args) });
 
-        // Automatic deployment is limited to local network identities established by
-        // Hardhat configuration. An HTTP provider's self-reported RPC capabilities are
-        // not a trust signal: callers can still opt in explicitly with cofhe.mocks.deployMocks().
-        const isBuiltInLocalcofhe =
-          hasInjectedLocalcofhe(hre.config) &&
-          conn.networkName === 'localcofhe' &&
-          conn.networkConfig.type === 'http' &&
-          (await conn.networkConfig.url.getUrl()) === 'http://127.0.0.1:42069';
-        const automaticallyDeployMocks = conn.networkConfig.type === 'edr-simulated' || isBuiltInLocalcofhe;
-        const deployedMockContracts = automaticallyDeployMocks
-          ? await deployMocks(
-              { publicClient, walletClient, artifacts: hre.artifacts },
-              {
-                gasWarning: hre.config.cofhe.gasWarning,
-                mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
-                logMocks: hre.config.cofhe.logMocks,
-              }
-            )
-          : ({} as DeployedMockContracts);
+        // An HTTP provider's self-reported RPC capabilities are not a trust signal.
+        // HTTP connections can still opt in explicitly with cofhe.mocks.deployMocks().
+        const deployedMockContracts =
+          conn.networkConfig.type === 'edr-simulated'
+            ? await deployMocks(
+                { publicClient, walletClient, artifacts: hre.artifacts },
+                {
+                  gasWarning: hre.config.cofhe.gasWarning,
+                  mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
+                  logMocks: hre.config.cofhe.logMocks,
+                }
+              )
+            : ({} as DeployedMockContracts);
 
         // With gasSummary enabled, track this connection so its adjusted-gas rows are
         // dumped at process exit for the `test` task to merge and print. Connections
@@ -239,7 +243,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
           walletClient,
           connTransport,
           hre.artifacts,
-          deployedMockContracts
+          deployedMockContracts,
+          hre.config.cofhe
         );
         return conn;
       },

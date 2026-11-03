@@ -352,8 +352,22 @@ export class DecryptForTxBuilder extends BaseBuilder {
       // Ensure acp validity
       ACPUtils.validate(acp);
 
+      if (this.chainId !== undefined && this.chainId !== acp._signedDomain?.chainId) {
+        throw new CofheError({
+          code: CofheErrorCode.ChainIdMismatch,
+          message: `decryptForTx: builder chainId (${this.chainId}) does not match ACP signed chainId (${acp._signedDomain?.chainId})`,
+          context: {
+            builderChainId: this.chainId,
+            acpChainId: acp._signedDomain?.chainId,
+          },
+        });
+      }
+
       // Extract chainId from signed acp
       const chainId = acp._signedDomain!.chainId;
+      if (this.chainId === undefined) {
+        this.chainId = chainId;
+      }
 
       if (chainId === hardhat.id) {
         return await this.mocksDecryptForTx(acp);

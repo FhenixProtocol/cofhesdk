@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
 
 const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
@@ -72,6 +72,28 @@ describe('Inherited SDK Tests', async () => {
 
     assert.equal(isDecrypted, true);
     assert.equal(Number(publishedValue), Number(testValue));
+  });
+
+  it('decryptForView with an ACP that does not cover the value → ACPDenied', async () => {
+    const client = await cofhe.createClientWithBatteries(bobWalletClient);
+    const { ctHash } = await storeEncrypted(client, 7n);
+    const [bobAddress] = await bobWalletClient.getAddresses();
+    const acp = await client.acp.createSelf({ issuer: bobAddress, contracts: [aliceAccount.address] });
+
+    await assert.rejects(client.decryptForView(ctHash, FheTypes.Uint32).withACP(acp).execute(), {
+      code: CofheErrorCode.ACPDenied,
+      apiErrorCode: 'acp_denied',
+    });
+  });
+
+  it('decryptForTx without an ACP on a value that is not public → NotPubliclyAllowed', async () => {
+    const client = await cofhe.createClientWithBatteries(bobWalletClient);
+    const { ctHash } = await storeEncrypted(client, 8n);
+
+    await assert.rejects(client.decryptForTx(ctHash).withoutACP().execute(), {
+      code: CofheErrorCode.NotPubliclyAllowed,
+      apiErrorCode: 'not_publicly_allowed',
+    });
   });
 
   it('self acp: create → verify active', async () => {

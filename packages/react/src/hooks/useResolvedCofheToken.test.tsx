@@ -5,6 +5,8 @@ import { TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS } from '@/constants/tokenTypeC
 import { getConfidentialDecimals, getPublicDecimals, type ConfidentialToken } from '@/types/token';
 
 const TOKEN = '0x5Be13CCbcc3b93579d49d682E58c207Df615e963';
+const CONNECTED_CHAIN_ID = 84532;
+const OTHER_CHAIN_ID = 11155111;
 
 type Call = { functionName: string; args?: readonly unknown[] };
 
@@ -46,14 +48,13 @@ vi.mock('@/providers', () => ({
 }));
 
 vi.mock('./useCofheConnection', () => ({
-  useCofhePublicClient: () => mocks.publicClient,
-  useCofheChainId: () => 84532,
+  useCofheConnection: () => ({ publicClient: mocks.publicClient, chainId: CONNECTED_CHAIN_ID }),
 }));
 
 import { useResolvedCofheToken } from './useResolvedCofheToken';
 
-function Probe({ enabled }: { enabled?: boolean }) {
-  useResolvedCofheToken({ address: TOKEN }, enabled === undefined ? undefined : { enabled });
+function Probe({ chainId, enabled }: { chainId?: number; enabled?: boolean }) {
+  useResolvedCofheToken({ chainId, address: TOKEN }, enabled === undefined ? undefined : { enabled });
   return null;
 }
 
@@ -91,6 +92,18 @@ describe('useResolvedCofheToken', () => {
       renderToString(<Probe enabled />);
 
       expect(mocks.queryOptions?.enabled).toBe(true);
+    });
+
+    it('is enabled when an explicit chain matches the connected chain', () => {
+      renderToString(<Probe chainId={CONNECTED_CHAIN_ID} enabled />);
+
+      expect(mocks.queryOptions?.enabled).toBe(true);
+    });
+
+    it('stays disabled when an explicit chain differs from the connected chain', () => {
+      renderToString(<Probe chainId={OTHER_CHAIN_ID} enabled />);
+
+      expect(mocks.queryOptions?.enabled).toBe(false);
     });
   });
 

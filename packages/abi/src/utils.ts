@@ -201,14 +201,3 @@ export function isAbiFunction(item: AbiItem | unknown): item is AbiFunction {
   if (typeof item !== 'object' || item === null) return false;
   return 'type' in item && item.type === 'function' && 'name' in item && 'outputs' in item;
 }
-
-export function getAbiFunction<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
-  abi: TAbi,
-  functionName: TFunctionName
-): AbiFunction | undefined {
-  return abi.find((item) => {
-    const isFunction = isAbiFunction(item);
-    if (!isFunction) return false;
-    return item.name === functionName;
-  }) as AbiFunction | undefined;
-}

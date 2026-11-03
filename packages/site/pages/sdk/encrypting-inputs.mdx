@@ -299,3 +299,4 @@ Use this with Solidity functions that accept `external*` handles plus a `bytes` 
 - **Splitting a batch**: the signature authenticates _all_ the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.
 - **Bit limit exceeded**: a single call can encrypt at most **2048 bits** of plaintext. Exceeding this throws `ZkPackFailed`.
+- **Mixing security zones**: one call encrypts for one security zone. Without `.setSecurityZone(...)` the call uses the zone given to `Encryptable`; inputs from different zones (or a zone other than the one set with `.setSecurityZone(...)`) throw `ZkPackFailed`. Encrypt each zone's inputs in its own call.

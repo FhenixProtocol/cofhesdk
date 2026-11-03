@@ -409,6 +409,47 @@ describe('EncryptInputsBuilder', () => {
       expect(result.getAccount()).toBe(sender);
       expect(result.getSecurityZone()).toBe(securityZone);
     });
+
+    it("encrypts in the items' security zone when setSecurityZone is not called", async () => {
+      insertMockKeys(defaultChainId, 1);
+      mockFetch.mockClear();
+
+      const result = await new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [Encryptable.uint128(100n, 1)] as [EncryptableUint128],
+      })
+        .setConsumingContract(defaultConsumingContract)
+        .execute();
+
+      const verifyCall = mockFetch.mock.calls.find(([url]) => url === `${MockZkVerifierUrl}/verifyBatch`);
+      const body = JSON.parse(verifyCall![1].body as string);
+      const { metadata } = parseWithBigInt(new TextDecoder().decode(fromHexString(body.packed_list)));
+      expect(body.security_zone).toBe(1);
+      expect(deconstructZkPoKMetadata(Uint8Array.from(Object.values(metadata) as number[])).securityZone).toBe(1);
+      expect(unpackMetadata(result[result.length - 1] as string).securityZone).toBe(1);
+    });
+
+    it('rejects items from different security zones before fetching keys', async () => {
+      const mixed = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [Encryptable.uint8(1n, 0), Encryptable.uint8(2n, 1)],
+      }).setConsumingContract(defaultConsumingContract);
+      mockFetch.mockClear();
+
+      await expect(mixed.execute()).rejects.toMatchObject({ code: CofheErrorCode.ZkPackFailed });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('rejects an item whose security zone differs from setSecurityZone', async () => {
+      const conflicting = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [Encryptable.uint128(100n, 1)] as [EncryptableUint128],
+      })
+        .setConsumingContract(defaultConsumingContract)
+        .setSecurityZone(2);
+
+      await expect(conflicting.execute()).rejects.toMatchObject({ code: CofheErrorCode.ZkPackFailed });
+    });
   });
 
   describe('chainId', () => {
