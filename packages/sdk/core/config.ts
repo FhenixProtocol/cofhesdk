@@ -119,8 +119,6 @@ export const CofheConfigSchema = z.object({
     .positive()
     .optional()
     .default(60 * 60 * 24 * 7),
-  /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
-    .default(60 * 60 * 24 * 30),
   /**
    * Storage method for fhe keys (defaults to indexedDB on web, filesystem on node).
    * Validated in place rather than with z.object, which would copy the methods onto a new
