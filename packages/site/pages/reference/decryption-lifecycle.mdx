@@ -65,6 +65,8 @@ During this stage, the `.onPoll(...)` callback receives an empty `requestId` bec
 
 Once the submit endpoint returns a `request_id`, the decryption request has been accepted and the SDK switches to status polling.
 
+The status endpoint reports exactly two values: `PROCESSING` and `COMPLETED`. There is no failed state. A request that fails comes back as `COMPLETED` with `is_succeed: false` and an `error_message`, and the SDK turns that into a `DecryptFailed` or `SealOutputFailed` error. Not-found and server errors arrive as HTTP 404 and 500, not as a status value.
+
 From this point on, the SDK polls the request status endpoint until one of these happens:
 
 - the request completes successfully,
@@ -124,7 +126,9 @@ decrypt call starts
     -> 204 without request_id: SDK retries submit automatically
     -> 200 with request_id: SDK starts status polling
       -> PROCESSING: keep polling
-      -> COMPLETED: return decrypt result
+      -> COMPLETED, is_succeed true: return decrypt result
+      -> COMPLETED, is_succeed false: fail with the reported error
+      -> 404: fail, request no longer found
 ```
 
 ## Practical guidance
