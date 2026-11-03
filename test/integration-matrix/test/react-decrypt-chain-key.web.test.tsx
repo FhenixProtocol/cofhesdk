@@ -8,7 +8,9 @@
  * on a mounted hook would never refetch.
  *
  * Chain B is played by a second client over the same Anvil under another chain id; one ACP is
- * registered under both chain slots so both reads and both decrypts are enabled.
+ * registered under both chain slots so both reads and both decrypts are enabled. That ACP is signed
+ * for chain A, so chain B's decrypt is refused before anything is sent (an ACP signed for another
+ * chain): B still gets its own cache entry, holding that error and never A's plaintext.
  */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -69,7 +71,12 @@ function Decrypt({
     functionName: 'getValue',
     ...(publicClient ? { chainId, publicClient } : { chainId }),
   });
-  return <output aria-label={label}>{decrypted.data === undefined ? '' : String(decrypted.data)}</output>;
+  return (
+    <>
+      <output aria-label={label}>{decrypted.data === undefined ? '' : String(decrypted.data)}</output>
+      <output aria-label={`${label} error`}>{decrypted.error?.message ?? ''}</output>
+    </>
+  );
 }
 
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
@@ -119,7 +126,14 @@ describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
     }
 
     await waitFor(() => expect(shown('A')).toBe('42'), { timeout: 90_000 });
-    await waitFor(() => expect(shown('B')).toBe('42'), { timeout: 90_000 });
+    await waitFor(
+      () =>
+        expect(shown('B error')).toContain(
+          `builder chainId (${CHAIN_B}) does not match ACP signed chainId (${CHAIN_A})`
+        ),
+      { timeout: 90_000 }
+    );
+    expect(shown('B')).toBe('');
 
     // Two chains, two entries, keyed `[prefix, chainId, ctHash, utype]` — the placeholder registered
     // before the reads resolved carries no ctHash.
