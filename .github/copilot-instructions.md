@@ -39,6 +39,7 @@
 - Hardhat mock deployment is automatic in many local flows. Account for `COFHE_SKIP_MOCKS_DEPLOY=1` when working on tests or scripts that need manual control over mock deployment.
 - Preserve the SDK's public export surface in `packages/sdk/package.json`. Changes to subpath exports or runtime targets usually require corresponding updates across consumers.
 - When working in docs or examples, prefer linking to existing package APIs and architecture docs rather than duplicating long explanations in code comments.
+- Exports marked `@internal` (see "Internal APIs" in `README.md`) are not a supported API. Don't extend them or build on them in a PR.
 - Every PR that changes a published package adds one changeset. Write its text for a developer reading the release notes, following `.memory/changesets.md`.
 
 ## References
