@@ -1,6 +1,6 @@
 import type { CofheClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { ACP_STORE_DEFAULTS, ACPUtils, type ACP } from '@cofhe/sdk/acps';
 import { useCofheConnection } from './useCofheConnection';
@@ -36,6 +36,23 @@ const useCofheACPsStore = () => {
 };
 
 /**
+ * Re-render once `acp` has expired, so a validity computed at render catches the expiry while
+ * the view stays mounted. Returns a counter to add to the memo dependencies.
+ */
+export function useRerenderAtExpiry(acp: ACP | undefined): number {
+  const [tick, bump] = useReducer((n: number) => n + 1, 0);
+  const expiration = acp?.expiration;
+  useEffect(() => {
+    if (expiration === undefined) return;
+    const ms = expiration * 1000 - Date.now() + 1000;
+    if (ms <= 0) return;
+    const id = setTimeout(bump, Math.min(ms, 2_147_483_647));
+    return () => clearTimeout(id);
+  }, [expiration]);
+  return tick;
+}
+
+/**
  * The connected account's active ACP on `chainId` — the connected chain by default. ACPs are
  * stored per chain, so a read pinned to another chain gates on THAT chain's ACP. Creating one
  * still needs the wallet on that chain (the user signs for it).
@@ -60,15 +77,18 @@ export const useCofheActiveACP = (
   const hash = account && acpChainId ? state.activeACPHash[acpChainId]?.[account] : undefined;
   const serialized = hash && allACPs ? allACPs[hash] : undefined;
 
+  const _acp = useMemo(() => (serialized ? ACPUtils.deserialize(serialized) : undefined), [serialized]);
+  const expiryTick = useRerenderAtExpiry(_acp);
+
   const acpData = useMemo(() => {
-    const _acp = serialized ? ACPUtils.deserialize(serialized) : undefined;
     if (!_acp || !hash) return undefined;
     return {
       acp: _acp,
-      isValid: _acp ? ACPUtils.isValid(_acp).valid : false,
+      isValid: ACPUtils.isValid(_acp).valid,
       hash,
     };
-  }, [serialized, hash]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_acp, hash, expiryTick]);
 
   return connected ? acpData : undefined;
 };
