@@ -31,6 +31,14 @@ const serveZkProveWorkerSource = {
   },
 };
 
+// Node 25+ defines a global `localStorage` (undefined unless `--localstorage-file` is set).
+// Vitest only copies happy-dom globals that Node does not already define, so happy-dom
+// tests see that empty global and the persisted ACP store has no storage. Turning Node's
+// Web Storage off lets happy-dom's `localStorage` through. Node 20 rejects the flag, and
+// Node 22–24 keep Web Storage off by default, so it is only passed on Node 25+.
+const nodeMajor = Number(process.versions.node.split('.')[0]);
+const nodeExecArgv = nodeMajor >= 25 ? ['--no-experimental-webstorage'] : [];
+
 export default defineConfig({
   plugins: encryptBench ? [serveZkProveWorkerSource] : [],
   define: {
@@ -44,6 +52,8 @@ export default defineConfig({
   test: {
     globals: true,
     testTimeout: 15000,
+    // Vitest reads fork `execArgv` from the root config only, not from a project.
+    poolOptions: { forks: { execArgv: nodeExecArgv } },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
