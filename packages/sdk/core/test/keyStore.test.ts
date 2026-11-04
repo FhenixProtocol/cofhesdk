@@ -211,6 +211,25 @@ describe('KeyStore', () => {
       expect(warn.mock.calls[0][0]).toContain('setItem');
     });
 
+    it('warns once when several calls were in flight on the storage', async () => {
+      let rejectAll: (error: Error) => void = () => {};
+      const pending = new Promise<never>((_, reject) => {
+        rejectAll = reject;
+      });
+      const storage = {
+        getItem: vi.fn(() => pending),
+        setItem: vi.fn(() => pending),
+        removeItem: vi.fn(() => pending),
+      };
+      const keys = createKeysStore(storage);
+      const first = keys.rehydrateKeysStore();
+      const second = keys.clearKeysStorage();
+      rejectAll(new Error('iframe not ready'));
+      await Promise.all([first, second]);
+      expect(keys.storageStatus()).toBe('memory');
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
     it('catches a storage that throws synchronously', async () => {
       const storage = {
         getItem: vi.fn(() => {

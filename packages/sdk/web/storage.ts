@@ -114,9 +114,12 @@ export const withFallback = (
     try {
       return await call(primary);
     } catch (error) {
-      current = fallback;
-      console.warn(warning, error);
-      onFallback?.({ operation, error });
+      // Calls already in flight on the primary fail too; only the first one switches and reports.
+      if (current !== fallback) {
+        current = fallback;
+        console.warn(warning, error);
+        onFallback?.({ operation, error });
+      }
       return call(fallback);
     }
   };

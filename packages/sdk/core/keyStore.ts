@@ -81,11 +81,14 @@ function guardStorage(storage: IStorage): GuardedStorage {
     try {
       return await call();
     } catch (error) {
-      degraded = true;
-      console.warn(
-        `[cofhe] FHE key storage failed on ${operation}; keeping the keys in memory for this session.`,
-        error
-      );
+      // Calls already in flight fail too; only the first one warns.
+      if (!degraded) {
+        degraded = true;
+        console.warn(
+          `[cofhe] FHE key storage failed on ${operation}; keeping the keys in memory for this session.`,
+          error
+        );
+      }
       return fallback;
     }
   };
