@@ -4,8 +4,15 @@ on:
   pull_request:
   push:
     branches: [master, staging]
+  # A maintainer adds the `run-matrix` label to a contributor's PR to run the
+  # matrix on it with the testnet keys (see test-network-labeled below).
+  pull_request_target:
+    types: [labeled]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# One group per branch, and one per PR for the labeled runs: `github.ref` is
+# master for a pull_request_target event, which would queue a labeled run
+# behind master pushes and let a newer one cancel it.
+concurrency: ${{ github.workflow }}-${{ github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
 
 jobs:
   # Keyless tests: unit, mock-network, forge, and browser suites. Needs no
@@ -13,6 +20,7 @@ jobs:
   # live-chain suites in packages/sdk self-skip when TEST_PRIVATE_KEY is
   # absent (see LIVE_TESTS in the gated test files).
   test-local:
+    if: github.event_name != 'pull_request_target'
     name: Test (local)
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +57,7 @@ jobs:
   # self-skip there (see THREADPOOL_TESTS) and run here instead, one file at a
   # time. Keyless, so this also runs on fork PRs.
   test-threadpool:
+    if: github.event_name != 'pull_request_target'
     name: Test (thread pool)
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +94,7 @@ jobs:
   # repository secrets exist: pushes and same-repo pull requests. Fork PRs
   # skip this job entirely instead of failing on a missing secret.
   test-live:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
@@ -133,7 +142,7 @@ jobs:
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
 
   test-network:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
@@ -202,3 +211,107 @@ jobs:
           TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
+  # The matrix on a contributor's PR, run with the repository's testnet keys.
+  # Fork PRs never get secrets on `pull_request`, so without this the matrix
+  # never ran on them (#409 turned Matrix (Hardhat Mock) red on master and ~20
+  # community PRs merged on top of it before anyone saw; #504 fixed the tests).
+  #
+  # The label `run-matrix` is the gate. The PR's own code runs here with the
+  # keys, so a maintainer adds the label only after reading the diff. The
+  # label is removed when the run ends (see remove-run-matrix-label), so a
+  # later push never runs on its own: the maintainer relabels after reading
+  # the new diff. Same matrix, steps and secrets as test-network; the group
+  # is shared with it too, so a labeled run and a master run never use the
+  # same testnet wallet at the same time.
+  test-network-labeled:
+    if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: Hardhat Mock
+            slug: hardhat
+          - name: Ethereum Sepolia
+            slug: sepolia
+            setupChainId: '11155111'
+          - name: Arbitrum Sepolia
+            slug: arb-sepolia
+            setupChainId: '421614'
+          - name: Base Sepolia
+            slug: base-sepolia
+            setupChainId: '84532'
+    concurrency:
+      group: testnet-integration-${{ matrix.network.slug }}
+      cancel-in-progress: false
+    name: Matrix on label (${{ matrix.network.name }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      - name: Setup test fixtures
+        if: matrix.network.setupChainId
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+
+      - name: Run Integration Matrix Tests
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
+          MATRIX_CHAIN: ${{ matrix.network.slug }}
+        run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
+  # Removes the label once every leg above has ended, pass or fail, so the
+  # next push to the PR does not run with the keys until a maintainer
+  # relabels. The only job with write access to pull requests.
+  remove-run-matrix-label:
+    if: always() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    needs: test-network-labeled
+    permissions:
+      pull-requests: write
+    name: Remove run-matrix label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --remove-label run-matrix
