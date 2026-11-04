@@ -76,6 +76,7 @@ Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` →
 ```
 setup/
   anvil.ts                   # globalSetup — Anvil + mock deploy + SimpleTest/SimpleStorage deploy + matrix printout
+                             # (plus a SimpleTest of its own for react-decrypt-chain-key: its value slot is per writer)
   foundryArtifactReader.ts   # Foundry artifact shim for @cofhe/hardhat-3-plugin's deployMocks
 src/
   matrix.ts                  # chain/env filtering logic (no vitest imports — safe for globalSetup)

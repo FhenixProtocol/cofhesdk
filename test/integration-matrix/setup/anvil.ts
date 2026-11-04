@@ -65,6 +65,7 @@ export async function setup(project: TestProject): Promise<void> {
     project.provide('anvilSimpleStorage', '');
     project.provide('anvilSimpleKeyValueStore', '');
     project.provide('anvilSimpleErc20', '');
+    project.provide('anvilSimpleTestPerChainDecrypt', '');
     console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
     await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
     return;
@@ -115,7 +116,15 @@ export async function setup(project: TestProject): Promise<void> {
   const simpleErc20Address = deployTestContract(ANVIL_RPC, 'contracts/SimpleERC20.sol:SimpleERC20');
   console.log(`${HARDHAT_LOG_PREFIX} SimpleERC20 deployed at ${simpleErc20Address}`);
 
+  // SimpleTest has one value slot, readable by its last writer only, and the web files run
+  // concurrently: react-decrypt-chain-key gets an instance of its own, so no other file's write
+  // can land between its write and its decrypt.
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest for react-decrypt-chain-key...`);
+  const simpleTestPerChainDecrypt = deployTestContract(ANVIL_RPC, 'contracts/SimpleTest.sol:SimpleTest');
+  console.log(`${HARDHAT_LOG_PREFIX} SimpleTest (per-chain decrypt) deployed at ${simpleTestPerChainDecrypt}`);
+
   project.provide('anvilRpc', ANVIL_RPC);
+  project.provide('anvilSimpleTestPerChainDecrypt', simpleTestPerChainDecrypt);
   project.provide('anvilSimpleTest', simpleTestAddress);
   project.provide('anvilSimpleStorage', simpleStorageAddress);
   project.provide('anvilSimpleKeyValueStore', simpleKeyValueStoreAddress);
@@ -184,6 +193,7 @@ declare module 'vitest' {
   export interface ProvidedContext {
     anvilRpc: string;
     anvilSimpleTest: string;
+    anvilSimpleTestPerChainDecrypt: string;
     anvilSimpleStorage: string;
     anvilSimpleKeyValueStore: string;
     anvilSimpleErc20: string;

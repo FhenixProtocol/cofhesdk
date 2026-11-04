@@ -8,7 +8,11 @@
  * on a mounted hook would never refetch.
  *
  * Chain B is played by a second client over the same Anvil under another chain id; one ACP is
- * registered under both chain slots so both reads and both decrypts are enabled.
+ * registered under both chain slots so both reads and both decrypts are enabled. On the EVM that
+ * is one chain, and the ACP is signed for it (31337), so the decrypt pinned to B is refused by the
+ * builder's chain check (CHAIN_ID_MISMATCH) before anything is sent. That refusal is the proof
+ * this test wants from B: the decrypt took the pinned chain id and the ACP filed under it, not
+ * the connected chain's. A decrypt that actually succeeds on another chain needs another node.
  */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -35,7 +39,9 @@ const chainA: Chain = defineChain({
   rpcUrls: { default: { http: [ANVIL_RPC] } },
 });
 const chainB: Chain = defineChain({ ...chainA, id: CHAIN_B, name: 'B' });
-const SIMPLE_TEST = inject('anvilSimpleTest') as Address;
+// This file's own SimpleTest: its one value slot is readable by its last writer only, and the web
+// files run concurrently (react-read-contracts writes the shared one with another account).
+const SIMPLE_TEST = inject('anvilSimpleTestPerChainDecrypt') as Address;
 
 /** A plain EIP-1193 transport over fetch. */
 function transport() {
@@ -69,7 +75,12 @@ function Decrypt({
     functionName: 'getValue',
     ...(publicClient ? { chainId, publicClient } : { chainId }),
   });
-  return <output aria-label={label}>{decrypted.data === undefined ? '' : String(decrypted.data)}</output>;
+  return (
+    <>
+      <output aria-label={label}>{decrypted.data === undefined ? '' : String(decrypted.data)}</output>
+      <output aria-label={`${label} error`}>{decrypted.error?.message ?? ''}</output>
+    </>
+  );
 }
 
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
@@ -80,6 +91,7 @@ const describeOnAnvil = SIMPLE_TEST ? describe : describe.skip;
 
 describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
   it('the same ctHash decrypted on two chains is two cache entries, each keyed by its chain', async () => {
+    // The value's handle is read on both chains, and both decrypts run; see the file header for B.
     const publicClient = createPublicClient({ chain: chainA, transport: custom(transport()) });
     const walletClient = createWalletClient({ chain: chainA, transport: custom(transport()), account: ACCOUNT });
     const clientB = createPublicClient({ chain: chainB, transport: custom(transport()) });
@@ -119,10 +131,16 @@ describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
     }
 
     await waitFor(() => expect(shown('A')).toBe('42'), { timeout: 90_000 });
-    await waitFor(() => expect(shown('B')).toBe('42'), { timeout: 90_000 });
+    // B: pinned chain id 31338 and the ACP from the 31338 slot (signed for 31337) reach the builder,
+    // which refuses the pair. Nothing else could produce this message.
+    await waitFor(
+      () => expect(shown('B error')).toMatch(/builder chainId \(31338\) does not match ACP signed chainId \(31337\)/),
+      { timeout: 90_000 }
+    );
+    expect(shown('B')).toBe('');
 
     // Two chains, two entries, keyed `[prefix, chainId, ctHash, utype]` — the placeholder registered
-    // before the reads resolved carries no ctHash.
+    // before the reads resolved carries no ctHash. B's entry holds its error, A's its plaintext.
     const decrypts = queryClient
       .getQueryCache()
       .findAll({ queryKey: ['decryptCiphertext'] })
