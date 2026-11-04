@@ -816,10 +816,10 @@ describeOnAnvil('react hooks: chain-pinned reads (Anvil)', () => {
     acpStore.setActiveACPHash(PINNED_CHAIN_ID, account, acp.hash);
     acpStore.removeACP(CHAIN_ID, account, acp.hash);
 
-    // The pinned chain is the same Anvil under another id, so the ACP is signed for 31337 and the
-    // builder refuses it for 31338 (CHAIN_ID_MISMATCH). The refusal names both: the decrypt took the
-    // pinned chain id and the ACP filed under it, which is what this test is about. Decrypting for
-    // real on another chain needs another node.
+    // The pinned chain is the same Anvil under another id, so the ACP is signed for 31337. The
+    // builder refuses it for 31338 (CHAIN_ID_MISMATCH). That error is what this test checks: it
+    // shows the decrypt used the pinned chain id and the ACP stored under it. A decrypt that
+    // succeeds on a second chain would need a second node.
     await waitFor(
       () =>
         expect(screen.getByRole('status', { name: 'decrypt error' }).textContent).toMatch(

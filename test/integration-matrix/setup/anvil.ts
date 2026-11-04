@@ -116,9 +116,9 @@ export async function setup(project: TestProject): Promise<void> {
   const simpleErc20Address = deployTestContract(ANVIL_RPC, 'contracts/SimpleERC20.sol:SimpleERC20');
   console.log(`${HARDHAT_LOG_PREFIX} SimpleERC20 deployed at ${simpleErc20Address}`);
 
-  // SimpleTest has one value slot, readable by its last writer only, and the web files run
-  // concurrently: react-decrypt-chain-key gets an instance of its own, so no other file's write
-  // can land between its write and its decrypt.
+  // A SimpleTest just for react-decrypt-chain-key. The contract has one value slot and only the
+  // last writer may read it. Test files run at the same time, and react-read-contracts writes the
+  // shared SimpleTest too, so sharing it makes that test flaky.
   console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest for react-decrypt-chain-key...`);
   const simpleTestPerChainDecrypt = deployTestContract(ANVIL_RPC, 'contracts/SimpleTest.sol:SimpleTest');
   console.log(`${HARDHAT_LOG_PREFIX} SimpleTest (per-chain decrypt) deployed at ${simpleTestPerChainDecrypt}`);
