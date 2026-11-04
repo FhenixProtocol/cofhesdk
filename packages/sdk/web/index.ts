@@ -251,5 +251,7 @@ export function createCofheClientWithCustomWorker(
   });
 }
 
-export { createSsrStorage };
+// `createWebStorage` is the default `fheKeyStorage` of `createCofheConfig`; exported so that an app can
+// put its own observer around it (e.g. to report a storage it had to give up on) and pass the result.
+export { createSsrStorage, createWebStorage };
 export { hasDOM } from './const';
