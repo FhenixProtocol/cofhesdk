@@ -212,20 +212,14 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
-  # The matrix on a contributor's PR, run with the repository's testnet keys.
-  # Fork PRs never get secrets on `pull_request`, so without this the matrix
-  # never ran on them (#409 turned Matrix (Hardhat Mock) red on master and ~20
-  # community PRs merged on top of it before anyone saw; #504 fixed the tests).
-  #
-  # The label `run-matrix` is the gate. The PR's own code runs here with the
-  # keys, so a maintainer adds the label only after reading the diff. The
-  # label is removed when the run ends (see remove-run-matrix-label), so a
-  # later push never runs on its own: the maintainer relabels after reading
-  # the new diff. Same matrix, steps and secrets as test-network; the group
-  # is shared with it too, so a labeled run and a master run never use the
-  # same testnet wallet at the same time.
+  # The matrix on a contributor's PR, with the repository's testnet keys.
+  # Fork PRs get no secrets on `pull_request`, so this is the only way the
+  # matrix runs on them. The PR's own code runs with the keys here, so a
+  # maintainer adds the label only after reading the diff.
   test-network-labeled:
+    # Only when the `run-matrix` label is added. Any other label is ignored.
     if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    # Untrusted code runs here. The token can read the repo and nothing else.
     permissions:
       contents: read
     strategy:
@@ -243,12 +237,16 @@ jobs:
           - name: Base Sepolia
             slug: base-sepolia
             setupChainId: '84532'
+    # Same group as test-network, so this never shares a testnet wallet with
+    # a master run on the same chain. Runs queue, they do not cancel.
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
     name: Matrix on label (${{ matrix.network.name }})
     runs-on: ubuntu-latest
     steps:
+      # pull_request_target checks out master by default. We want the PR's code.
+      # The token is not left on disk, so the PR's code cannot use it.
       - name: Checkout PR head
         uses: actions/checkout@v5
         with:
@@ -300,12 +298,14 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
-  # Removes the label once every leg above has ended, pass or fail, so the
-  # next push to the PR does not run with the keys until a maintainer
-  # relabels. The only job with write access to pull requests.
+  # Takes the label off again. One label, one run. The next push to the PR
+  # runs with the keys only after a maintainer reads it and relabels.
   remove-run-matrix-label:
+    # Runs whether the legs passed or failed.
     if: always() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    # Waits for all four legs to end.
     needs: test-network-labeled
+    # The only job that can write to pull requests. None of the PR's code runs here.
     permissions:
       pull-requests: write
     name: Remove run-matrix label
