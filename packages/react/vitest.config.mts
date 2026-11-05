@@ -29,6 +29,7 @@ export default defineConfig({
       {
         // Hook tests against a chain: an Anvil with the CoFHE mocks, in Chromium.
         // Needs anvil, forge and the Playwright Chromium. See test/chain/README.md.
+        // `pnpm test:unit` skips it.
         resolve: { alias },
         test: {
           name: 'chain',

@@ -3,9 +3,9 @@
 Hook tests that need a chain. Each file renders real hooks in Chromium against an Anvil node that has the CoFHE mocks and the test contracts on it. `anvil.setup.ts` starts the node through `@cofhe/test-anvil` and hands the contract addresses to the files, which read them with `inject()`.
 
 ```bash
+pnpm test           # both projects
+pnpm test:unit      # the mocked hook tests under src/, about ten seconds
 pnpm test:chain     # this project only
-pnpm test:unit      # the mocked hook tests under src/
-pnpm test           # unit locally, unit and chain in CI (CI=true)
 ```
 
 `anvil` and `forge` must be on `$PATH`, and the Playwright Chromium must be installed (`pnpm exec playwright install chromium`).

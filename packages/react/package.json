@@ -36,7 +36,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "node ./scripts/run-tests.mjs",
+    "test": "vitest run",
     "test:watch": "vitest --project unit",
     "test:unit": "vitest run --project unit",
     "test:chain": "vitest run --project chain"
