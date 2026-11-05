@@ -14,6 +14,7 @@ import {
   describeShareMetadata,
   encodeShareMetadata,
   viewFunctionLabel,
+  type ACPAccessStatus,
   type ACPPublic,
 } from '@cofhe/sdk/acps';
 import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
@@ -454,15 +455,17 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
   // The SDK takes an ACP's id from the head block's timestamp, read from whichever node answers.
   // A status check then goes through the ACL to the timestamp revoker, which reports an ACP with
-  // an id later than the answering node's head as disabled. On a load-balanced RPC that next call
-  // can land on a node a block behind, so a fresh ACP reads as revoked until every node has moved
-  // past its creation block. Wait two blocks. Anvil mines only on transactions, so skip it there.
-  async function waitForTwoBlocks(): Promise<void> {
-    if (chainConfig.id === 31337) return;
-    const from = await ctx.publicClient.getBlockNumber();
-    while ((await ctx.publicClient.getBlockNumber()) < from + 2n) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+  // an id later than the answering node's head as disabled. On a load-balanced RPC that call can
+  // land on a node behind the head, so a fresh ACP can read as 'revoked' for a while. This asks
+  // again in that one case, a few times. A real revocation does not go away, so a wrong
+  // expectation still fails, and checks that expect 'revoked' do not use this.
+  async function expectStatus(expected: Exclude<ACPAccessStatus, 'revoked'>, check: () => Promise<ACPAccessStatus>) {
+    let status = await check();
+    for (let attempt = 0; status === 'revoked' && attempt < 6; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      status = await check();
     }
+    expect(status).toBe(expected);
   }
 
   // The registry flow, end to end. Bob stores a value and posts a share of it for Alice on-chain,
@@ -584,28 +587,25 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     await waitForNextSecond();
     const bobSelf = await acp.createSelf({ issuer: bob, name: 'Bob own' });
-    await waitForTwoBlocks();
-    expect(await acp.checkAccess(bobSelf)).toBe('valid');
-    expect(await acp.checkAccess(bobSelf, handleA)).toBe('allowed');
-    expect(await acp.checkAccess(bobSelf, BigInt(handleA))).toBe('allowed');
+    await expectStatus('valid', () => acp.checkAccess(bobSelf));
+    await expectStatus('allowed', () => acp.checkAccess(bobSelf, handleA));
+    await expectStatus('allowed', () => acp.checkAccess(bobSelf, BigInt(handleA)));
 
     // A SNAPSHOT share covering A only. The issuer copy has no recipient signature. Its status
     // still answers: expiry and revocation.
     const sharing = await acp.createSharing({ issuer: bob, recipient: alice, name: 'A only', handles: [handleA] });
-    await waitForTwoBlocks();
-    expect(await acp.checkAccess(sharing)).toBe('valid');
+    await expectStatus('valid', () => acp.checkAccess(sharing));
 
     await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
     try {
       const imported = await acp.importShared(acp.export(sharing), { activate: false });
-      expect(await acp.checkAccess(imported)).toBe('valid');
-      expect(await acp.checkAccess(imported, handleA)).toBe('allowed');
-      expect(await acp.checkAccess(imported, handleB)).toBe('out-of-scope');
+      await expectStatus('valid', () => acp.checkAccess(imported));
+      await expectStatus('allowed', () => acp.checkAccess(imported, handleA));
+      await expectStatus('out-of-scope', () => acp.checkAccess(imported, handleB));
 
       // Alice's own ACP. She was never allowed on Bob's values.
       const aliceSelf = await acp.createSelf({ issuer: alice, name: 'Alice own' });
-      await waitForTwoBlocks();
-      expect(await acp.checkAccess(aliceSelf, handleA)).toBe('issuer-not-allowed');
+      await expectStatus('issuer-not-allowed', () => acp.checkAccess(aliceSelf, handleA));
 
       // Bob revokes the share. Every check on it now says so, with or without a handle.
       await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
