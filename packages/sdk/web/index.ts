@@ -17,7 +17,7 @@ import {
 import { fromHexString } from '../core/utils.js';
 
 // Import web-specific storage (internal use only)
-import { createSsrStorage, createWebStorage } from './storage.js';
+import { createIndexedDbStorage, createSsrStorage, createWebStorage } from './storage.js';
 
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
@@ -251,5 +251,9 @@ export function createCofheClientWithCustomWorker(
   });
 }
 
-export { createSsrStorage };
+// `createWebStorage` is the default `fheKeyStorage` of `createCofheConfig` (the shared hub, falling back
+// to `createIndexedDbStorage`, the page's own IndexedDB). Exported so that an app can put its own observer
+// around either (e.g. to report a storage it had to give up on) and pass the result.
+export { createSsrStorage, createWebStorage, createIndexedDbStorage };
+export type { OnStorageFallback, StorageOperation } from './storage.js';
 export { hasDOM } from './const';

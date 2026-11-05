@@ -203,6 +203,18 @@ describe('Validation Tests', () => {
         };
         expect(ValidationUtils.isExpired(acp)).toBe(false);
       });
+
+      it('should check expiry at the given time instead of the local clock', async () => {
+        const acp = {
+          ...(await createMockACP()),
+          expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        };
+        expect(ValidationUtils.isExpired(acp, acp.expiration + 1)).toBe(true);
+        expect(ValidationUtils.isSignedAndNotExpired(acp, acp.expiration + 1)).toEqual({
+          valid: false,
+          error: 'expired',
+        });
+      });
     });
 
     describe('isSigned', () => {
