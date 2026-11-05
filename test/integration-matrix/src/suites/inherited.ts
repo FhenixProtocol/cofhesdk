@@ -8,6 +8,7 @@
  */
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
+import { BaseError, ResourceNotFoundRpcError } from 'viem';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
 import {
   ACPUtils,
@@ -39,6 +40,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   afterAll(async () => {
     await chainConfig.teardown?.();
   });
+
+  // A read pinned to a block throws "block not found" on a node of a load-balanced RPC that has
+  // not seen that block yet. Ask again until a node that has it answers, for up to 30 seconds.
+  async function readAtBlock<T>(read: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await read();
+      } catch (error) {
+        const blockNotFound =
+          error instanceof BaseError && error.walk((e) => e instanceof ResourceNotFoundRpcError) !== null;
+        if (!blockNotFound || attempt >= 10) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
+  }
 
   it('Clients should be created with expected surface', () => {
     expect(ctx.cofheClient).toBeDefined();
@@ -174,12 +190,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-        blockNumber: txBlock,
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: txBlock,
+        })
+      );
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
@@ -211,12 +229,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-        blockNumber: txBlock,
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: txBlock,
+        })
+      );
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
@@ -248,12 +268,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-        blockNumber: addBlock,
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: addBlock,
+        })
+      );
 
       const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
       expect(unsealedResult).toBe(expectedViewValue);
@@ -284,12 +306,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const updatedCtHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-        blockNumber: secondAddBlock,
-      });
+      const updatedCtHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: secondAddBlock,
+        })
+      );
 
       const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withACP().execute();
       // now that it was fetched - next time it should fetch from cache
@@ -314,13 +338,15 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getDecryptResultSafe',
-        args: [updatedCtHash],
-        blockNumber: publishBlock,
-      });
+      const [publishedValue, isDecrypted] = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getDecryptResultSafe',
+          args: [updatedCtHash],
+          blockNumber: publishBlock,
+        })
+      );
 
       expect(isDecrypted).toBe(true);
       expect(BigInt(publishedValue)).toBe(expectedTxValue);
@@ -387,12 +413,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       confirmations: chainConfig.txConfirmationsRequired,
     });
 
-    const ctHash = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'publicValueHash',
-      blockNumber: storeBlock,
-    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publicValueHash',
+        blockNumber: storeBlock,
+      })
+    );
 
     const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutACP().execute();
 
@@ -400,12 +428,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(decryptResult.decryptedValue).toBe(testValue);
     expect(decryptResult.signature).toBeDefined();
 
-    const storedHandle = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'publicValue',
-      blockNumber: storeBlock,
-    });
+    const storedHandle = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publicValue',
+        blockNumber: storeBlock,
+      })
+    );
 
     const publishTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -422,13 +452,15 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       confirmations: chainConfig.txConfirmationsRequired,
     });
 
-    const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getDecryptResultSafe',
-      args: [storedHandle],
-      blockNumber: publishBlock,
-    });
+    const [publishedValue, isDecrypted] = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getDecryptResultSafe',
+        args: [storedHandle],
+        blockNumber: publishBlock,
+      })
+    );
 
     expect(BigInt(publishedValue)).toBe(testValue);
     expect(isDecrypted).toBe(true);
@@ -449,12 +481,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       confirmations: chainConfig.txConfirmationsRequired,
     });
     // Read at the receipt's block. A load-balanced RPC can answer "latest" from a node behind it.
-    return (await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getValueHash',
-      blockNumber,
-    })) as `0x${string}`;
+    return (await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    )) as `0x${string}`;
   }
 
   // An ACP's id is its creation time in seconds. Two ACPs by the same issuer in the same second
@@ -515,12 +549,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       hash: txHash,
       confirmations: chainConfig.txConfirmationsRequired,
     });
-    const ctHash = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getValueHash',
-      blockNumber,
-    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    );
 
     // 2. Bob shares that one value with Alice on-chain, labelled as where it came from
     const label = viewFunctionLabel({
@@ -665,12 +701,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       hash: txHash,
       confirmations: chainConfig.txConfirmationsRequired,
     });
-    const ctHash = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getValueHash',
-      blockNumber,
-    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    );
 
     // 2. a contract-scoped acp, revocable by default
     await waitForNextSecond();
