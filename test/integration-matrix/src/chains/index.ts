@@ -47,11 +47,11 @@ const baseSepoliaConfig: TestChainConfig = {
   }),
 };
 
-// viem's default Sepolia RPC is thirdweb's public-good endpoint. It answers a burst of eth_call
-// with 429 even after retries, which failed the share flow on master and checkAccess here.
-// publicnode does not rate-limit, but it is load balanced: a read right after a receipt can hit
-// a node that has not seen the block yet. Waiting for a second confirmation covers that.
-const SEPOLIA_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+// Not viem's default Sepolia RPC. That is thirdweb's public-good endpoint, which answers a burst
+// of eth_call with 429 even after retries. publicnode was tried next: no rate limit, but load
+// balanced, so a call can land on a node behind the head and answer from an older block. The
+// second confirmation below is a margin for that on any endpoint.
+const SEPOLIA_RPC = 'https://sepolia.gateway.tenderly.co';
 
 const sepoliaConfig: TestChainConfig = {
   id: viemSepolia.id,
