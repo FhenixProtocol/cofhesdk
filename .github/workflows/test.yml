@@ -99,6 +99,7 @@ jobs:
   # repository secrets exist: pushes and same-repo pull requests. Fork PRs
   # skip this job entirely instead of failing on a missing secret.
   test-live:
+    # Not on the `run-matrix` label either. The label runs the matrix only, not this suite.
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     concurrency:
       group: testnet-integration
@@ -147,6 +148,7 @@ jobs:
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
 
   test-network:
+    # Not on the `run-matrix` label. On that event test-network-labeled below runs the matrix instead.
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
