@@ -1,62 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setupCommandStubs } from './setup-command-stubs.mjs';
 
 const setupDir = dirname(fileURLToPath(import.meta.url));
 
-const commandStub = `#!/bin/sh
-command=$(basename "$0")
-printf '%s %s\\n' "$command" "$*" >> "$CALL_LOG"
-
-if [ "$command" = "cast" ]; then
-  case "$1" in
-    wallet)
-      printf '%s\\n' '0x1111111111111111111111111111111111111111'
-      ;;
-    balance)
-      case "$*" in
-        *--ether*staging-hostchain*)
-          if grep -q '^cast send\\b' "$CALL_LOG"; then
-            printf '%s\\n' '1'
-          else
-            printf '%s\\n' '0.01'
-          fi
-          ;;
-        *--ether*) printf '%s\\n' '10000' ;;
-        *) printf '%s\\n' '1' ;;
-      esac
-      ;;
-    code)
-      printf '%s\\n' '0x'
-      ;;
-    rpc)
-      printf '%s\\n' '"0x1"'
-      ;;
-    call)
-      printf '%s\\n' '0x0'
-      ;;
-    send)
-      printf '%s\\n' 'stubbed transaction'
-      ;;
-  esac
-elif [ "$command" = "forge" ]; then
-  case "$1" in
-    create) printf '%s\\n' 'Deployed to: 0x2222222222222222222222222222222222222222' ;;
-    inspect) printf '%s\\n' '[]' ;;
-  esac
-fi
-`;
-
 function runSetup(args) {
   const fixtureDir = mkdtempSync(join(setupDir, '.setup-dry-run-'));
-  const binDir = join(fixtureDir, 'bin');
   const callLog = join(fixtureDir, 'calls.log');
 
   try {
-    mkdirSync(binDir);
     mkdirSync(join(fixtureDir, 'out', 'SimpleTest.sol'), { recursive: true });
     mkdirSync(join(fixtureDir, 'src'));
     copyFileSync(join(setupDir, 'setup.mjs'), join(fixtureDir, 'setup.mjs'));
@@ -66,18 +22,13 @@ function runSetup(args) {
     );
     writeFileSync(callLog, '');
 
-    for (const command of ['cast', 'forge', 'npx', 'pnpm']) {
-      const commandPath = join(binDir, command);
-      writeFileSync(commandPath, commandStub);
-      chmodSync(commandPath, 0o755);
-    }
+    const preload = setupCommandStubs(fixtureDir);
 
-    const result = spawnSync(process.execPath, ['setup.mjs', '--chains', '420105', ...args], {
+    const result = spawnSync(process.execPath, ['--require', preload, 'setup.mjs', '--chains', '420105', ...args], {
       cwd: fixtureDir,
       encoding: 'utf8',
       env: {
         ...process.env,
-        PATH: `${binDir}:${process.env.PATH}`,
         CALL_LOG: callLog,
         TEST_PRIVATE_KEY: 'placeholder-test-key',
         TEST_STAGING_ENABLED: 'true',

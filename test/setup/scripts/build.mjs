@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 function hasCommand(cmd) {
   const whichCmd = process.platform === 'win32' ? 'where' : 'which';
@@ -13,7 +16,8 @@ function run(cmd, args) {
   if (res.status !== 0) process.exit(res.status ?? 1);
 }
 
-run('tsup', []);
+// Launch the package's CLI with Node directly: Windows cannot spawn pnpm's .cmd shim without a shell.
+run(process.execPath, [require.resolve('tsup/dist/cli-default.js')]);
 
 if (hasCommand('forge')) {
   run('forge', ['build']);
