@@ -100,7 +100,7 @@ jobs:
   # skip this job entirely instead of failing on a missing secret.
   test-live:
     # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
-    # third kind of event and does not match, so the label never runs this suite.
+    # third kind of event and does not match. On that event test-live-labeled below runs instead.
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     concurrency:
       group: testnet-integration
@@ -221,9 +221,9 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
-  # The matrix on a contributor's PR, with the repository's testnet keys.
-  # Fork PRs get no secrets on `pull_request`, so this is the only way the
-  # matrix runs on them. The PR's own code runs with the keys here, so a
+  # The two keyed suites on a contributor's PR, with the repository's testnet
+  # keys. Fork PRs get no secrets on `pull_request`, so this is the only way
+  # they run on them. The PR's own code runs with the keys here, so a
   # maintainer adds the label only after reading the diff.
   test-network-labeled:
     # Only when the `run-matrix` label is added. Any other label is ignored.
@@ -307,13 +307,68 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
+  test-live-labeled:
+    # Same gate, same permissions and same checkout as test-network-labeled above.
+    if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    permissions:
+      contents: read
+    # Same group as test-live, so runs queue instead of overlapping.
+    concurrency:
+      group: testnet-integration
+      cancel-in-progress: false
+    name: Live testnet on label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      - name: Run Live Tests
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm exec turbo run test:live --filter=@cofhe/sdk
+
   # Takes the label off again. One label, one run. The next push to the PR
   # runs with the keys only after a maintainer reads it and relabels.
   remove-run-matrix-label:
     # Runs whether the legs passed or failed.
     if: always() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
-    # Waits for all four legs to end.
-    needs: test-network-labeled
+    # Waits for the four matrix legs and the live suite to end.
+    needs: [test-network-labeled, test-live-labeled]
     # The only job that can write to pull requests. None of the PR's code runs here.
     permissions:
       pull-requests: write
