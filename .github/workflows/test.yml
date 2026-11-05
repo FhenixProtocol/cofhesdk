@@ -9,9 +9,12 @@ on:
   pull_request_target:
     types: [labeled]
 
-# One group per branch, and one per PR for the labeled runs: `github.ref` is
-# master for a pull_request_target event, which would queue a labeled run
-# behind master pushes and let a newer one cancel it.
+# The group name is the workflow name, a hyphen, then one of these:
+#   push to master          -> Test-refs/heads/master
+#   pull_request on PR 505  -> Test-refs/pull/505/merge
+#   run-matrix label on 505 -> Test-pr-505
+# The last one needs the ternary. `github.ref` is master for pull_request_target,
+# which would put a labeled run in the master group and let the next push cancel it.
 concurrency: ${{ github.workflow }}-${{ github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
 
 jobs:
