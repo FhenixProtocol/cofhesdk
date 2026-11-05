@@ -41,7 +41,8 @@ function useTrackPendingTransactionsBase({
   const publicClient = useCofhePublicClient();
 
   const queries: QueriesOptions<TransactionReceipt[]> = accountsPendingTxs.map((tx) => ({
-    queryKey: ['tx-receipt', tx.chainId, tx.hash],
+    // History receipt reads must not deduplicate this watch: its queryFn updates the store and invalidates balances.
+    queryKey: ['pending-tx-receipt', tx.chainId, tx.hash],
     queryFn: async ({ signal }) => {
       assert(publicClient, 'Public client is guaranteed by enabled condition');
       let receipt: TransactionReceipt;
