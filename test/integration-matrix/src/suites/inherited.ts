@@ -434,11 +434,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({ hash, confirmations: chainConfig.txConfirmationsRequired });
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
+      hash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    // Read at the receipt's block. A load-balanced RPC can answer "latest" from a node behind it.
     return (await ctx.publicClient.readContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'getValueHash',
+      blockNumber,
     })) as `0x${string}`;
   }
 
@@ -623,7 +628,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
       hash: txHash,
       confirmations: chainConfig.txConfirmationsRequired,
     });
@@ -631,6 +636,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'getValueHash',
+      blockNumber,
     });
 
     // 2. a contract-scoped acp, revocable by default
