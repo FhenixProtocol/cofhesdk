@@ -80,10 +80,11 @@ jobs:
           TEST_THREADPOOL_ENABLED: 'true'
         run: pnpm exec turbo run test:threadpool --filter=@cofhe/sdk
 
-  # Live-testnet suites (sdk decrypt + inherited client tests). These sign and
-  # transact with the funded TEST_PRIVATE_KEY wallet, so they only run where
-  # repository secrets exist: pushes and same-repo pull requests. Fork PRs
-  # skip this job entirely instead of failing on a missing secret.
+  # The SDK's live suite: its decrypt internals and share-metadata labels against
+  # real CoFHE on Arbitrum Sepolia. Read-only on-chain, but it signs with the
+  # TEST_PRIVATE_KEY wallet, the one the ACL lets read the fixtures, so it only
+  # runs where repository secrets exist: pushes and same-repo pull requests.
+  # Fork PRs skip this job entirely instead of failing on a missing secret.
   test-live:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     concurrency:
