@@ -250,7 +250,7 @@ jobs:
       fail-fast: false
       matrix:
         network:
-          - name: Hardhat Mock
+          - name: Anvil mocks
             slug: hardhat
           - name: Ethereum Sepolia
             slug: sepolia
@@ -276,6 +276,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
+          # actions/checkout refuses fork code in a pull_request_target run unless told so.
+          # The run-matrix label is that decision, taken by a maintainer who read the diff.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup pnpm 8
         uses: pnpm/action-setup@v5
@@ -339,6 +342,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
+          # actions/checkout refuses fork code in a pull_request_target run unless told so.
+          # The run-matrix label is that decision, taken by a maintainer who read the diff.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup pnpm 8
         uses: pnpm/action-setup@v5
