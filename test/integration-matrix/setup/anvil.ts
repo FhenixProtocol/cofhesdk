@@ -1,127 +1,28 @@
 /**
- * Vitest globalSetup: starts an Anvil node, deploys mock contracts + SimpleTest,
- * and stores deployment info for tests. Tears down the node after all tests complete.
+ * Vitest globalSetup. Tells the test files which chains and environments are selected, and starts
+ * the shared Anvil when the Hardhat (Mock) chain is among them. The node itself, the mocks and the
+ * test contracts come from @cofhe/test-anvil.
  */
 
-import { spawn, execSync, type ChildProcess } from 'node:child_process';
-import { resolve } from 'node:path';
 import type { TestProject } from 'vitest/node';
-import { createPublicClient, createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { deployMocks } from '@cofhe/hardhat-3-plugin';
-import { createFoundryArtifactReader } from './foundryArtifactReader.js';
+import { startAnvilWithMocks, provideAnvil, NO_ANVIL, type AnvilDeployment, type AnvilHandle } from '@cofhe/test-anvil';
 import { getMatrixChains } from '../src/matrix.js';
 
-const ANVIL_PORT = 8546;
-const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
-const ANVIL_CHAIN_ID = 31337;
-const ANVIL_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
-const HARDHAT_LOG_PREFIX = '[integration-matrix][hardhat]';
-
-let anvilProcess: ChildProcess | undefined;
-
-async function waitForAnvil(url: string, timeoutMs = 15_000): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 }),
-      });
-      if (res.ok) return;
-    } catch {
-      // not ready yet
-    }
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error(`Anvil did not start within ${timeoutMs}ms`);
-}
-
-function deployTestContract(rpcUrl: string, target: string): string {
-  const integrationSetupDir = resolve(import.meta.dirname, '..', '..', 'setup');
-
-  const result = execSync(
-    `forge create ${target} ` +
-      `--rpc-url ${rpcUrl} ` +
-      `--private-key ${ANVIL_PRIVATE_KEY} ` +
-      `--chain ${ANVIL_CHAIN_ID} ` +
-      `--broadcast`,
-    { cwd: integrationSetupDir, encoding: 'utf8' }
-  );
-
-  const addressMatch = result.match(/Deployed to:\s+(0x[0-9a-fA-F]+)/);
-  if (!addressMatch) throw new Error(`Failed to parse deploy address for ${target}:\n${result}`);
-  return addressMatch[1];
-}
+let anvil: AnvilHandle | undefined;
 
 export async function setup(project: TestProject): Promise<void> {
   project.provide('matrixChain', process.env.MATRIX_CHAIN ?? '');
   project.provide('matrixEnv', process.env.MATRIX_ENV ?? '');
 
   if (!shouldStartAnvil(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV)) {
-    project.provide('anvilRpc', '');
-    project.provide('anvilSimpleTest', '');
-    project.provide('anvilSimpleStorage', '');
-    project.provide('anvilSimpleKeyValueStore', '');
-    project.provide('anvilSimpleErc20', '');
+    provideAnvil(project, NO_ANVIL);
     console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
     await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
     return;
   }
 
-  console.log(`\n${HARDHAT_LOG_PREFIX} Starting Anvil...`);
-
-  anvilProcess = spawn(
-    'anvil',
-    ['--port', String(ANVIL_PORT), '--chain-id', String(ANVIL_CHAIN_ID), '--code-size-limit', '100000', '--silent'],
-    { stdio: 'ignore' }
-  );
-
-  anvilProcess.on('error', (err) => {
-    console.error(`${HARDHAT_LOG_PREFIX} Anvil process error:`, err);
-  });
-
-  await waitForAnvil(ANVIL_RPC);
-  console.log(`${HARDHAT_LOG_PREFIX} Anvil running on`, ANVIL_RPC);
-
-  const account = privateKeyToAccount(ANVIL_PRIVATE_KEY);
-  const publicClient = createPublicClient({ transport: http(ANVIL_RPC) });
-  const walletClient = createWalletClient({ transport: http(ANVIL_RPC), account });
-  const artifacts = createFoundryArtifactReader();
-
-  console.log(`${HARDHAT_LOG_PREFIX} Deploying mock contracts...`);
-  const deployedMocks = await deployMocks(
-    { publicClient, walletClient, artifacts: artifacts as any },
-    { gasWarning: false, mocksDeployVerbosity: 'v' }
-  );
-
-  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest...`);
-  const simpleTestAddress = deployTestContract(ANVIL_RPC, 'contracts/SimpleTest.sol:SimpleTest');
-  console.log(`${HARDHAT_LOG_PREFIX} SimpleTest deployed at ${simpleTestAddress}`);
-
-  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleStorage...`);
-  const simpleStorageAddress = deployTestContract(ANVIL_RPC, 'contracts/SimpleStorage.sol:SimpleStorage');
-  console.log(`${HARDHAT_LOG_PREFIX} SimpleStorage deployed at ${simpleStorageAddress}`);
-
-  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleKeyValueStore...`);
-  const simpleKeyValueStoreAddress = deployTestContract(
-    ANVIL_RPC,
-    'contracts/SimpleKeyValueStore.sol:SimpleKeyValueStore'
-  );
-  console.log(`${HARDHAT_LOG_PREFIX} SimpleKeyValueStore deployed at ${simpleKeyValueStoreAddress}`);
-
-  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleERC20...`);
-  const simpleErc20Address = deployTestContract(ANVIL_RPC, 'contracts/SimpleERC20.sol:SimpleERC20');
-  console.log(`${HARDHAT_LOG_PREFIX} SimpleERC20 deployed at ${simpleErc20Address}`);
-
-  project.provide('anvilRpc', ANVIL_RPC);
-  project.provide('anvilSimpleTest', simpleTestAddress);
-  project.provide('anvilSimpleStorage', simpleStorageAddress);
-  project.provide('anvilSimpleKeyValueStore', simpleKeyValueStoreAddress);
-  project.provide('anvilSimpleErc20', simpleErc20Address);
-  project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
-  project.provide('anvilAcpShareRegistry', deployedMocks.ACPShareRegistry);
+  anvil = await startAnvilWithMocks('[integration-matrix][hardhat]');
+  provideAnvil(project, anvil.deployment);
 
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }
@@ -173,22 +74,13 @@ async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<vo
 }
 
 export async function teardown(): Promise<void> {
-  if (anvilProcess) {
-    console.log(`${HARDHAT_LOG_PREFIX} Stopping Anvil...`);
-    anvilProcess.kill('SIGTERM');
-    anvilProcess = undefined;
-  }
+  anvil?.stop();
+  anvil = undefined;
 }
 
+// What inject() returns in the test files: the Anvil deployment plus the matrix selection.
 declare module 'vitest' {
-  export interface ProvidedContext {
-    anvilRpc: string;
-    anvilSimpleTest: string;
-    anvilSimpleStorage: string;
-    anvilSimpleKeyValueStore: string;
-    anvilSimpleErc20: string;
-    anvilAcpValidator: string;
-    anvilAcpShareRegistry: string;
+  export interface ProvidedContext extends AnvilDeployment {
     matrixChain: string;
     matrixEnv: string;
   }

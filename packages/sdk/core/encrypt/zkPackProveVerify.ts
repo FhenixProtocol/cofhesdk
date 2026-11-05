@@ -105,6 +105,15 @@ export const MAX_UINT160: bigint = 146150163733090291820368483271628301965593254
 // ===== CORE FUNCTIONS =====
 
 export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilder): ZkCiphertextListBuilder => {
+  // The verifier rejects a batch with zero ciphertexts (400), so fail before proving it
+  if (items.length === 0) {
+    throw new CofheError({
+      code: CofheErrorCode.ZkPackFailed,
+      message: 'No items to encrypt',
+      hint: 'Pass at least one Encryptable to encryptInputs',
+    });
+  }
+
   let totalBits = 0;
   for (const item of items) {
     switch (item.utype) {
