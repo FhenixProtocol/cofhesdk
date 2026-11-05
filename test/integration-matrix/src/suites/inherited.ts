@@ -14,7 +14,6 @@ import {
   describeShareMetadata,
   encodeShareMetadata,
   viewFunctionLabel,
-  type ACPAccessStatus,
   type ACPPublic,
 } from '@cofhe/sdk/acps';
 import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
@@ -463,18 +462,19 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   // revoked, so the revoke cannot hit an ACP from the previous test.
   const waitForNextSecond = () => new Promise((resolve) => setTimeout(resolve, 1500));
 
-  // The ACL answers status checks from whichever node of the RPC takes the call. On a load-balanced
-  // RPC that node can be behind the head: a fresh ACP then reads as revoked, because the SDK takes
-  // its id from the head block's timestamp and the timestamp revoker treats an id later than the
-  // node's head as disabled, and a just-revoked ACP still reads as allowed. This asks again until
-  // the answer is the expected one, for up to 30 seconds. A wrong expectation still fails, later.
-  async function expectStatus(expected: ACPAccessStatus, check: () => Promise<ACPAccessStatus>) {
-    let status = await check();
-    for (let attempt = 0; status !== expected && attempt < 6; attempt++) {
+  // Reads of ACP state go to whichever node of the RPC takes the call. On a load-balanced RPC that
+  // node can be behind the head. Then a fresh ACP reads as revoked, because the SDK takes its id
+  // from the head block's timestamp and the timestamp revoker treats an id later than the node's
+  // head as disabled; a just-revoked ACP still reads as valid; a just-removed share is still
+  // listed. This asks again until the answer is the expected one, for up to 30 seconds. A wrong
+  // expectation still fails, later.
+  async function expectEventually<T>(expected: T, read: () => Promise<T>) {
+    let value = await read();
+    for (let attempt = 0; value !== expected && attempt < 6; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      status = await check();
+      value = await read();
     }
-    expect(status).toBe(expected);
+    expect(value).toBe(expected);
   }
 
   // The registry flow, end to end. Bob stores a value and posts a share of it for Alice on-chain,
@@ -582,8 +582,9 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
       if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
-      const after = await ctx.cofheClient.acp.getIncomingShares();
-      expect(after.find((s) => s.shareId === shareId)).toBeUndefined();
+      await expectEventually(undefined, async () =>
+        (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId)
+      );
     } finally {
       await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
     }
@@ -603,25 +604,25 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     await waitForNextSecond();
     const bobSelf = await acp.createSelf({ issuer: bob, name: 'Bob own' });
-    await expectStatus('valid', () => acp.checkAccess(bobSelf));
-    await expectStatus('allowed', () => acp.checkAccess(bobSelf, handleA));
-    await expectStatus('allowed', () => acp.checkAccess(bobSelf, BigInt(handleA)));
+    await expectEventually('valid', () => acp.checkAccess(bobSelf));
+    await expectEventually('allowed', () => acp.checkAccess(bobSelf, handleA));
+    await expectEventually('allowed', () => acp.checkAccess(bobSelf, BigInt(handleA)));
 
     // A SNAPSHOT share covering A only. The issuer copy has no recipient signature. Its status
     // still answers: expiry and revocation.
     const sharing = await acp.createSharing({ issuer: bob, recipient: alice, name: 'A only', handles: [handleA] });
-    await expectStatus('valid', () => acp.checkAccess(sharing));
+    await expectEventually('valid', () => acp.checkAccess(sharing));
 
     await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
     try {
       const imported = await acp.importShared(acp.export(sharing), { activate: false });
-      await expectStatus('valid', () => acp.checkAccess(imported));
-      await expectStatus('allowed', () => acp.checkAccess(imported, handleA));
-      await expectStatus('out-of-scope', () => acp.checkAccess(imported, handleB));
+      await expectEventually('valid', () => acp.checkAccess(imported));
+      await expectEventually('allowed', () => acp.checkAccess(imported, handleA));
+      await expectEventually('out-of-scope', () => acp.checkAccess(imported, handleB));
 
       // Alice's own ACP. She was never allowed on Bob's values.
       const aliceSelf = await acp.createSelf({ issuer: alice, name: 'Alice own' });
-      await expectStatus('issuer-not-allowed', () => acp.checkAccess(aliceSelf, handleA));
+      await expectEventually('issuer-not-allowed', () => acp.checkAccess(aliceSelf, handleA));
 
       // Bob revokes the share. Every check on it now says so, with or without a handle.
       await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
@@ -631,11 +632,11 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      await expectStatus('revoked', () => acp.checkAccess(sharing));
+      await expectEventually('revoked', () => acp.checkAccess(sharing));
 
       await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
-      await expectStatus('revoked', () => acp.checkAccess(imported));
-      await expectStatus('revoked', () => acp.checkAccess(imported, handleA));
+      await expectEventually('revoked', () => acp.checkAccess(imported));
+      await expectEventually('revoked', () => acp.checkAccess(imported, handleA));
     } finally {
       await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
     }
@@ -685,7 +686,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     // 3. decrypt with it
     const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
     expect(value).toBe(BigInt(testValue));
-    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(false);
+    await expectEventually(false, () => ctx.cofheClient.acp.isACPRevoked(acp));
 
     // 4. revoke on-chain
     const revokeTx = await ctx.cofheClient.acp.revokeACP(acp);
@@ -693,7 +694,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       hash: revokeTx,
       confirmations: chainConfig.txConfirmationsRequired,
     });
-    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(true);
+    await expectEventually(true, () => ctx.cofheClient.acp.isACPRevoked(acp));
 
     // 5. the revoked acp no longer decrypts. Each backend says so in its own way. The mocks pass
     //    the on-chain revert reason through. The testnet threshold network answers HTTP 401.
