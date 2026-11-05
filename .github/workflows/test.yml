@@ -23,9 +23,7 @@ jobs:
   # live-chain suites in packages/sdk self-skip when TEST_PRIVATE_KEY is
   # absent (see LIVE_TESTS in the gated test files).
   test-local:
-    # Skip this job when the run was started by adding the `run-matrix` label to a PR.
-    # That event exists only to run the matrix jobs below. These tests already ran
-    # when the PR was opened or pushed.
+    # Skip when the run was started by the `run-matrix` label. That event is for the matrix only.
     if: github.event_name != 'pull_request_target'
     name: Test (local)
     runs-on: ubuntu-latest
@@ -63,9 +61,7 @@ jobs:
   # self-skip there (see THREADPOOL_TESTS) and run here instead, one file at a
   # time. Keyless, so this also runs on fork PRs.
   test-threadpool:
-    # Skip this job when the run was started by adding the `run-matrix` label to a PR.
-    # That event exists only to run the matrix jobs below. These tests already ran
-    # when the PR was opened or pushed.
+    # Skip when the run was started by the `run-matrix` label. That event is for the matrix only.
     if: github.event_name != 'pull_request_target'
     name: Test (thread pool)
     runs-on: ubuntu-latest
