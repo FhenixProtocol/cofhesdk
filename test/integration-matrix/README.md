@@ -46,7 +46,7 @@ pnpm test:flexible:web    # web only
 pnpm test:flexible:all    # node then web
 ```
 
-Flexible tests do not run in CI. Only `test:node` and `test:web` do, and those run the inherited suite. A test that should be enforced on every chain belongs in `inherited.ts`, not in a file of its own: the CI scripts name their files explicitly, and a new file is easy to leave out.
+Flexible tests run in CI alongside inherited tests: `test:node` and `test:web` run both runners in one vitest invocation. A test that should be enforced on every chain belongs in `inherited.ts`, not in a file of its own. The scripts name their files explicitly, and a new file is easy to leave out.
 
 ### Filtering
 
