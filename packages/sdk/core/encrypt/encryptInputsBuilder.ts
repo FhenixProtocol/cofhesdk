@@ -57,8 +57,16 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  */
 export type EncryptInputsBuilderUnset<T extends EncryptableItem[]> = Omit<EncryptInputsBuilder<T>, 'execute'>;
 
+/** The name and message of the innermost `cause` of an error, for a serialisable error context. */
+function describeRootCause(error: unknown): { name: string; message: string } | undefined {
+  let current: unknown = error;
+  while (current instanceof Error && current.cause instanceof Error) current = current.cause;
+  return current instanceof Error ? { name: current.name, message: current.message } : undefined;
+}
+
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
+  private securityZoneSet: boolean;
   protected consumingContract: string | undefined;
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
@@ -97,6 +105,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.inputItems = params.inputs;
     this.securityZone = params.securityZone ?? 0;
+    this.securityZoneSet = params.securityZone != null;
 
     this.zkvWalletClient = params.zkvWalletClient;
 
@@ -208,7 +217,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * @param securityZone - Security zone to encrypt the inputs for.
    *
-   * If not provided, the default securityZone 0 will be used.
+   * If not provided, the security zone of the inputs (`Encryptable.uint8(value, securityZone)`) is
+   * used, 0 by default.
    *
    * Example:
    * ```typescript
@@ -223,6 +233,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   setSecurityZone(this: EncryptInputsBuilderUnset<T>, securityZone: number): EncryptInputsBuilderUnset<T>;
   setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
     this.securityZone = securityZone;
+    this.securityZoneSet = true;
     return this;
   }
 
@@ -420,11 +431,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       await this.keysStorage?.rehydrateKeysStore();
     } catch (error) {
+      // A storage that cannot be read no longer ends up here: the keys store gives it up and keeps
+      // the keys in memory (see `guardStorage` in keyStore.ts). What still ends up here is a stored
+      // value of the wrong shape, which `merge` rejects. The context names the original error, not
+      // the wrappers around it, so the failure can be told apart in error tracking.
       throw CofheError.fromError(error, {
         code: CofheErrorCode.RehydrateKeysStoreFailed,
         message: `Failed to rehydrate keys store`,
         context: {
-          keysStorage: this.keysStorage,
+          storage: this.keysStorage?.storageStatus() ?? 'memory',
+          storageError: describeRootCause(error),
         },
       });
     }
@@ -635,6 +651,37 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * One proof covers one security zone. Without `setSecurityZone(...)` the batch takes the zone of its
+   * inputs; with it, an input may only name that zone (or leave the default 0). Runs before any key is
+   * fetched, since the keys are per zone.
+   * @throws {CofheError} If the inputs name different zones, or one other than `setSecurityZone(...)`
+   */
+  private resolveSecurityZone(): void {
+    const itemZones = [...new Set(this.inputItems.map((item) => item.securityZone ?? 0))];
+    const conflicting = this.securityZoneSet
+      ? itemZones.filter((zone) => zone !== 0 && zone !== this.securityZone)
+      : itemZones.length > 1
+        ? itemZones
+        : [];
+
+    if (conflicting.length > 0) {
+      throw new CofheError({
+        code: CofheErrorCode.ZkPackFailed,
+        message: this.securityZoneSet
+          ? `Inputs name security zone ${conflicting.join(', ')}, but setSecurityZone(${this.securityZone}) was called`
+          : `Inputs name different security zones (${itemZones.join(', ')}); one encryptInputs call encrypts for one zone`,
+        hint: 'Encrypt the inputs of each security zone in their own encryptInputs call.',
+        context: {
+          securityZone: this.securityZoneSet ? this.securityZone : undefined,
+          itemSecurityZones: itemZones,
+        },
+      });
+    }
+
+    if (!this.securityZoneSet) this.securityZone = itemZones[0] ?? 0;
+  }
+
+  /**
    * Converts a batch-verified result (per-item ctHash/ctType + one shared signature) into the
    * tuple returned by `execute()`: per-item hashes in input order, followed by the single signature.
    */
@@ -664,6 +711,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * @returns The encrypted inputs.
    */
   async execute(): Promise<HashPlusProofResult<T>> {
+    this.resolveSecurityZone();
+
     let result: VerifyBatchResult;
 
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE

@@ -40,7 +40,9 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
     const bobAccount = privateKeyToAccount(getChainPrivateKey(chain.id));
     const aliceAccount = privateKeyToAccount(TEST_ALICE_PRIVATE_KEY);
 
-    const transport = http(chain.rpc, { timeout: 60_000, retryCount: 3 });
+    // The public RPCs rate-limit bursts of eth_call with HTTP 429. Retry longer than viem's
+    // default so a burst of checkAccess reads rides it out.
+    const transport = http(chain.rpc, { timeout: 60_000, retryCount: 6, retryDelay: 1_000 });
 
     const publicClient = createPublicClient({
       chain: chain.viemChain,

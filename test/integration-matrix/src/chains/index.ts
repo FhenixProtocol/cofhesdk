@@ -47,19 +47,26 @@ const baseSepoliaConfig: TestChainConfig = {
   }),
 };
 
+// Not viem's default Sepolia RPC. That is thirdweb's public-good endpoint, and it answers the
+// suite's bursts of eth_call with 429 even after retries. Of the public endpoints, publicnode
+// is the one that takes the load. It is load balanced, so a call can land on a node behind the
+// head. The tests that read a value they just wrote read it at the receipt's block for that
+// reason, and the ACP status checks ask again when a fresh ACP reads as revoked.
+const SEPOLIA_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+
 const sepoliaConfig: TestChainConfig = {
   id: viemSepolia.id,
   label: 'Ethereum Sepolia',
   viemChain: viemSepolia,
   cofheChain: cofheSepolia,
-  rpc: viemSepolia.rpcUrls.default.http[0],
+  rpc: SEPOLIA_RPC,
   txConfirmationsRequired: 1,
   disabled: !isTestnetEnabled(viemSepolia.id),
   setup: createTestnetSetup({
     id: viemSepolia.id,
     viemChain: viemSepolia,
     cofheChain: cofheSepolia,
-    rpc: viemSepolia.rpcUrls.default.http[0],
+    rpc: SEPOLIA_RPC,
   }),
 };
 

@@ -320,10 +320,10 @@ export const validateImportACP = (acp: any) => {
  */
 export const ValidationUtils = {
   /**
-   * Check if acp is expired
+   * Check if acp is expired at `nowSec` (unix seconds, defaults to the local clock)
    */
-  isExpired: (acp: ACP): boolean => {
-    return acp.expiration < Math.floor(Date.now() / 1000);
+  isExpired: (acp: ACP, nowSec: number = Math.floor(Date.now() / 1000)): boolean => {
+    return acp.expiration < nowSec;
   },
 
   /**
@@ -342,8 +342,8 @@ export const ValidationUtils = {
   /**
    * Checks that an ACP is signed and not expired.
    */
-  isSignedAndNotExpired: (acp: ACP): ValidationResult => {
-    if (ValidationUtils.isExpired(acp)) {
+  isSignedAndNotExpired: (acp: ACP, nowSec?: number): ValidationResult => {
+    if (ValidationUtils.isExpired(acp, nowSec)) {
       return { valid: false, error: 'expired' };
     }
     if (!ValidationUtils.isSigned(acp)) {
@@ -374,7 +374,7 @@ export const ValidationUtils = {
     throw new Error('ACP is invalid');
   },
 
-  isValid: (acp: ACP): ValidationResult => {
+  isValid: (acp: ACP, nowSec?: number): ValidationResult => {
     const schema =
       acp.type === 'self'
         ? SelfACPValidator
@@ -389,6 +389,6 @@ export const ValidationUtils = {
     const schemaResult = schema.safeParse(acp);
     if (!schemaResult.success) return { valid: false, error: 'invalid-schema' };
 
-    return ValidationUtils.isSignedAndNotExpired(acp);
+    return ValidationUtils.isSignedAndNotExpired(acp, nowSec);
   },
 };
