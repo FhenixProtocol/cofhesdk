@@ -2,6 +2,8 @@
 
 Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 
+The `@cofhe/react` hook tests that need a chain are not here. They only ever ran on Anvil, so they live in `packages/react/test/chain` and run without the testnet keys.
+
 ## Coverage matrix
 
 |          | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia | CoFHE Staging |
@@ -25,10 +27,9 @@ pnpm test:node         # node only
 pnpm test:web          # web only
 pnpm test:all          # node then web, unconditionally
 pnpm test:unit         # unit tests for matrix filtering logic only (fast, no chain required)
-pnpm test:react        # @cofhe/react hooks against Anvil, in Chromium (write → invalidation → refetch)
 ```
 
-`anvil` and `forge` must be on `$PATH`.
+`anvil` and `forge` must be on `$PATH`. The Anvil node, the mocks and the test contracts come from `@cofhe/test-anvil`.
 Must run `pnpm test:setup` from root before first run.
 
 ### CI vs local
@@ -45,7 +46,7 @@ pnpm test:flexible:web    # web only
 pnpm test:flexible:all    # node then web
 ```
 
-Flexible tests run in CI alongside inherited tests.
+Flexible tests do not run in CI. Only `test:node` and `test:web` do, and those run the inherited suite. A test that should be enforced on every chain belongs in `inherited.ts`, not in a file of its own: the CI scripts name their files explicitly, and a new file is easy to leave out.
 
 ### Filtering
 
@@ -75,9 +76,7 @@ Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` →
 
 ```
 setup/
-  anvil.ts                   # globalSetup — Anvil + mock deploy + SimpleTest/SimpleStorage deploy + matrix printout
-                             # (plus a SimpleTest of its own for react-decrypt-chain-key: its value slot is per writer)
-  foundryArtifactReader.ts   # Foundry artifact shim for @cofhe/hardhat-3-plugin's deployMocks
+  anvil.ts                   # globalSetup — selected chains/envs, the shared Anvil via @cofhe/test-anvil, matrix printout
 src/
   matrix.ts                  # chain/env filtering logic (no vitest imports — safe for globalSetup)
   types.ts                   # TestChainConfig, ClientFactory, TestContext
@@ -87,6 +86,8 @@ src/
     testnet.ts               # shared setup for real testnets (account derivation, contract lookup)
   suites/
     inherited.ts             # stable suite — runs on every chain in CI, move tests here when finalised
+                             # (client surface, encrypt, decrypt round trips, and the three ACP flows:
+                             #  on-chain share, checkAccess, scoped revocable acp)
     flexible.ts              # scratch pad — ad-hoc tests during feature development
     MockTaskManager.ts       # TaskManager ABI for log decoding
 scripts/
@@ -94,10 +95,9 @@ scripts/
 test/
   matrix.test.ts             # Node runner for inherited suite — @cofhe/sdk/node
   matrix.web.test.ts         # Web runner for inherited suite — @cofhe/sdk/web
-  acp-share-flow.test.ts     # on-chain share flow with a labelled value, every chain (registry from config or the chain's ACL)
   flexible.test.ts           # Node runner for flexible suite
   flexible.web.test.ts       # Web runner for flexible suite
-  react-hooks.web.test.tsx   # @cofhe/react useCofheWriteContract + useCofheReadContract invalidation, browser-only
+  matrix-filter.test.ts      # unit tests for the chain filter
 ```
 
 ## Design and Notes
@@ -109,4 +109,4 @@ test/
 - **Sequential execution.** Node and web run as separate `vitest run --project` invocations (`&&`). Prevents nonce collisions on shared testnet wallets.
 - **CI vs local.** `scripts/test.mjs` reads `CI` to decide whether to run `test:all` or `test:node`. Browser tests require Playwright and are slower, so they're skipped locally unless explicitly requested.
 - **`inherited` vs `flexible`.** `inherited.ts` is the stable contract — every test must pass on every chain before merging. `flexible.ts` is unguarded scratch space; graduate tests to `inherited.ts` once they stabilise.
-- **Mock deployment reuses `@cofhe/hardhat-3-plugin`.** globalSetup calls `deployMocks` with a Foundry artifact reader shim — no duplicated mock logic.
+- **The Anvil is shared code.** `@cofhe/test-anvil` starts the node and deploys the mocks (through `@cofhe/hardhat-3-plugin`'s `deployMocks`) and the test contracts. `@cofhe/react`'s chain tests use the same package.

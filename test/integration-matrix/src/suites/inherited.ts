@@ -9,8 +9,14 @@
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { ACPUtils, type ACPPublic } from '@cofhe/sdk/acps';
-import { simpleTestAbi } from '@cofhe/test-setup';
+import {
+  ACPUtils,
+  describeShareMetadata,
+  encodeShareMetadata,
+  viewFunctionLabel,
+  type ACPPublic,
+} from '@cofhe/sdk/acps';
+import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
 function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
@@ -416,5 +422,255 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     expect(BigInt(publishedValue)).toBe(testValue);
     expect(isDecrypted).toBe(true);
+  }, 180_000);
+
+  // Bob stores a plain value and returns its handle.
+  async function storeValue(value: bigint): Promise<`0x${string}`> {
+    const hash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [value],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    await ctx.publicClient.waitForTransactionReceipt({ hash, confirmations: chainConfig.txConfirmationsRequired });
+    return (await ctx.publicClient.readContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+    })) as `0x${string}`;
+  }
+
+  // An ACP's id is its creation time in seconds. Two ACPs by the same issuer in the same second
+  // share an id, and revoking one revokes both. Call this before creating an ACP that will be
+  // revoked, so the revoke cannot hit an ACP from the previous test.
+  const waitForNextSecond = () => new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // The registry flow, end to end. Bob stores a value and posts a share of it for Alice on-chain,
+  // labelled as the value getValueHash() returned at that block. Alice discovers the share, checks
+  // the label against the chain, imports it, decrypts with it, and removes it. Dismissing is
+  // Alice's transaction. On a testnet she has gas only when TEST_ALICE_PRIVATE_KEY is a funded
+  // key, so otherwise Bob cancels the share instead.
+  it('ACPs - on-chain share flow: share → discover → import → decrypt → dismiss', async () => {
+    const testValue = 77n;
+
+    // A chain without a sharing registry cannot run this. The client says so with MISSING_CONFIG.
+    let incomingProbe: unknown;
+    try {
+      incomingProbe = await ctx.cofheClient.acp.getIncomingShares();
+    } catch (e: any) {
+      if (e?.code === 'MISSING_CONFIG') {
+        console.warn(`[ACP SHARE] no sharingRegistry configured for ${chainConfig.label} — skipping`);
+        return;
+      }
+      throw e;
+    }
+    expect(Array.isArray(incomingProbe)).toBe(true);
+
+    // 1. Bob encrypts and stores a value
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
+    const txHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encryptedHash, encryptedSignature],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    const ctHash = await ctx.publicClient.readContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+      blockNumber,
+    });
+
+    // 2. Bob shares that one value with Alice on-chain, labelled as where it came from
+    const label = viewFunctionLabel({
+      contract: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+      block: blockNumber,
+    });
+    const sharingACP = await ctx.cofheClient.acp.createSharing({
+      issuer: ctx.bobAccount.address,
+      recipient: ctx.aliceAccount.address,
+      name: 'On-chain share to Alice',
+      handles: [ctHash],
+      labels: [label],
+    });
+    const { txHash: shareTx, shareId } = await ctx.cofheClient.acp.shareOnChain(sharingACP);
+    expect(shareId).toMatch(/^0x[0-9a-f]{64}$/);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: shareTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+
+    // 3. Alice discovers the share, reads its label back, and imports it
+    await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+    const incoming = await ctx.cofheClient.acp.getIncomingShares();
+    const share = incoming.find((s) => s.shareId === shareId);
+    expect(share).toBeDefined();
+    expect(share!.issuer).toBe(ctx.bobAccount.address);
+    expect(share!.handles).toEqual([ctHash]);
+    expect(share!.metadata).toBe(encodeShareMetadata([label]));
+
+    // The chain confirms the label: getValueHash() at that block returned the shared ctHash.
+    expect(await ctx.cofheClient.acp.verifyShareLabels(share!)).toEqual(['verified']);
+    const [described] = describeShareMetadata(share!, { [ctx.contractAddress]: simpleTestAbi })!;
+    expect(described.kind === 'stored' && described.function?.name).toBe('getValueHash');
+
+    const imported = await ctx.cofheClient.acp.importFromChain(share!);
+    expect(imported.type).toBe('recipient');
+
+    // 4. Alice decrypts Bob's value with the imported acp
+    const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(value).toBe(BigInt(testValue));
+
+    // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
+    const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
+    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    const removeTx = aliceIsFunded
+      ? await ctx.cofheClient.acp.dismissShare(shareId)
+      : await ctx.cofheClient.acp.cancelShare(shareId);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: removeTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+    const after = await ctx.cofheClient.acp.getIncomingShares();
+    expect(after.find((s) => s.shareId === shareId)).toBeUndefined();
+
+    // Back to Bob for the tests that follow.
+    await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+  }, 180_000);
+
+  // `client.acp.checkAccess` returns an ACP's on-chain status as a value, where the ACL reverts.
+  // Without a handle: 'valid', or why not. With a handle: 'allowed', 'out-of-scope' when the ACP
+  // does not cover it, or 'issuer-not-allowed' when the issuer cannot read it either.
+  it('ACPs - checkAccess reports the ACP and per-handle status instead of reverting', async () => {
+    const acp = ctx.cofheClient.acp;
+    const bob = ctx.bobAccount.address;
+    const alice = ctx.aliceAccount.address;
+
+    // Bob owns two values. A is shared below, B is not.
+    const handleA = await storeValue(11n);
+    const handleB = await storeValue(12n);
+
+    await waitForNextSecond();
+    const bobSelf = await acp.createSelf({ issuer: bob, name: 'Bob own' });
+    expect(await acp.checkAccess(bobSelf)).toBe('valid');
+    expect(await acp.checkAccess(bobSelf, handleA)).toBe('allowed');
+    expect(await acp.checkAccess(bobSelf, BigInt(handleA))).toBe('allowed');
+
+    // A SNAPSHOT share covering A only. The issuer copy has no recipient signature. Its status
+    // still answers: expiry and revocation.
+    const sharing = await acp.createSharing({ issuer: bob, recipient: alice, name: 'A only', handles: [handleA] });
+    expect(await acp.checkAccess(sharing)).toBe('valid');
+
+    await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+    try {
+      const imported = await acp.importShared(acp.export(sharing), { activate: false });
+      expect(await acp.checkAccess(imported)).toBe('valid');
+      expect(await acp.checkAccess(imported, handleA)).toBe('allowed');
+      expect(await acp.checkAccess(imported, handleB)).toBe('out-of-scope');
+
+      // Alice's own ACP. She was never allowed on Bob's values.
+      const aliceSelf = await acp.createSelf({ issuer: alice, name: 'Alice own' });
+      expect(await acp.checkAccess(aliceSelf, handleA)).toBe('issuer-not-allowed');
+
+      // Bob revokes the share. Every check on it now says so, with or without a handle.
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+      const revokeTx = await acp.revokeACP(sharing);
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: revokeTx,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      expect(await acp.checkAccess(sharing)).toBe('revoked');
+
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+      expect(await acp.checkAccess(imported)).toBe('revoked');
+      expect(await acp.checkAccess(imported, handleA)).toBe('revoked');
+    } finally {
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    }
+  }, 180_000);
+
+  // The minimal user flow with a revocable ACP. Bob stores a value, creates a contract-scoped ACP
+  // (revocable through config.acp.defaultRevoker, no explicit options), decrypts with it, revokes
+  // it on-chain, sees the decrypt fail, and gets access back with a fresh ACP.
+  it('ACPs - a contract-scoped acp decrypts, stops after revoke, and a fresh one works again', async () => {
+    const testValue = 42n;
+
+    // 1. encrypt and store
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
+    const txHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encryptedHash, encryptedSignature],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    const ctHash = await ctx.publicClient.readContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+    });
+
+    // 2. a contract-scoped acp, revocable by default
+    await waitForNextSecond();
+    const acp = await ctx.cofheClient.acp.createSelf({
+      issuer: ctx.bobAccount.address,
+      name: 'Scoped revocable ACP',
+      contracts: [ctx.contractAddress],
+    });
+    expect(acp.scope).toBe(1); // contract scope, derived from `contracts`
+    expect(acp.revokerContract).not.toBe('0x0000000000000000000000000000000000000000');
+    expect(acp.revokerData).toBeGreaterThan(0); // creation timestamp
+
+    // 3. decrypt with it
+    const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(value).toBe(BigInt(testValue));
+    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(false);
+
+    // 4. revoke on-chain
+    const revokeTx = await ctx.cofheClient.acp.revokeACP(acp);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: revokeTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(true);
+
+    // 5. the revoked acp no longer decrypts. The mocks pass the on-chain revert reason through.
+    //    The sealOutput backend reports a generic denial.
+    await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
+      /PermissionInvalid_Disabled|acp_denied/
+    );
+
+    // 6. a fresh acp restores access. It must not share the revoked one's id, so wait a second.
+    await waitForNextSecond();
+    await ctx.cofheClient.acp.createSelf({
+      issuer: ctx.bobAccount.address,
+      name: 'Scoped revocable ACP (fresh)',
+      contracts: [ctx.contractAddress],
+    });
+    const valueAgain = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(valueAgain).toBe(BigInt(testValue));
   }, 180_000);
 }

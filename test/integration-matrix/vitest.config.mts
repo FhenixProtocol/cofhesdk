@@ -37,17 +37,6 @@ export default defineConfig({
         },
         assetsInclude: ['**/*.wasm'],
         optimizeDeps: {
-          // Pre-bundle the react stack: letting Vite discover it mid-run reloads the
-          // browser and kills the test connection (observed with react/jsx-dev-runtime).
-          include: [
-            'react',
-            'react/jsx-dev-runtime',
-            'react/jsx-runtime',
-            'react-dom',
-            'react-dom/client',
-            '@testing-library/react',
-            '@tanstack/react-query',
-          ],
           exclude: ['tfhe', 'node-tfhe'],
           esbuildOptions: { target: 'esnext' },
         },
