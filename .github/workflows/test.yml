@@ -1,5 +1,19 @@
 name: Test
 
+# What runs here, and why two jobs need the test account's key.
+#
+#   Job                          | Tests                                         | Chain                        | Writes       | Key
+#   -----------------------------+-----------------------------------------------+------------------------------+--------------+-----------------------------------------------
+#   Unit, plugins, React hooks   | unit tests, Hardhat and Foundry plugins,      | none, or a local Anvil       | no           | no
+#                                | React hooks on a chain                        |                              |              |
+#   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
+#   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
+#   Matrix: <chain>              | app flows, one leg per chain: client, encrypt,| Anvil mocks, Ethereum,       | on testnets  | on testnets: it pays for and signs the transactions
+#                                | decrypt, share, revoke, as an app uses them   | Arbitrum and Base Sepolia    |              |
+#
+# Fork PRs get no secrets, so the two keyed jobs skip there. A maintainer runs them on a fork PR
+# by adding the `run-matrix` label: the two "on label" jobs below run the same suites with the keys.
+
 on:
   pull_request:
   push:
@@ -25,7 +39,7 @@ jobs:
   test-local:
     # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
     if: github.event_name != 'pull_request_target'
-    name: Test (local)
+    name: Unit, plugins, React hooks (no key)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -63,7 +77,7 @@ jobs:
   test-threadpool:
     # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
     if: github.event_name != 'pull_request_target'
-    name: Test (thread pool)
+    name: SDK thread pool (no key)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -94,10 +108,11 @@ jobs:
           TEST_THREADPOOL_ENABLED: 'true'
         run: pnpm exec turbo run test:threadpool --filter=@cofhe/sdk
 
-  # Live-testnet suites (sdk decrypt + inherited client tests). These sign and
-  # transact with the funded TEST_PRIVATE_KEY wallet, so they only run where
-  # repository secrets exist: pushes and same-repo pull requests. Fork PRs
-  # skip this job entirely instead of failing on a missing secret.
+  # The SDK's live suite: its decrypt internals and share-metadata labels against
+  # real CoFHE on Arbitrum Sepolia. Read-only on-chain, but it signs with the
+  # TEST_PRIVATE_KEY wallet, the one the ACL lets read the fixtures, so it only
+  # runs where repository secrets exist: pushes and same-repo pull requests.
+  # Fork PRs skip this job entirely instead of failing on a missing secret.
   test-live:
     # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
     # third kind of event and does not match. On that event test-live-labeled below runs instead.
@@ -105,7 +120,7 @@ jobs:
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: Test (live testnet)
+    name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -156,7 +171,7 @@ jobs:
       fail-fast: false
       matrix:
         network:
-          - name: Hardhat Mock
+          - name: Anvil mocks
             slug: hardhat
           - name: Ethereum Sepolia
             slug: sepolia
@@ -170,7 +185,7 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: Matrix (${{ matrix.network.name }})
+    name: "Matrix: ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, key' || 'no key' }})"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -251,7 +266,7 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: Matrix on label (${{ matrix.network.name }})
+    name: "Matrix on label: ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, key' || 'no key' }})"
     runs-on: ubuntu-latest
     steps:
       # pull_request_target checks out master by default. We want the PR's code.
@@ -316,7 +331,7 @@ jobs:
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: Live testnet on label
+    name: SDK vs real CoFHE on label (Arbitrum Sepolia, read-only, key)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
