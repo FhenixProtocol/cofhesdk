@@ -23,6 +23,7 @@ jobs:
   # live-chain suites in packages/sdk self-skip when TEST_PRIVATE_KEY is
   # absent (see LIVE_TESTS in the gated test files).
   test-local:
+    # Not on a label. The PR's own pull_request run already covered this.
     if: github.event_name != 'pull_request_target'
     name: Test (local)
     runs-on: ubuntu-latest
@@ -60,6 +61,7 @@ jobs:
   # self-skip there (see THREADPOOL_TESTS) and run here instead, one file at a
   # time. Keyless, so this also runs on fork PRs.
   test-threadpool:
+    # Not on a label. The PR's own pull_request run already covered this.
     if: github.event_name != 'pull_request_target'
     name: Test (thread pool)
     runs-on: ubuntu-latest
