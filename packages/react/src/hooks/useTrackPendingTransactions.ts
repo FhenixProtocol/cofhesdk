@@ -50,9 +50,9 @@ function useTrackPendingTransactionsBase({
           hash: tx.hash,
         });
       } catch (e) {
+        // A fetch error says nothing about the tx: it stays pending and the query retries below.
+        // Only a mined receipt with a reverted status marks it failed.
         onFetchFailure?.(e, tx);
-        // no need to invalidate on failure, since nothing has changed on chain
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, TransactionStatus.Failed);
         throw e;
       }
 
@@ -83,6 +83,10 @@ function useTrackPendingTransactionsBase({
     enabled: !!publicClient && accountsPendingTxs.length > 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+    // Keep watching a pending tx through RPC errors (rate limits, a node behind the head), with
+    // the delay growing to half a minute between attempts.
+    retry: true,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 30_000),
   }));
   useInternalQueries({
     queries,
@@ -190,6 +194,8 @@ function useOnceTransactionSubmitted(onSubmit: (tx: Transaction) => void) {
 export function useTrackPendingTransactions() {
   const handleInvalidations = useHandleInvalidations();
   const { onTransactionMined, onWatchReceiptFailure, onTransactionSubmitted } = useTransactionGlobalLifecycle();
+  // The fetch-failure toast fires once per tx; the query keeps retrying quietly after that.
+  const reportedFetchFailures = useRef(new Set<`0x${string}`>());
 
   // 1 tx submitted
   useOnceTransactionSubmitted(onTransactionSubmitted);
@@ -205,8 +211,10 @@ export function useTrackPendingTransactions() {
       onTransactionMined(tx, receipt);
     },
 
-    // 2.c. fetch failure
+    // 2.c. fetch failure: the tx is still pending and the query retries
     onFetchFailure: (error, tx) => {
+      if (reportedFetchFailures.current.has(tx.hash)) return;
+      reportedFetchFailures.current.add(tx.hash);
       onWatchReceiptFailure(error, tx);
     },
   });
