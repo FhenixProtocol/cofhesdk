@@ -18,6 +18,7 @@ import {
   type ACPPublic,
 } from '@cofhe/sdk/acps';
 import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
+import { removeConfirmedShare } from './shareRemoval';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
 function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
@@ -610,9 +611,9 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
       const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
       if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
-      const removeTx = aliceIsFunded
-        ? await ctx.cofheClient.acp.dismissShare(shareId)
-        : await ctx.cofheClient.acp.cancelShare(shareId);
+      const removeTx = await removeConfirmedShare(() =>
+        aliceIsFunded ? ctx.cofheClient.acp.dismissShare(shareId) : ctx.cofheClient.acp.cancelShare(shareId)
+      );
       await ctx.publicClient.waitForTransactionReceipt({
         hash: removeTx,
         confirmations: chainConfig.txConfirmationsRequired,
