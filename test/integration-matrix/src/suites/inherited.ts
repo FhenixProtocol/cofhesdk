@@ -28,6 +28,8 @@ function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint |
   };
 }
 
+// Every read of a value a test just wrote is pinned to the receipt's block. A load-balanced RPC can
+// answer "latest" from a node that has not seen the transaction yet.
 export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
   let ctx: TestContext;
 
@@ -166,7 +168,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: txBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: txHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -177,6 +179,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: txBlock,
       });
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -202,7 +205,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: txBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: txHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -213,6 +216,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: txBlock,
       });
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -238,7 +242,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: addTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -249,6 +253,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: addBlock,
       });
 
       const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -273,7 +278,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: secondAddBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: secondAddTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -284,6 +289,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: secondAddBlock,
       });
 
       const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withACP().execute();
@@ -302,7 +308,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: publishBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: publishTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -314,6 +320,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         abi: simpleTestAbi,
         functionName: 'getDecryptResultSafe',
         args: [updatedCtHash],
+        blockNumber: publishBlock,
       });
 
       expect(isDecrypted).toBe(true);
@@ -374,7 +381,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({
+    const { blockNumber: storeBlock } = await ctx.publicClient.waitForTransactionReceipt({
       hash: storeTxHash,
       retryCount: 30,
       pollingInterval: 4_000,
@@ -385,6 +392,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'publicValueHash',
+      blockNumber: storeBlock,
     });
 
     const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutACP().execute();
@@ -397,6 +405,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'publicValue',
+      blockNumber: storeBlock,
     });
 
     const publishTxHash = await ctx.bobWalletClient.writeContract({
@@ -407,7 +416,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({
+    const { blockNumber: publishBlock } = await ctx.publicClient.waitForTransactionReceipt({
       hash: publishTxHash,
       retryCount: 30,
       pollingInterval: 4_000,
@@ -419,6 +428,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       abi: simpleTestAbi,
       functionName: 'getDecryptResultSafe',
       args: [storedHandle],
+      blockNumber: publishBlock,
     });
 
     expect(BigInt(publishedValue)).toBe(testValue);
