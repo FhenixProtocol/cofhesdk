@@ -544,43 +544,50 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       confirmations: chainConfig.txConfirmationsRequired,
     });
 
-    // 3. Alice discovers the share, reads its label back, and imports it
+    // 3. Alice discovers the share, reads its label back, and imports it. The registry is read at
+    //    "latest", so on a load-balanced RPC a node behind the head may not list the share yet.
+    //    Ask again for a while. Everything Alice does is in try/finally: a failure must leave the
+    //    client connected as Bob for the tests that follow.
     await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
-    const incoming = await ctx.cofheClient.acp.getIncomingShares();
-    const share = incoming.find((s) => s.shareId === shareId);
-    expect(share).toBeDefined();
-    expect(share!.issuer).toBe(ctx.bobAccount.address);
-    expect(share!.handles).toEqual([ctHash]);
-    expect(share!.metadata).toBe(encodeShareMetadata([label]));
+    try {
+      let share = (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId);
+      for (let attempt = 0; share === undefined && attempt < 6; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        share = (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId);
+      }
+      expect(share).toBeDefined();
+      expect(share!.issuer).toBe(ctx.bobAccount.address);
+      expect(share!.handles).toEqual([ctHash]);
+      expect(share!.metadata).toBe(encodeShareMetadata([label]));
 
-    // The chain confirms the label: getValueHash() at that block returned the shared ctHash.
-    expect(await ctx.cofheClient.acp.verifyShareLabels(share!)).toEqual(['verified']);
-    const [described] = describeShareMetadata(share!, { [ctx.contractAddress]: simpleTestAbi })!;
-    expect(described.kind === 'stored' && described.function?.name).toBe('getValueHash');
+      // The chain confirms the label: getValueHash() at that block returned the shared ctHash.
+      expect(await ctx.cofheClient.acp.verifyShareLabels(share!)).toEqual(['verified']);
+      const [described] = describeShareMetadata(share!, { [ctx.contractAddress]: simpleTestAbi })!;
+      expect(described.kind === 'stored' && described.function?.name).toBe('getValueHash');
 
-    const imported = await ctx.cofheClient.acp.importFromChain(share!);
-    expect(imported.type).toBe('recipient');
+      const imported = await ctx.cofheClient.acp.importFromChain(share!);
+      expect(imported.type).toBe('recipient');
 
-    // 4. Alice decrypts Bob's value with the imported acp
-    const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-    expect(value).toBe(BigInt(testValue));
+      // 4. Alice decrypts Bob's value with the imported acp
+      const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+      expect(value).toBe(BigInt(testValue));
 
-    // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
-    const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
-    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
-    const removeTx = aliceIsFunded
-      ? await ctx.cofheClient.acp.dismissShare(shareId)
-      : await ctx.cofheClient.acp.cancelShare(shareId);
-    await ctx.publicClient.waitForTransactionReceipt({
-      hash: removeTx,
-      confirmations: chainConfig.txConfirmationsRequired,
-    });
-    if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
-    const after = await ctx.cofheClient.acp.getIncomingShares();
-    expect(after.find((s) => s.shareId === shareId)).toBeUndefined();
-
-    // Back to Bob for the tests that follow.
-    await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+      // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
+      const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
+      if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+      const removeTx = aliceIsFunded
+        ? await ctx.cofheClient.acp.dismissShare(shareId)
+        : await ctx.cofheClient.acp.cancelShare(shareId);
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: removeTx,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+      if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+      const after = await ctx.cofheClient.acp.getIncomingShares();
+      expect(after.find((s) => s.shareId === shareId)).toBeUndefined();
+    } finally {
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    }
   }, 180_000);
 
   // `client.acp.checkAccess` returns an ACP's on-chain status as a value, where the ACL reverts.
