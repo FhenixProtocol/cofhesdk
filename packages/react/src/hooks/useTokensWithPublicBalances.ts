@@ -3,7 +3,8 @@ import type { Address } from 'viem';
 
 import type { ConfidentialToken } from '@/types/token';
 import { useInternalQueries } from '../providers';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofheAccount } from './useCofheConnection';
+import { useCofheReadTarget } from './useCofheReadContract';
 import { useCofheTokens } from './useCofheTokenLists';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import {
@@ -14,6 +15,7 @@ import {
 } from './useCofheTokenPublicBalance';
 
 export type UseTokensWithPublicBalancesInput = {
+  /** Defaults to the connected chain. The balance reads stay disabled while an explicit id differs from it. */
   chainId?: number;
   accountAddress?: Address;
   displayDecimals?: number;
@@ -45,10 +47,7 @@ export function useTokensWithPublicBalances(
   const connectedAccount = useCofheAccount();
   const account = accountAddress ?? connectedAccount;
 
-  const currentChainId = useCofheChainId();
-  const chainIdForTokens = _chainId ?? currentChainId;
-
-  const publicClient = useCofhePublicClient();
+  const { publicClient, cofheChainId: chainIdForTokens } = useCofheReadTarget({ chainId: _chainId });
 
   const tokens = useCofheTokens(chainIdForTokens);
 

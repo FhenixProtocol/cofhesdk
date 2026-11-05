@@ -156,6 +156,128 @@ describe('KeyStore', () => {
     });
   });
 
+  describe('Unusable storage', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    let warn: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    it('falls back to in-memory keys when the read fails, warning once', async () => {
+      const storage = {
+        getItem: vi.fn().mockRejectedValue(new Error('iframe not ready')),
+        setItem: vi.fn().mockRejectedValue(new Error('iframe not ready')),
+        removeItem: vi.fn().mockRejectedValue(new Error('iframe not ready')),
+      };
+      const keys = createKeysStore(storage);
+      expect(keys.storageStatus()).toBe('persistent');
+
+      await expect(keys.rehydrateKeysStore()).resolves.toBeUndefined();
+      expect(keys.storageStatus()).toBe('memory');
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain('getItem');
+
+      keys.setFheKey(1, 0, 'key');
+      await flush();
+      expect(keys.getFheKey(1, 0)).toBe('key');
+      expect(storage.setItem).not.toHaveBeenCalled();
+
+      // The store counts as hydrated: a later encrypt does not wait on the storage again.
+      await keys.rehydrateKeysStore();
+      expect(storage.getItem).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back when a write fails after a good read, without an unhandled rejection', async () => {
+      const storage = {
+        getItem: vi.fn().mockResolvedValue(null),
+        setItem: vi.fn().mockRejectedValue(new Error('call timeout')),
+        removeItem: vi.fn().mockResolvedValue(undefined),
+      };
+      const keys = createKeysStore(storage);
+      await keys.rehydrateKeysStore();
+      expect(keys.storageStatus()).toBe('persistent');
+
+      keys.setFheKey(1, 0, 'key');
+      await flush();
+      expect(keys.storageStatus()).toBe('memory');
+      expect(keys.getFheKey(1, 0)).toBe('key');
+
+      keys.setCrs(1, 0, 'crs');
+      await flush();
+      expect(keys.getCrs(1, 0)).toBe('crs');
+      expect(storage.setItem).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain('setItem');
+    });
+
+    it('warns once when several calls were in flight on the storage', async () => {
+      let rejectAll: (error: Error) => void = () => {};
+      const pending = new Promise<never>((_, reject) => {
+        rejectAll = reject;
+      });
+      const storage = {
+        getItem: vi.fn(() => pending),
+        setItem: vi.fn(() => pending),
+        removeItem: vi.fn(() => pending),
+      };
+      const keys = createKeysStore(storage);
+      const first = keys.rehydrateKeysStore();
+      const second = keys.clearKeysStorage();
+      rejectAll(new Error('iframe not ready'));
+      await Promise.all([first, second]);
+      expect(keys.storageStatus()).toBe('memory');
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('catches a storage that throws synchronously', async () => {
+      const storage = {
+        getItem: vi.fn(() => {
+          throw new Error('no document');
+        }),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      };
+      const keys = createKeysStore(storage);
+      await expect(keys.rehydrateKeysStore()).resolves.toBeUndefined();
+      expect(keys.storageStatus()).toBe('memory');
+    });
+
+    it('skips the clear once the storage was given up on', async () => {
+      const storage = {
+        getItem: vi.fn().mockRejectedValue(new Error('iframe not ready')),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      };
+      const keys = createKeysStore(storage);
+      await keys.rehydrateKeysStore();
+      await keys.clearKeysStorage();
+      expect(storage.removeItem).not.toHaveBeenCalled();
+    });
+
+    it('still throws for a persisted value it cannot merge, with the cause attached', async () => {
+      const storage = {
+        getItem: vi.fn().mockResolvedValue(JSON.stringify({ state: { nope: true }, version: 0 })),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      };
+      const keys = createKeysStore(storage);
+      const error = await keys.rehydrateKeysStore().catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain(
+        'onRehydrateStorage: Error rehydrating keys store: Invalid persisted state structure for KeysStore'
+      );
+      expect((error as Error).cause).toBeInstanceOf(Error);
+      expect(((error as Error).cause as Error).message).toContain('Invalid persisted state structure');
+      expect(keys.storageStatus()).toBe('persistent');
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('reports memory when no storage is configured', () => {
+      expect(createKeysStore(null).storageStatus()).toBe('memory');
+    });
+  });
+
   describe('keysStorage Object', () => {
     it('should have all required methods', () => {
       expect(keysStorage).toBeDefined();
