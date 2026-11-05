@@ -47,19 +47,23 @@ const baseSepoliaConfig: TestChainConfig = {
   }),
 };
 
+// viem's default Sepolia RPC is thirdweb's public-good endpoint. It answers a burst of eth_call
+// with 429 even after retries, which fails the checkAccess test. publicnode does not.
+const SEPOLIA_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+
 const sepoliaConfig: TestChainConfig = {
   id: viemSepolia.id,
   label: 'Ethereum Sepolia',
   viemChain: viemSepolia,
   cofheChain: cofheSepolia,
-  rpc: viemSepolia.rpcUrls.default.http[0],
+  rpc: SEPOLIA_RPC,
   txConfirmationsRequired: 1,
   disabled: !isTestnetEnabled(viemSepolia.id),
   setup: createTestnetSetup({
     id: viemSepolia.id,
     viemChain: viemSepolia,
     cofheChain: cofheSepolia,
-    rpc: viemSepolia.rpcUrls.default.http[0],
+    rpc: SEPOLIA_RPC,
   }),
 };
 
