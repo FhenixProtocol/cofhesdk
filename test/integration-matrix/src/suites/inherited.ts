@@ -463,15 +463,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   // revoked, so the revoke cannot hit an ACP from the previous test.
   const waitForNextSecond = () => new Promise((resolve) => setTimeout(resolve, 1500));
 
-  // The SDK takes an ACP's id from the head block's timestamp, read from whichever node answers.
-  // A status check then goes through the ACL to the timestamp revoker, which reports an ACP with
-  // an id later than the answering node's head as disabled. On a load-balanced RPC that call can
-  // land on a node behind the head, so a fresh ACP can read as 'revoked' for a while. This asks
-  // again in that one case, a few times. A real revocation does not go away, so a wrong
-  // expectation still fails, and checks that expect 'revoked' do not use this.
-  async function expectStatus(expected: Exclude<ACPAccessStatus, 'revoked'>, check: () => Promise<ACPAccessStatus>) {
+  // The ACL answers status checks from whichever node of the RPC takes the call. On a load-balanced
+  // RPC that node can be behind the head: a fresh ACP then reads as revoked, because the SDK takes
+  // its id from the head block's timestamp and the timestamp revoker treats an id later than the
+  // node's head as disabled, and a just-revoked ACP still reads as allowed. This asks again until
+  // the answer is the expected one, for up to 30 seconds. A wrong expectation still fails, later.
+  async function expectStatus(expected: ACPAccessStatus, check: () => Promise<ACPAccessStatus>) {
     let status = await check();
-    for (let attempt = 0; status === 'revoked' && attempt < 6; attempt++) {
+    for (let attempt = 0; status !== expected && attempt < 6; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       status = await check();
     }
@@ -632,11 +631,11 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      expect(await acp.checkAccess(sharing)).toBe('revoked');
+      await expectStatus('revoked', () => acp.checkAccess(sharing));
 
       await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
-      expect(await acp.checkAccess(imported)).toBe('revoked');
-      expect(await acp.checkAccess(imported, handleA)).toBe('revoked');
+      await expectStatus('revoked', () => acp.checkAccess(imported));
+      await expectStatus('revoked', () => acp.checkAccess(imported, handleA));
     } finally {
       await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
     }
