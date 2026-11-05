@@ -8,7 +8,7 @@ name: Test
 #                                | React hooks on a chain                       |                              |              |
 #   SDK thread pool              | the four worker-pool browser tests, serially | none                         | no           | no
 #   SDK internals vs real CoFHE  | decrypt internals, share-metadata labels     | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
-#   App flows on <chain>, x4     | the integration matrix: client, encrypt,     | Anvil mocks, Ethereum,       | on testnets  | on testnets: it pays for and signs the transactions
+#   Matrix, app flows on <chain> | one leg per chain: client, encrypt,          | Anvil mocks, Ethereum,       | on testnets  | on testnets: it pays for and signs the transactions
 #                                | decrypt, share, revoke, as an app uses them  | Arbitrum and Base Sepolia    |              |
 #
 # Fork PRs get no secrets, so the two keyed jobs skip there.
@@ -166,7 +166,7 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: App flows on ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, test account' || 'no key' }})
+    name: Matrix, app flows on ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, test account' || 'no key' }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
