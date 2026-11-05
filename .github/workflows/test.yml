@@ -2,14 +2,14 @@ name: Test
 
 # What runs here, and why two jobs need the test account's key.
 #
-#   Job                          | Tests                                        | Chain                        | Writes       | Key
-#   -----------------------------+----------------------------------------------+------------------------------+--------------+-----------------------------------------------
-#   Unit, plugins, React hooks   | unit tests, Hardhat and Foundry plugins,     | none, or a local Anvil       | no           | no
-#                                | React hooks on a chain                       |                              |              |
-#   SDK thread pool              | the four worker-pool browser tests, serially | none                         | no           | no
-#   SDK internals vs real CoFHE  | decrypt internals, share-metadata labels     | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
-#   Matrix, app flows on <chain> | one leg per chain: client, encrypt,          | Anvil mocks, Ethereum,       | on testnets  | on testnets: it pays for and signs the transactions
-#                                | decrypt, share, revoke, as an app uses them  | Arbitrum and Base Sepolia    |              |
+#   Job                          | Tests                                         | Chain                        | Writes       | Key
+#   -----------------------------+-----------------------------------------------+------------------------------+--------------+-----------------------------------------------
+#   Unit, plugins, React hooks   | unit tests, Hardhat and Foundry plugins,      | none, or a local Anvil       | no           | no
+#                                | React hooks on a chain                        |                              |              |
+#   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
+#   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
+#   Matrix: <chain>              | app flows, one leg per chain: client, encrypt,| Anvil mocks, Ethereum,       | on testnets  | on testnets: it pays for and signs the transactions
+#                                | decrypt, share, revoke, as an app uses them   | Arbitrum and Base Sepolia    |              |
 #
 # Fork PRs get no secrets, so the two keyed jobs skip there.
 
@@ -103,7 +103,7 @@ jobs:
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: SDK internals vs real CoFHE (Arbitrum Sepolia, read-only, test account)
+    name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -166,7 +166,7 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: Matrix, app flows on ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, test account' || 'no key' }})
+    name: "Matrix: ${{ matrix.network.name }} (${{ matrix.network.setupChainId && 'writes, key' || 'no key' }})"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
