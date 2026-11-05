@@ -657,10 +657,11 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     });
     expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(true);
 
-    // 5. the revoked acp no longer decrypts. The mocks pass the on-chain revert reason through.
-    //    The sealOutput backend reports a generic denial.
+    // 5. the revoked acp no longer decrypts. Each backend says so in its own way. The mocks pass
+    //    the on-chain revert reason through. The testnet threshold network answers HTTP 401.
+    //    Staging answers acp_denied.
     await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
-      /PermissionInvalid_Disabled|acp_denied/
+      /PermissionInvalid_Disabled|acp_denied|HTTP 401/
     );
 
     // 6. a fresh acp restores access. It must not share the revoked one's id, so wait a second.
