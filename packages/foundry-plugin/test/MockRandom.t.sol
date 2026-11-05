@@ -2,7 +2,8 @@
 pragma solidity ^0.8.13;
 
 import { CofheTest } from '../contracts/CofheTest.sol';
-import { FHE, euint8, euint32, euint64 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { FHE, Impl, ebool, euint8, euint32, euint64 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { Utils } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { InvalidSecurityZone } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
 
 /// @notice FHE.random* must return a handle the caller can use, like the real TaskManager does.
@@ -49,5 +50,31 @@ contract MockRandomTest is CofheTest {
     // deployMocks() sets the zone range to [0, 1]
     vm.expectRevert(abi.encodeWithSelector(InvalidSecurityZone.selector, int32(2), int32(0), int32(1)));
     this.randomEuint8InZone(2);
+  }
+
+  function testRandomEboolIsTrueOrFalse() public {
+    for (uint256 i = 0; i < 8; i++) {
+      ebool r = ebool.wrap(Impl.random(Utils.EBOOL_TFHE));
+      uint256 stored = mockTaskManager.mockStorage(uint256(ebool.unwrap(r)));
+      assertLe(stored, 1, 'random ebool is neither false nor true');
+
+      // FHE.select takes the branch the decrypted value says
+      euint8 picked = FHE.select(r, FHE.asEuint8(1), FHE.asEuint8(2));
+      expectPlaintext(picked, getPlaintext(r) ? 1 : 2);
+    }
+  }
+
+  function testRandomEboolDecryptResultCanBePublished() public {
+    ebool r = ebool.wrap(Impl.random(Utils.EBOOL_TFHE));
+    FHE.allowPublic(r);
+
+    uint256 ctHash = uint256(ebool.unwrap(r));
+    (bool allowed, , uint256 value) = mockThresholdNetwork.decryptForTxWithoutACP(ctHash);
+    assertTrue(allowed, 'not allowed');
+    bytes memory signature = mockThresholdNetworkSigner.signDecryptResult(ctHash, value);
+
+    // FHE.sol publishes an ebool result as 0 or 1, so the signed value must be one of those
+    FHE.publishDecryptResult(r, value != 0, signature);
+    assertEq(FHE.getDecryptResult(r), value != 0);
   }
 }
