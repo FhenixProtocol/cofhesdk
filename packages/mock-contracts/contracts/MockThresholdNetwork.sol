@@ -9,7 +9,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
-import { ACP, PermissionedUpgradeable } from './Permissioned.sol';
+import { ACP, PermissionedUpgradeable } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
