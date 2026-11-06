@@ -8,8 +8,18 @@
  */
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
-import { BaseError, ContractFunctionRevertedError, ResourceNotFoundRpcError, toFunctionSelector, type Hex } from 'viem';
-import { Encryptable, FheTypes } from '@cofhe/sdk';
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ResourceNotFoundRpcError,
+  concat,
+  keccak256,
+  pad,
+  toFunctionSelector,
+  toHex,
+  type Hex,
+} from 'viem';
+import { Encryptable, FheTypes, type DecryptPollCallbackFunction } from '@cofhe/sdk';
 import {
   ACPUtils,
   describeShareMetadata,
@@ -162,6 +172,75 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   let alreadyFetchedCtHash: bigint | string;
   describe('Full encrypt->increment->decrypt flow + refetch cached response', () => {
     const testValue = 100n;
+
+    // The two "transparently retrying" tests check that a decrypt keeps asking while the backend
+    // does not have the ciphertext yet. Waiting for the receipt before decrypting gives the backend
+    // time to catch up, and then the first answer can already be the value, so the retry never
+    // runs. Instead the decrypt starts before the add is sent, for the handle the add will produce.
+    // The task manager derives that handle from the operands alone, so it is known in advance. The
+    // backend answers "not found" or "not ready" until it has seen the transaction and computed the
+    // sum, and onPoll is called once for each such answer. The mocks have no backend, so on Anvil
+    // the decrypt starts after the receipt and no retry is expected.
+    const isMock = chainConfig.id === 31337;
+    const NOT_FOUND_RETRY_MS = 120_000;
+    let storedHandle: Hex | undefined;
+
+    // keccak256(lhs || rhs || op) with the last two bytes replaced by the type and security zone,
+    // as the task manager builds a result handle. op 8 is add; type 4 is euint32.
+    function predictAddHandle(lhs: Hex, rhs: Hex): Hex {
+      const hash = BigInt(keccak256(concat([pad(lhs, { size: 32 }), pad(rhs, { size: 32 }), '0x08'])));
+      const securityZone = BigInt(lhs) & 0xffn;
+      return toHex((hash & ~0xffffn) | (4n << 8n) | securityZone, { size: 32 });
+    }
+
+    async function addWhileDecrypting<T>(
+      addend: bigint,
+      decrypt: (handle: Hex, onPoll: DecryptPollCallbackFunction) => Promise<T>
+    ) {
+      expect(storedHandle, 'the previous test stores the value this one adds to').toBeDefined();
+      const [addendHash, addendSignature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(addend)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
+      const predicted = predictAddHandle(storedHandle!, addendHash as Hex);
+
+      let notYetAnswers = 0;
+      const onPoll: DecryptPollCallbackFunction = ({ requestId }) => {
+        // An empty request id marks a submit the backend answered with "not found" or "not ready".
+        if (requestId === '') notYetAnswers++;
+      };
+      const early = isMock ? undefined : decrypt(predicted, onPoll);
+      early?.catch(() => {}); // awaited below; this only keeps an earlier failure from going unhandled
+
+      const addTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'addValueBatch',
+        args: [[addendHash], addendSignature],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+        hash: addTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+      const handle = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: addBlock,
+        })
+      );
+      expect(handle, 'the add produced the predicted handle').toBe(predicted);
+      storedHandle = handle;
+
+      const result = await (early ?? decrypt(handle, onPoll));
+      return { handle, result, notYetAnswers };
+    }
+
     it('Should encrypt a multi-input batch under one shared signature', async () => {
       await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
@@ -241,84 +320,38 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
       expect(result).toBe(testValue);
+      storedHandle = ctHash;
     }, 180_000);
 
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
     it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
-      const [addendHash, addendSignature] = await ctx.cofheClient
-        .encryptInputs([Encryptable.uint32(valueToAdd)])
-        .setConsumingContract(ctx.contractAddress)
-        .execute();
-
-      // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
-      // The SDK should retry transparently if the backend still responds with 404 or no content.
-      const addTxHash = await ctx.bobWalletClient.writeContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'addValueBatch',
-        args: [[addendHash], addendSignature],
-        chain: chainConfig.viemChain,
-        account: ctx.bobAccount,
-      });
-      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
-        hash: addTxHash,
-        retryCount: 30,
-        pollingInterval: 4_000,
-        confirmations: chainConfig.txConfirmationsRequired,
-      });
-
-      const ctHash = await readAtBlock(() =>
-        ctx.publicClient.readContract({
-          address: ctx.contractAddress,
-          abi: simpleTestAbi,
-          functionName: 'getValueHash',
-          blockNumber: addBlock,
-        })
+      const { result, notYetAnswers } = await addWhileDecrypting(valueToAdd, (handle, onPoll) =>
+        ctx.cofheClient
+          .decryptForView(handle, FheTypes.Uint32)
+          .set404RetryTimeout(NOT_FOUND_RETRY_MS)
+          .onPoll(onPoll)
+          .execute()
       );
 
-      const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-      expect(unsealedResult).toBe(expectedViewValue);
+      expect(result).toBe(expectedViewValue);
+      if (!isMock) expect(notYetAnswers, 'the backend answered "not yet" at least once').toBeGreaterThan(0);
     }, 180_000);
 
     it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
-      const [secondAddendHash, secondAddendSignature] = await ctx.cofheClient
-        .encryptInputs([Encryptable.uint32(secondValueToAdd)])
-        .setConsumingContract(ctx.contractAddress)
-        .execute();
-
-      // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
-      // The SDK should keep retrying until the backend has both discovered and computed it.
-      const secondAddTxHash = await ctx.bobWalletClient.writeContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'addValueBatch',
-        args: [[secondAddendHash], secondAddendSignature],
-        chain: chainConfig.viemChain,
-        account: ctx.bobAccount,
-      });
-      const { blockNumber: secondAddBlock } = await ctx.publicClient.waitForTransactionReceipt({
-        hash: secondAddTxHash,
-        retryCount: 30,
-        pollingInterval: 4_000,
-        confirmations: chainConfig.txConfirmationsRequired,
-      });
-
-      const updatedCtHash = await readAtBlock(() =>
-        ctx.publicClient.readContract({
-          address: ctx.contractAddress,
-          abi: simpleTestAbi,
-          functionName: 'getValueHash',
-          blockNumber: secondAddBlock,
-        })
+      const {
+        handle: updatedCtHash,
+        result: decryptResult,
+        notYetAnswers,
+      } = await addWhileDecrypting(secondValueToAdd, (handle, onPoll) =>
+        ctx.cofheClient.decryptForTx(handle).withACP().set404RetryTimeout(NOT_FOUND_RETRY_MS).onPoll(onPoll).execute()
       );
-
-      const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withACP().execute();
       // now that it was fetched - next time it should fetch from cache
       alreadyFetchedCtHash = updatedCtHash;
 
+      if (!isMock) expect(notYetAnswers, 'the backend answered "not yet" at least once').toBeGreaterThan(0);
       expect(decryptResult.ctHash).toBe(updatedCtHash);
       expect(decryptResult.decryptedValue).toBe(expectedTxValue);
       expect(typeof decryptResult.signature).toBe('string');
