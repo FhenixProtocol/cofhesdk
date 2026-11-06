@@ -1,5 +1,17 @@
 # @cofhe/foundry-plugin
 
+## 1.1.0
+
+### Patch Changes
+
+- 26d8cd6: Restrict mock contract reinitialization to the configured owner while preserving repeated Hardhat and Foundry deployments.
+- Updated dependencies [26d8cd6]
+- Updated dependencies [5b3e61c]
+- Updated dependencies [8731a28]
+- Updated dependencies [afeb3c8]
+- Updated dependencies [0fed6d9]
+  - @cofhe/mock-contracts@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes

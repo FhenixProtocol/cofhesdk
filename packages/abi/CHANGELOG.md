@@ -1,5 +1,35 @@
 # @cofhe/abi Changelog
 
+## 1.1.0
+
+### Patch Changes
+
+- 511f34f: **@cofhe/abi**
+
+  Corrects `transformEncryptedReturnTypes` to read the outputs of the overload selected by the call's `args`, now accepted as an optional fourth parameter. Previously it used the first ABI entry with that name, so a plaintext `5n` from an overloaded view could come back as `{ ctHash: 5n, utype: FheTypes.Uint64 }`, or an encrypted result as a raw `bytes32`.
+
+  **@cofhe/react**
+
+  Corrects `useCofheReadContract` to return the result of the overload its `args` select when reading an overloaded view function.
+
+- Updated dependencies [90621f0]
+- Updated dependencies [800cdb3]
+- Updated dependencies [06348ba]
+- Updated dependencies [ed2841a]
+- Updated dependencies [a430437]
+- Updated dependencies [43d84b9]
+- Updated dependencies [e7c9ad8]
+- Updated dependencies [ddd7026]
+- Updated dependencies [81acc28]
+- Updated dependencies [bc7a5ca]
+- Updated dependencies [d0ddf1c]
+- Updated dependencies [bbd9b03]
+- Updated dependencies [4418149]
+- Updated dependencies [b70a067]
+- Updated dependencies [f8c6219]
+- Updated dependencies [8fb65ec]
+  - @cofhe/sdk@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes
