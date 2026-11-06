@@ -13,13 +13,28 @@ It is not about ACPs, return types, or builder methods. It is about what happens
 
 In production, decryption depends on the CoFHE coprocessor observing on-chain activity and preparing work for the Threshold Network.
 
-That means there are three distinct states your request can pass through:
+That means there are four distinct states your request can pass through:
 
+0. The network has not seen an access grant for the `ctHash` yet.
 1. The coprocessor has not seen the `ctHash` on-chain yet.
 2. The coprocessor knows the `ctHash`, but has not produced a decryption `request_id` yet.
 3. A `request_id` exists, and the Threshold Network is processing the request.
 
 The SDK behavior differs in each state.
+
+## State 0: no access grant seen yet
+
+Before anything else, the network checks that the caller may decrypt the `ctHash`. It does this against the chain: the grant comes from the transaction that produced the handle (for example `FHE.allowSender` in your contract).
+
+Until the network has seen that transaction, it finds no grant and answers `401` with `acp_denied`. It answers the same way for a handle that never existed. The SDK does **not** retry this: the decrypt fails at once with `ACPDenied`, whatever `.set404RetryTimeout(...)` is set to, and `.onPoll(...)` is not called.
+
+You reach this state when:
+
+- you decrypt a handle before the transaction that produces it is mined,
+- you decrypt right after the receipt, and the network has not observed that block yet,
+- the ACP really does not cover the handle (wrong account, scope, or chain).
+
+Wait for the receipt before decrypting. If a decrypt right after the receipt fails with `ACPDenied` and you know the ACP covers the handle, retry it after a few seconds.
 
 ## State 1: `ctHash` not known yet
 
@@ -27,7 +42,6 @@ If the coprocessor has not observed the `ctHash` on-chain yet, the submit reques
 
 In practice, this usually means one of the following:
 
-- the encrypting transaction was sent very recently,
 - the relevant event has not been indexed or processed yet,
 - you are trying to decrypt a handle from the wrong chain or environment,
 - the `ctHash` is invalid for that network.
@@ -121,6 +135,7 @@ Interpretation:
 ```text
 decrypt call starts
   -> submit request
+    -> 401 acp_denied: fail with ACPDenied, no retry (also before the network has seen the transaction)
     -> 404, within retry window: SDK retries submit automatically
     -> 404, after retry window: fail with CtNotFound
     -> 204 without request_id: SDK retries submit automatically
@@ -133,6 +148,7 @@ decrypt call starts
 ## Practical guidance
 
 - If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
+- Wait for the receipt before decrypting. A handle the network has not seen yet fails with `ACPDenied`, not `CtNotFound`, and raising `.set404RetryTimeout(...)` does not help.
 - A submit-time `404` is retried automatically for a short window; if decrypts fail with `CtNotFound` because your backend indexes handles more slowly, increase `.set404RetryTimeout(...)`.
 - If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as `waiting for request creation`.
 - If you are debugging slow decrypts, separate `coprocessor has not created a request yet` from `Threshold Network is processing an existing request`.
