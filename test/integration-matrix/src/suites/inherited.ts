@@ -255,14 +255,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForView right after the receipt', async () => {
       const [addendHash, addendSignature] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(valueToAdd)])
         .setConsumingContract(ctx.contractAddress)
         .execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
-      // The SDK should retry transparently if the backend still responds with 404 or no content.
+      // If the network answers "not found" or "not ready" the SDK asks again, but the network is
+      // usually done before the first ask, so this does not exercise that retry. The retry is covered
+      // against scripted answers in packages/sdk/core/test/pollCallbacks.test.ts.
       const addTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -291,7 +293,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(unsealedResult).toBe(expectedViewValue);
     }, 180_000);
 
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForTx right after the receipt, then publishes the result', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
       const [secondAddendHash, secondAddendSignature] = await ctx.cofheClient
@@ -300,7 +302,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
-      // The SDK should keep retrying until the backend has both discovered and computed it.
+      // As above: a check that the fresh handle decrypts, not of the SDK's retry.
       const secondAddTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
