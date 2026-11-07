@@ -20,7 +20,7 @@ Import `createCofheConfig` from the entrypoint that matches your runtime:
 - Node.js scripts/backends: `@cofhe/sdk/node`
 
 :::warning
-**Browser bundlers (Vite)**
+**Browser bundlers (Vite, Next.js)**
 
 `@cofhe/sdk/web` loads TFHE via a WASM module and may use Web Workers.
 If you use Vite, exclude `tfhe` from dependency prebundling so `new URL('tfhe_bg.wasm', import.meta.url)` resolves to an actual `.wasm` file (otherwise TFHE init can fail with a “magic word” error).
@@ -33,6 +33,16 @@ export default defineConfig({
   optimizeDeps: { exclude: ['tfhe'] },
   worker: { format: 'es' },
 });
+```
+
+With Next.js 16, `next build` on Turbopack (the default) hangs at "Creating an optimized production build ..." with no error. `tfhe` starts its thread-pool workers from the same module the worker runs, and Turbopack's production build does not finish on that pattern ([vercel/next.js#100131](https://github.com/vercel/next.js/issues/100131)). Build with webpack until that is fixed; `next dev` is not affected.
+
+```json [package.json]
+{
+  "scripts": {
+    "build": "next build --webpack"
+  }
+}
 ```
 
 :::
