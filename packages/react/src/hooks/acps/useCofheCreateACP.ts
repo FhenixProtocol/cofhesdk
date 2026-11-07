@@ -7,6 +7,9 @@ import { useCofheClient } from '../useCofheClient.js';
  * now. The ACL checks expiry against the block timestamp, so "now" is the later of the latest
  * block's timestamp and the local clock: a chain moved ahead (`time.increase`) does not get an ACP
  * that is already expired, and an idle node whose latest block is old does not get a shorter one.
+ *
+ * `expirationSeconds` is used as given. If you build it from `Date.now()`, it can already be in the
+ * past on a chain whose clock is ahead of the machine's; pass `durationSeconds` instead.
  */
 type CreateACPExpiration =
   | {
