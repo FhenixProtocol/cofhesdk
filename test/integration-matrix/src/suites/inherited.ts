@@ -8,7 +8,7 @@
  */
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
-import { BaseError, ResourceNotFoundRpcError } from 'viem';
+import { BaseError, ContractFunctionRevertedError, ResourceNotFoundRpcError, toFunctionSelector, type Hex } from 'viem';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
 import {
   ACPUtils,
@@ -18,7 +18,6 @@ import {
   type ACPPublic,
 } from '@cofhe/sdk/acps';
 import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
-import { removeConfirmedShare } from './shareRemoval';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
 function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
@@ -512,6 +511,25 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(value).toBe(expected);
   }
 
+  // Removing a share sends removeShare, and viem estimates it at "latest" before sending anything.
+  // On a load-balanced RPC that estimate can run on a node that has not seen the share yet, and
+  // the registry reverts with UnknownShare(), so no transaction goes out. Send again until a node
+  // that has the share takes the estimate, for up to 30 seconds. Any other error still fails.
+  const UNKNOWN_SHARE = toFunctionSelector('UnknownShare()');
+  async function removeOnceShareIsSeen(remove: () => Promise<Hex>): Promise<Hex> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await remove();
+      } catch (error) {
+        const unknownShare =
+          error instanceof BaseError &&
+          error.walk((e) => e instanceof ContractFunctionRevertedError && e.raw === UNKNOWN_SHARE) !== null;
+        if (!unknownShare || attempt >= 6) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
   // The registry flow, end to end. Bob stores a value and posts a share of it for Alice on-chain,
   // labelled as the value getValueHash() returned at that block. Alice discovers the share, checks
   // the label against the chain, imports it, decrypts with it, and removes it. Dismissing is
@@ -611,7 +629,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
       const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
       if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
-      const removeTx = await removeConfirmedShare(() =>
+      const removeTx = await removeOnceShareIsSeen(() =>
         aliceIsFunded ? ctx.cofheClient.acp.dismissShare(shareId) : ctx.cofheClient.acp.cancelShare(shareId)
       );
       await ctx.publicClient.waitForTransactionReceipt({
