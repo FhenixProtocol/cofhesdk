@@ -42,7 +42,7 @@ jobs:
     # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
     if: github.event_name != 'pull_request_target'
     name: Unit, plugins, React hooks (no key)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -80,7 +80,7 @@ jobs:
     # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
     if: github.event_name != 'pull_request_target'
     name: SDK thread pool (no key)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -123,7 +123,7 @@ jobs:
       group: testnet-integration
       cancel-in-progress: false
     name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -171,7 +171,7 @@ jobs:
     # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
     if: github.event_name != 'pull_request_target'
     name: 'Matrix: Anvil mocks (no key)'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -222,7 +222,7 @@ jobs:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
     name: 'Matrix: ${{ matrix.network.name }} (writes, key)'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -301,7 +301,7 @@ jobs:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
     name: 'Matrix on label: ${{ matrix.network.name }} (writes, key)'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # pull_request_target checks out master by default. We want the PR's code.
       # The token is not left on disk, so the PR's code cannot use it.
@@ -369,7 +369,7 @@ jobs:
       group: testnet-integration
       cancel-in-progress: false
     name: SDK vs real CoFHE on label (Arbitrum Sepolia, read-only, key)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v5
@@ -428,7 +428,7 @@ jobs:
     permissions:
       pull-requests: write
     name: Remove run-matrix label
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Remove label
         env:
