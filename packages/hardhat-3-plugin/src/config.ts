@@ -1,15 +1,21 @@
+import { configVariable } from 'hardhat/config';
 import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
 import type { LogMocksDeploy } from './deploy.js';
 import { getMockContractsNpmFiles } from './utils.js';
 
 /**
- * Extends the resolved config with plugin defaults and network presets.
- * Mirrors the logic from the v2 plugin's extendConfig callback.
+ * Adds the localcofhe, eth-sepolia and arb-sepolia network presets to the user config, each only
+ * when the user hasn't defined a network of that name. Hardhat then validates and resolves them
+ * like any network the user wrote, so `network.connect()` can open them.
  */
-export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfig: HardhatConfig): void {
-  // Inject localcofhe network preset if the user hasn't defined it
-  if (!userConfig.networks?.['localcofhe']) {
-    (resolvedConfig.networks as Record<string, unknown>)['localcofhe'] = {
+export function addNetworkPresets(userConfig: HardhatUserConfig): HardhatUserConfig {
+  const networks = { ...userConfig.networks };
+  // Read when a testnet preset is used, not at startup: a PRIVATE_KEY that isn't a private key
+  // must not fail every Hardhat command.
+  const testnetAccounts = process.env['PRIVATE_KEY'] ? [configVariable('PRIVATE_KEY')] : [];
+
+  if (networks['localcofhe'] === undefined) {
+    networks['localcofhe'] = {
       type: 'http',
       url: 'http://127.0.0.1:42069',
       gas: 'auto',
@@ -26,12 +32,11 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
     };
   }
 
-  // Inject eth-sepolia preset if the user hasn't defined it
-  if (!userConfig.networks?.['eth-sepolia']) {
-    (resolvedConfig.networks as Record<string, unknown>)['eth-sepolia'] = {
+  if (networks['eth-sepolia'] === undefined) {
+    networks['eth-sepolia'] = {
       type: 'http',
       url: process.env['SEPOLIA_RPC_URL'] ?? 'https://ethereum-sepolia.publicnode.com',
-      accounts: process.env['PRIVATE_KEY'] ? [process.env['PRIVATE_KEY']] : [],
+      accounts: testnetAccounts,
       chainId: 11155111,
       gas: 'auto',
       gasMultiplier: 1.2,
@@ -41,12 +46,11 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
     };
   }
 
-  // Inject arb-sepolia preset if the user hasn't defined it
-  if (!userConfig.networks?.['arb-sepolia']) {
-    (resolvedConfig.networks as Record<string, unknown>)['arb-sepolia'] = {
+  if (networks['arb-sepolia'] === undefined) {
+    networks['arb-sepolia'] = {
       type: 'http',
       url: process.env['ARBITRUM_SEPOLIA_RPC_URL'] ?? 'https://sepolia-rollup.arbitrum.io/rpc',
-      accounts: process.env['PRIVATE_KEY'] ? [process.env['PRIVATE_KEY']] : [],
+      accounts: testnetAccounts,
       chainId: 421614,
       gas: 'auto',
       gasMultiplier: 1.2,
@@ -56,6 +60,13 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
     };
   }
 
+  return { ...userConfig, networks };
+}
+
+/**
+ * Extends the resolved config with the plugin defaults.
+ */
+export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfig: HardhatConfig): void {
   // Build the mock contracts with the project: a full build removes the artifacts of any file it
   // did not build, including the mocks compiled at startup
   resolvedConfig.solidity.npmFilesToBuild = [
