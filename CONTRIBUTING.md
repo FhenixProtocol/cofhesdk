@@ -16,13 +16,13 @@ pnpm build
 
 Pull requests from forks don't start their CI until a maintainer approves the run, so you may wait a while to see a result. Every check below runs locally in under a minute; run them first and the first CI run is far more likely to be green.
 
-| CI check | Command | Fixes |
-|---|---|---|
-| Formatting | `pnpm check:formatting` | `pnpm format` |
-| Linting | `pnpm lint` | fix what it reports |
-| Type Check | `pnpm check:types` | |
-| Dependency Pins | `pnpm check:pinned-deps` | pin the exact version, no `^` or `~` |
-| Circular Dependencies | `pnpm check:circles` | |
+| CI check              | Command                  | Fixes                                |
+| --------------------- | ------------------------ | ------------------------------------ |
+| Formatting            | `pnpm check:formatting`  | `pnpm format`                        |
+| Linting               | `pnpm lint`              | fix what it reports                  |
+| Type Check            | `pnpm check:types`       |                                      |
+| Dependency Pins       | `pnpm check:pinned-deps` | pin the exact version, no `^` or `~` |
+| Circular Dependencies | `pnpm check:circles`     |                                      |
 
 Formatting is the one that fails most often. `pnpm format` rewrites the files; commit the result.
 
