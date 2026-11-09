@@ -24,6 +24,7 @@ error InvalidInputForFunction(string functionName, uint8 inputType);
 error InvalidSecurityZone(int32 zone, int32 min, int32 max);
 error InvalidSignature();
 error InvalidSigner(address signer, address expectedSigner);
+error UnsupportedType(uint256 t);
 
 // Access control errors
 error InvalidAddress();
@@ -32,6 +33,7 @@ error OnlyAggregatorAllowed(address caller);
 
 // Operation-specific errors
 error RandomFunctionNotSupported();
+error DecryptFunctionNotSupported();
 
 library TMCommon {
   uint256 private constant HASH_MASK_FOR_METADATA = type(uint256).max - type(uint16).max; // 2 bytes reserved for metadata
@@ -195,6 +197,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
    * @param initialOwner  Initial owner address.
    */
   function initialize(address initialOwner) public {
+    if (initialized && msg.sender != owner) revert OnlyOwnerAllowed(msg.sender);
+
     owner = initialOwner;
     initialized = true;
     verifierSigner = address(0);
@@ -216,6 +220,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (newMin > newMax) {
       revert InvalidSecurityZone(newMin, newMin, newMax);
     }
+    emit SecurityZonesChanged(securityZoneMin, securityZoneMax, newMin, newMax);
     securityZoneMin = newMin;
     securityZoneMax = newMax;
   }
@@ -232,6 +237,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   event TaskCreated(uint256 ctHash, string operation, uint256 input1, uint256 input2, uint256 input3);
   event ProtocolNotification(uint256 ctHash, string operation, string errorMessage);
   event DecryptionResult(uint256 ctHash, uint256 result, address indexed requestor);
+  event InputVerified(uint256 indexed ctHash, bytes32 commitment);
+  event DecryptResultSignerChanged(address indexed oldSigner, address indexed newSigner);
+  event VerifierSignerChanged(address indexed oldSigner, address indexed newSigner);
+  event ACLContractChanged(address indexed oldACL, address indexed newACL);
+  event SecurityZonesChanged(int32 oldMin, int32 oldMax, int32 newMin, int32 newMax);
 
   struct Task {
     address creator;
@@ -279,15 +289,15 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     string memory operation,
     uint256[] memory inputs
   ) private {
-    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
-
-    if (arity == 1) {
+    if (inputs.length == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
-    } else if (arity == 2) {
+    } else if (inputs.length == 2) {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], 0);
     } else {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], inputs[2]);
     }
+
+    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
 
     // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
     // task manager, so (under forge, when enabled) it runs with gas metering paused; when
@@ -408,6 +418,19 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return _securityZone >= securityZoneMin && _securityZone <= securityZoneMax;
   }
 
+  /// @dev The types the real task manager accepts. `Utils.EUINT256_TFHE` is still declared in
+  ///      ICofhe.sol, but the task manager no longer supports it.
+  function isValidType(uint256 t) internal pure returns (bool) {
+    return
+      t == Utils.EUINT8_TFHE ||
+      t == Utils.EUINT16_TFHE ||
+      t == Utils.EUINT32_TFHE ||
+      t == Utils.EUINT64_TFHE ||
+      t == Utils.EUINT128_TFHE ||
+      t == Utils.EADDRESS_TFHE ||
+      t == Utils.EBOOL_TFHE;
+  }
+
   function validateEncryptedHashes(uint256[] memory encryptedHashes) internal view {
     for (uint8 i = 0; i < encryptedHashes.length; i++) {
       checkAllowed(encryptedHashes[i]);
@@ -491,6 +514,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   ///      security zone must be in range. Without them `FHE.asEuint8(256)` would be stored masked
   ///      to 0 here while the real task manager reverts.
   function validateTrivialEncryptInputs(uint256[] memory extraInputs) internal view {
+    if (extraInputs[1] > type(uint8).max) {
+      revert UnsupportedType(extraInputs[1]);
+    }
+
     uint256 securityZone = extraInputs[2];
     if (securityZone > uint256(int256(type(int32).max)) || !isValidSecurityZone(int32(int256(securityZone)))) {
       revert InvalidSecurityZone(int32(int256(securityZone)), securityZoneMin, securityZoneMax);
@@ -506,7 +533,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     else if (toType == Utils.EUINT128_TFHE) max = type(uint128).max;
     else if (toType == Utils.EADDRESS_TFHE) max = type(uint160).max;
     else if (toType == Utils.EBOOL_TFHE) max = 1;
-    else return;
+    else revert UnsupportedType(toType);
 
     if (value > max) {
       revert InvalidInputForFunction('trivialEncrypt', uint8(toType));
@@ -536,6 +563,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
+    if (funcId == FunctionId.decrypt) {
+      revert DecryptFunctionNotSupported();
+    }
+    if (!isValidType(returnType)) {
+      revert UnsupportedType(returnType);
+    }
     string memory operation = Utils.functionIdToString(funcId);
     uint256 inputsLength = encryptedHashes.length + extraInputs.length;
     if (inputsLength > 3) {
@@ -545,6 +578,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     validateInputs(encryptedHashes, funcId, operation);
     if (funcId == FunctionId.trivialEncrypt) {
       validateTrivialEncryptInputs(extraInputs);
+    } else if (funcId == FunctionId.cast && extraInputs.length > 0 && !isValidType(extraInputs[0])) {
+      revert UnsupportedType(extraInputs[0]);
     }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
@@ -690,6 +725,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     for (uint256 i = 0; i < len; i++) {
       int32 securityZone = int32(uint32(inputs[i].securityZone));
       uint256 appendedHash = TMCommon.appendMetadata(inputs[i].ctHash, securityZone, inputs[i].utype, false);
+      emit InputVerified(appendedHash, bytes32(inputs[i].ctHash));
       acl.allowTransient(appendedHash, msg.sender, address(this));
       appendedHashes[i] = appendedHash;
     }
@@ -789,13 +825,17 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function setVerifierSigner(address signer) external onlyOwner {
+    address oldSigner = verifierSigner;
     verifierSigner = signer;
+    emit VerifierSignerChanged(oldSigner, signer);
   }
 
   /// @notice Set the authorized signer for decrypt results
   /// @param signer The new signer address (must be non-zero for publishDecryptResult to work)
   function setDecryptResultSigner(address signer) external onlyOwner {
+    address oldSigner = decryptResultSigner;
     decryptResultSigner = signer;
+    emit DecryptResultSignerChanged(oldSigner, signer);
   }
 
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
@@ -810,6 +850,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (_aclAddress == address(0)) {
       revert InvalidAddress();
     }
+    emit ACLContractChanged(address(acl), _aclAddress);
     acl = MockACL(_aclAddress);
   }
 
@@ -837,6 +878,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   // Stub implementations for new ITaskManager interface methods (inc PR #48)
 
   function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
+    if (!isValidType(returnType)) {
+      revert UnsupportedType(returnType);
+    }
+
     if (!isValidSecurityZone(securityZone)) {
       revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
     }

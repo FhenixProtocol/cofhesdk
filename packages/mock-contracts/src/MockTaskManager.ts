@@ -1039,6 +1039,25 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'event',
+      name: 'ACLContractChanged',
+      inputs: [
+        {
+          name: 'oldACL',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'newACL',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
       name: 'AccessGranted',
       inputs: [
         {
@@ -1056,6 +1075,25 @@ export const MockTaskManagerArtifact = {
       inputs: [
         {
           name: 'account',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'DecryptResultSignerChanged',
+      inputs: [
+        {
+          name: 'oldSigner',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'newSigner',
           type: 'address',
           indexed: true,
           internalType: 'address',
@@ -1084,6 +1122,25 @@ export const MockTaskManagerArtifact = {
           type: 'address',
           indexed: true,
           internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'InputVerified',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          indexed: true,
+          internalType: 'uint256',
+        },
+        {
+          name: 'commitment',
+          type: 'bytes32',
+          indexed: false,
+          internalType: 'bytes32',
         },
       ],
       anonymous: false,
@@ -1128,6 +1185,37 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'event',
+      name: 'SecurityZonesChanged',
+      inputs: [
+        {
+          name: 'oldMin',
+          type: 'int32',
+          indexed: false,
+          internalType: 'int32',
+        },
+        {
+          name: 'oldMax',
+          type: 'int32',
+          indexed: false,
+          internalType: 'int32',
+        },
+        {
+          name: 'newMin',
+          type: 'int32',
+          indexed: false,
+          internalType: 'int32',
+        },
+        {
+          name: 'newMax',
+          type: 'int32',
+          indexed: false,
+          internalType: 'int32',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
       name: 'TaskCreated',
       inputs: [
         {
@@ -1164,6 +1252,25 @@ export const MockTaskManagerArtifact = {
       anonymous: false,
     },
     {
+      type: 'event',
+      name: 'VerifierSignerChanged',
+      inputs: [
+        {
+          name: 'oldSigner',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'newSigner',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
       type: 'error',
       name: 'ACLNotAllowed',
       inputs: [
@@ -1178,6 +1285,11 @@ export const MockTaskManagerArtifact = {
           internalType: 'address',
         },
       ],
+    },
+    {
+      type: 'error',
+      name: 'DecryptFunctionNotSupported',
+      inputs: [],
     },
     {
       type: 'error',
@@ -1452,6 +1564,17 @@ export const MockTaskManagerArtifact = {
         },
         {
           name: 'maxAllowed',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'UnsupportedType',
+      inputs: [
+        {
+          name: 't',
           type: 'uint256',
           internalType: 'uint256',
         },
