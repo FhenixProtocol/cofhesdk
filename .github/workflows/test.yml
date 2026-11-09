@@ -1,11 +1,37 @@
 name: Test
 
+# What runs here, and why two jobs need the test account's key.
+#
+#   Job                          | Tests                                         | Chain                        | Writes       | Key
+#   -----------------------------+-----------------------------------------------+------------------------------+--------------+-----------------------------------------------
+#   Unit, plugins, React hooks   | unit tests, Hardhat and Foundry plugins,      | none, or a local Anvil       | no           | no
+#                                | React hooks on a chain                        |                              |              |
+#   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
+#   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
+#   Matrix: Anvil mocks          | app flows on the mocks: client, encrypt,      | a local Anvil                | no           | no
+#                                | decrypt, share, revoke, as an app uses them   |                              |              |
+#   Matrix: <testnet>            | the same, one leg per testnet                 | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
+#                                |                                               | Base Sepolia                 |              |
+#
+# Fork PRs get no secrets, so the two keyed jobs skip there. A maintainer runs them on a fork PR
+# by adding the `run-matrix` label: the two "on label" jobs below run the same suites with the keys.
+
 on:
   pull_request:
   push:
     branches: [master, staging]
+  # A maintainer adds the `run-matrix` label to a contributor's PR to run the
+  # matrix on it with the testnet keys (see test-network-labeled below).
+  pull_request_target:
+    types: [labeled]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# The group name is the workflow name, a hyphen, then one of these:
+#   push to master          -> Test-refs/heads/master
+#   pull_request on PR 505  -> Test-refs/pull/505/merge
+#   run-matrix label on 505 -> Test-pr-505
+# The last one needs the ternary. `github.ref` is master for pull_request_target,
+# which would put a labeled run in the master group and let the next push cancel it.
+concurrency: ${{ github.workflow }}-${{ github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
 
 jobs:
   # Keyless tests: unit, mock-network, forge, and browser suites. Needs no
@@ -13,8 +39,10 @@ jobs:
   # live-chain suites in packages/sdk self-skip when TEST_PRIVATE_KEY is
   # absent (see LIVE_TESTS in the gated test files).
   test-local:
-    name: Test (local)
-    runs-on: ubuntu-latest
+    # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
+    if: github.event_name != 'pull_request_target'
+    name: Unit, plugins, React hooks (no key)
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -49,8 +77,10 @@ jobs:
   # self-skip there (see THREADPOOL_TESTS) and run here instead, one file at a
   # time. Keyless, so this also runs on fork PRs.
   test-threadpool:
-    name: Test (thread pool)
-    runs-on: ubuntu-latest
+    # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
+    if: github.event_name != 'pull_request_target'
+    name: SDK thread pool (no key)
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -80,17 +110,20 @@ jobs:
           TEST_THREADPOOL_ENABLED: 'true'
         run: pnpm exec turbo run test:threadpool --filter=@cofhe/sdk
 
-  # Live-testnet suites (sdk decrypt + inherited client tests). These sign and
-  # transact with the funded TEST_PRIVATE_KEY wallet, so they only run where
-  # repository secrets exist: pushes and same-repo pull requests. Fork PRs
-  # skip this job entirely instead of failing on a missing secret.
+  # The SDK's live suite: its decrypt internals and share-metadata labels against
+  # real CoFHE on Arbitrum Sepolia. Read-only on-chain, but it signs with the
+  # TEST_PRIVATE_KEY wallet, the one the ACL lets read the fixtures, so it only
+  # runs where repository secrets exist: pushes and same-repo pull requests.
+  # Fork PRs skip this job entirely instead of failing on a missing secret.
   test-live:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
+    # third kind of event and does not match. On that event test-live-labeled below runs instead.
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: Test (live testnet)
-    runs-on: ubuntu-latest
+    name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -132,14 +165,50 @@ jobs:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
 
+  # The matrix on Anvil with the CoFHE mocks. Needs no key, so it runs on every pull request,
+  # forks included. The testnet legs are the job below.
+  test-network-mock:
+    # Skip when the run was started by the `run-matrix` label. This job needs no keys, so it already ran on the PR.
+    if: github.event_name != 'pull_request_target'
+    name: 'Matrix: Anvil mocks (no key)'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Run Integration Matrix Tests
+        env:
+          MATRIX_CHAIN: hardhat
+        run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
   test-network:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
+    # third kind of event and does not match. On that event test-network-labeled below runs instead.
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
         network:
-          - name: Hardhat Mock
-            slug: hardhat
           - name: Ethereum Sepolia
             slug: sepolia
             setupChainId: '11155111'
@@ -152,8 +221,8 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: Matrix (${{ matrix.network.name }})
-    runs-on: ubuntu-latest
+    name: 'Matrix: ${{ matrix.network.name }} (writes, key)'
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -202,3 +271,166 @@ jobs:
           TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
+  # The two keyed suites on a contributor's PR, with the repository's testnet
+  # keys. Fork PRs get no secrets on `pull_request`, so this is the only way
+  # they run on them. The PR's own code runs with the keys here, so a
+  # maintainer adds the label only after reading the diff.
+  test-network-labeled:
+    # Only when the `run-matrix` label is added. Any other label is ignored.
+    if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    # Untrusted code runs here. The token can read the repo and nothing else.
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: Ethereum Sepolia
+            slug: sepolia
+            setupChainId: '11155111'
+          - name: Arbitrum Sepolia
+            slug: arb-sepolia
+            setupChainId: '421614'
+          - name: Base Sepolia
+            slug: base-sepolia
+            setupChainId: '84532'
+    # Same group as test-network, so this never shares a testnet wallet with
+    # a master run on the same chain. Runs queue, they do not cancel.
+    concurrency:
+      group: testnet-integration-${{ matrix.network.slug }}
+      cancel-in-progress: false
+    name: 'Matrix on label: ${{ matrix.network.name }} (writes, key)'
+    runs-on: ubuntu-24.04
+    steps:
+      # pull_request_target checks out master by default. We want the PR's code.
+      # The token is not left on disk, so the PR's code cannot use it.
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          # actions/checkout refuses fork code in a pull_request_target run unless told so.
+          # The run-matrix label is that decision, taken by a maintainer who read the diff.
+          allow-unsafe-pr-checkout: true
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      - name: Setup test fixtures
+        if: matrix.network.setupChainId
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+
+      - name: Run Integration Matrix Tests
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_ALICE_PRIVATE_KEY: ${{ secrets.TEST_ALICE_PRIVATE_KEY }}
+          MATRIX_CHAIN: ${{ matrix.network.slug }}
+        run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
+
+  test-live-labeled:
+    # Same gate, same permissions and same checkout as test-network-labeled above.
+    if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    permissions:
+      contents: read
+    # Same group as test-live, so runs queue instead of overlapping.
+    concurrency:
+      group: testnet-integration
+      cancel-in-progress: false
+    name: SDK vs real CoFHE on label (Arbitrum Sepolia, read-only, key)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          # actions/checkout refuses fork code in a pull_request_target run unless told so.
+          # The run-matrix label is that decision, taken by a maintainer who read the diff.
+          allow-unsafe-pr-checkout: true
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      - name: Run Live Tests
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm exec turbo run test:live --filter=@cofhe/sdk
+
+  # Takes the label off again. One label, one run. The next push to the PR
+  # runs with the keys only after a maintainer reads it and relabels.
+  remove-run-matrix-label:
+    # Runs whether the legs passed or failed.
+    if: always() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    # Waits for the three matrix legs and the live suite to end.
+    needs: [test-network-labeled, test-live-labeled]
+    # The only job that can write to pull requests. None of the PR's code runs here.
+    permissions:
+      pull-requests: write
+    name: Remove run-matrix label
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Remove label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --remove-label run-matrix

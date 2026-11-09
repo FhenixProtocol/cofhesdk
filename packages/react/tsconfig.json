@@ -4,9 +4,20 @@
     "baseUrl": "./src",
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["*"]
+      "@/*": [
+        "*"
+      ],
+      "@cofhe/react": [
+        "index.ts"
+      ]
     }
   },
-  "include": ["."],
-  "exclude": ["dist", "build", "node_modules"]
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules"
+  ]
 }

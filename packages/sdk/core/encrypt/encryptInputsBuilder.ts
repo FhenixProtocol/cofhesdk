@@ -57,6 +57,13 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  */
 export type EncryptInputsBuilderUnset<T extends EncryptableItem[]> = Omit<EncryptInputsBuilder<T>, 'execute'>;
 
+/** The name and message of the innermost `cause` of an error, for a serialisable error context. */
+function describeRootCause(error: unknown): { name: string; message: string } | undefined {
+  let current: unknown = error;
+  while (current instanceof Error && current.cause instanceof Error) current = current.cause;
+  return current instanceof Error ? { name: current.name, message: current.message } : undefined;
+}
+
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
   private securityZoneSet: boolean;
@@ -424,11 +431,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       await this.keysStorage?.rehydrateKeysStore();
     } catch (error) {
+      // A storage that cannot be read no longer ends up here: the keys store gives it up and keeps
+      // the keys in memory (see `guardStorage` in keyStore.ts). What still ends up here is a stored
+      // value of the wrong shape, which `merge` rejects. The context names the original error, not
+      // the wrappers around it, so the failure can be told apart in error tracking.
       throw CofheError.fromError(error, {
         code: CofheErrorCode.RehydrateKeysStoreFailed,
         message: `Failed to rehydrate keys store`,
         context: {
-          keysStorage: this.keysStorage,
+          storage: this.keysStorage?.storageStatus() ?? 'memory',
+          storageError: describeRootCause(error),
         },
       });
     }
