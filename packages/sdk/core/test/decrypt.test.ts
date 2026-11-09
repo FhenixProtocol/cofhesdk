@@ -4,9 +4,8 @@ import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
   PRIMARY_TEST_CHAIN,
-  primaryTestChainRegistry,
-  stagingTestChainRegistry,
-  isPrimaryTestChainReady,
+  getSimpleTestValues,
+  getStagingSimpleTestValues,
 } from '@cofhe/test-setup';
 
 import { acps } from '../acps.js';
@@ -19,9 +18,10 @@ import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
-// Live-chain suite: needs the funded TEST_PRIVATE_KEY (signs decrypt requests against
-// pre-deployed testnet fixtures). Without it — fork PRs, where secrets are unavailable —
-// the suite skips; CI runs it separately with the key (test-live job).
+// Live-chain suite: needs the funded TEST_PRIVATE_KEY (signs decrypt requests for the values that
+// `pnpm test:setup` stored in SimpleTest as this account). Without it — fork PRs, where secrets are
+// unavailable — the suite skips; CI runs it separately with the key (test-live job, which runs
+// setup first).
 const LIVE_TESTS = Boolean(TEST_PRIVATE_KEY);
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY);
@@ -46,13 +46,18 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
   let publicValue: bigint;
 
   beforeAll(() => {
-    const reg = STAGING_TESTS
-      ? (stagingTestChainRegistry as typeof primaryTestChainRegistry)
-      : primaryTestChainRegistry;
-    if (!isPrimaryTestChainReady(reg)) {
-      throw new Error('Test chain registry is not initialized. Run `pnpm test:setup` first.');
+    const chainId = TEST_CHAIN_ID;
+    const values = STAGING_TESTS ? getStagingSimpleTestValues() : getSimpleTestValues(chainId);
+    if (!values) {
+      throw new Error(
+        `No SimpleTest values stored for chain ${chainId} in this checkout. Run \`pnpm test:setup\` first.`
+      );
     }
-    const chainId = reg.chainId;
+    if (values.account.toLowerCase() !== account.address.toLowerCase()) {
+      throw new Error(
+        `SimpleTest values for chain ${chainId} were stored by ${values.account}, not by ${account.address}. Run \`pnpm test:setup\` with this key.`
+      );
+    }
 
     const viemChain = STAGING_TESTS ? stagingViemChain : VIEM_CHAINS[chainId];
     if (!viemChain) throw new Error(`No viem chain mapping for chain ${chainId}`);
@@ -62,11 +67,12 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
 
     config = createCofheConfigBase({ supportedChains: [cofheChain] });
 
-    privateCtHash = reg.privateValue.ctHash as `0x${string}`;
-    privateValue = BigInt(reg.privateValue.value);
-
-    publicCtHash = reg.publicValue.ctHash as `0x${string}`;
-    publicValue = BigInt(reg.publicValue.value);
+    // Pinned by setup when it stored them. The fixture is shared and other suites overwrite it, but a
+    // handle stays decryptable after the contract moves on.
+    privateCtHash = values.privateValue.ctHash as `0x${string}`;
+    privateValue = BigInt(values.privateValue.value);
+    publicCtHash = values.publicValue.ctHash as `0x${string}`;
+    publicValue = BigInt(values.publicValue.value);
 
     publicClient = createPublicClient({ chain: viemChain, transport: http() });
     walletClient = createWalletClient({ chain: viemChain, transport: http(), account });

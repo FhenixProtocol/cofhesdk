@@ -122,7 +122,7 @@ jobs:
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
+    name: SDK vs real CoFHE (Arbitrum Sepolia, key)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
@@ -159,6 +159,13 @@ jobs:
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1
           fi
+
+      # Finds SimpleTest on Arbitrum Sepolia, deploys it when the bytecode changed, and stores the
+      # values the decrypt tests read unless this key can already read them. Writes nothing back.
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains 421614
 
       - name: Run Live Tests
         env:
@@ -368,7 +375,7 @@ jobs:
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: SDK vs real CoFHE on label (Arbitrum Sepolia, read-only, key)
+    name: SDK vs real CoFHE on label (Arbitrum Sepolia, key)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout PR head
@@ -411,6 +418,13 @@ jobs:
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1
           fi
+
+      # Finds SimpleTest on Arbitrum Sepolia, deploys it when the bytecode changed, and stores the
+      # values the decrypt tests read unless this key can already read them. Writes nothing back.
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains 421614
 
       - name: Run Live Tests
         env:

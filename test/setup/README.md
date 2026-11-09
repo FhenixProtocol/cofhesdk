@@ -1,6 +1,8 @@
 # @cofhe/test-setup
 
-Shared test infrastructure for the monorepo. Deploys `SimpleTest` contracts to target chains, pre-stores encrypted values for core SDK tests, and builds a distributable package consumed by other test packages.
+Shared test infrastructure for the monorepo. Finds or deploys the `SimpleTest` fixture on each target chain, makes sure it holds the values the core SDK tests read, and builds a distributable package consumed by other test packages.
+
+The chain is the only source of truth. Nothing about deployments or stored values is committed: `pnpm test:setup` detects a bytecode change, deploys when needed, reuses what is already there, and hands the addresses to the bundle of this checkout.
 
 Internal workspace package — never published to npm.
 
@@ -20,12 +22,11 @@ setup/
 ├── src/
 │   ├── index.ts                        # package entry point
 │   ├── env.ts                          # env config, inlined at build time
-│   ├── contracts.ts                    # SimpleTest ABI + address lookup
-│   ├── primaryTestChain.ts             # typed accessor for pre-stored values
-│   ├── deployments.json                # auto-generated deploy addresses (committed)
-│   └── primaryTestChainRegistry.json   # auto-generated pre-stored values (committed)
-├── setup.mjs                           # deploy + initialize + build script
-├── tsup.config.ts                      # build config (inlines process.env via define)
+│   └── contracts.ts                    # SimpleTest address + pinned value lookup (from deployments.local.json, inlined at build)
+├── setup.mjs                           # find-or-deploy + store values + build script
+├── create2.mjs                         # CREATE2 deployer, salt and address derivation shared by setup and tests
+├── deployments.local.json              # what setup.mjs found, deployed or stored for this checkout; not committed
+├── tsup.config.ts                      # build config (inlines process.env and deployments.local.json via define)
 └── foundry.toml
 ```
 
@@ -33,11 +34,11 @@ setup/
 
 Loaded from root `.env`. See `.env-example` for a template.
 
-| Variable                      | Default           | Purpose                                                      |
-| ----------------------------- | ----------------- | ------------------------------------------------------------ |
-| `TEST_PRIVATE_KEY`            | — (required)      | Deployer / test account key (≥ 0.1 ETH on each target chain) |
-| `PRIMARY_TEST_CHAIN`          | `421614`          | Chain ID for pre-stored values (core SDK tests)              |
-| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe (skipped if unset)               |
+| Variable                      | Default           | Purpose                                                         |
+| ----------------------------- | ----------------- | --------------------------------------------------------------- |
+| `TEST_PRIVATE_KEY`            | — (required)      | Deployer / test account key (≥ 0.1 ETH on each target chain)    |
+| `PRIMARY_TEST_CHAIN`          | `421614`          | Chain whose SimpleTest holds the values the core SDK tests read |
+| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe (skipped if unset)                  |
 
 These are inlined at build time by `tsup.config.ts`'s `define` so they work in browser test environments where `process.env` is unavailable.
 
@@ -45,9 +46,15 @@ These are inlined at build time by `tsup.config.ts`'s `define` so they work in b
 
 Three phases:
 
-1. **Deploy** — `forge build` → `forge create` to each target chain. Skips when bytecodeHash matches and on-chain code exists. Writes `src/deployments.json`.
-2. **Initialize primary chain** — On `PRIMARY_TEST_CHAIN`, calls trivial-encrypt functions to store private (`42`), public (`7`), and added (`42+50=92`) values. Writes `src/primaryTestChainRegistry.json`. Skips if registry already matches current deployment.
-3. **Build** — `pnpm build` (tsup + forge build) so `dist/` has the latest registry data baked in.
+1. **Deploy** — `forge build`, then one of two paths per chain, detected with `cast code`:
+
+   - Chains with the deterministic CREATE2 deployer (`0x4e59b44847b379578588920cA78FbF26c0B4956C`; the three testnets) get `SimpleTest` at an address computed from a fixed salt and the bytecode (`create2.mjs`). The deploy is skipped when that address already has code, and a failed deploy still counts when the code is there afterwards (another run got there first). So a bytecode change deploys once, from whichever run sees it first, and every later run on any machine finds it.
+   - Other chains (CoFHE staging, localcofhe) use `forge create`, skipped when the local record's bytecodeHash matches and the address has code. These chains reset, so a fresh checkout deploys there once per run.
+
+   Writes `deployments.local.json`.
+
+2. **Values** — On `PRIMARY_TEST_CHAIN` (and staging when `TEST_STAGING_ENABLED=true`), stores `storedValue` (42, readable by the account that stored it) and `publicValue` (7, readable by everyone) with the trivial-encrypt functions and pins the resulting handles in `deployments.local.json`. The fixture is shared and other suites overwrite it, but a handle stays decryptable after the contract moves on, so the decrypt tests use the pinned handles, and setup skips this step while the TaskManager's ACL still allows them for this account. A fresh checkout stores once.
+3. **Build** — `pnpm build` (tsup + forge build) so `dist/` has `deployments.local.json` baked in.
 
 CLI options: `--chains <ids>` (comma-separated), `--dry-run`.
 
@@ -57,27 +64,10 @@ CLI options: `--chains <ids>` (comma-separated), `--dry-run`.
 
 Supports `setValue`/`setValueTrivial`, `setPublicValue`/`setPublicValueTrivial`, `addValue`/`addValueTrivial`, `publishDecryptResult`/`getDecryptResultSafe`. The `*Trivial` variants accept raw `uint256` and call `FHE.asEuint32` internally — used by `setup.mjs` to store values via `cast send` without the SDK encryption flow.
 
-### `src/deployments.json`
+### `deployments.local.json`
 
-Auto-generated registry keyed by `[contractName][chainId]`. Committed so tests can reference existing addresses without deploy access.
-
-### `src/primaryTestChainRegistry.json`
-
-Pre-stored encrypted values on the primary test chain. Lets core SDK tests decrypt/verify/publish without performing on-chain encryption. Contains `privateValue` (acp-gated), `publicValue` (public), `addedValue` (FHE.add result).
+Written by `setup.mjs`: `SimpleTest[chainId]` holds the address, `SimpleTestValues[chainId]` the pinned handles, the plaintexts and the account that stored them (staging under `420105-staging`, since it shares localcofhe's chain ID). Not committed: it describes what this checkout found, deployed or stored, and tsup inlines it into `dist/`. `getSimpleTestAddress` and `getSimpleTestValues` return `undefined` for a chain setup has not run for, which the live suites report as "run `pnpm test:setup`".
 
 ### `src/env.ts`
 
 Exports `TEST_PRIVATE_KEY`, `TEST_LOCALCOFHE_PRIVATE_KEY`, `PRIMARY_TEST_CHAIN`. All `process.env` references are replaced at build time.
-
-### `src/primaryTestChain.ts`
-
-Typed accessor for `primaryTestChainRegistry.json`. Exports the registry and `isPrimaryTestChainReady()` type guard — tests call this to fail fast with a clear message when setup hasn't been run.
-
-## Staging test-chain registry
-
-`src/stagingTestChainRegistry.json` holds the SimpleTest values initialized on the
-CoFHE staging chain (populated by `pnpm test:setup` when `TEST_STAGING_ENABLED=true`).
-The private values grant on-chain access to the account that initialized them, so the
-file records `initializedBy` and setup re-initializes whenever a different
-`TEST_PRIVATE_KEY` runs it — expect this file to churn between developers; that is
-by design, commit or discard freely.
