@@ -193,10 +193,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
 
-      # TODO before merge: pin to master once setup-localcofhe is merged in FhenixProtocol/actions.
+      # Pinned by commit: the action receives COFHE_READ_TOKEN. TODO before merge: pin to an actions master commit.
       - name: Start localcofhe
         id: localcofhe
-        uses: FhenixProtocol/actions/.github/actions/setup-localcofhe@feat/setup-localcofhe
+        uses: FhenixProtocol/actions/.github/actions/setup-localcofhe@79a9478796629e6176801251a8a22bc4f279871d # feat/setup-localcofhe
         with:
           token: ${{ secrets.COFHE_READ_TOKEN }}
 
