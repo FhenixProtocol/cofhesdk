@@ -8,7 +8,7 @@ name: Test
 #                                | React hooks on a chain                        |                              |              |
 #   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
 #   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
-#   SDK vs localcofhe            | service HTTP contract: teecryptor 401 codes   | localcofhe in Docker         | local only   | COFHE_READ_TOKEN: clones cofhe, pulls its images
+#   SDK vs localcofhe            | service HTTP API: teecryptor 401 codes        | localcofhe in Docker         | local only   | COFHE_READ_TOKEN: clones cofhe, pulls its images
 #   Matrix: Anvil mocks          | app flows on the mocks: client, encrypt,      | a local Anvil                | no           | no
 #                                | decrypt, share, revoke, as an app uses them   |                              |              |
 #   Matrix: <testnet>            | the same, one leg per testnet                 | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
@@ -167,7 +167,7 @@ jobs:
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
 
   # The SDK against a full CoFHE stack (teecryptor, zee-k-verifier, host chain) started on the
-  # runner from cofhe master, the way cofhe's own CI does. It asserts the HTTP contract the SDK
+  # runner from cofhe master, the way cofhe's own CI does. It asserts the service HTTP API the SDK
   # depends on, so a service change that breaks the SDK fails here first.
   #
   # Secret COFHE_READ_TOKEN: a classic GitHub PAT, SSO-authorized for FhenixProtocol, with
@@ -243,12 +243,12 @@ jobs:
         working-directory: test/setup
         run: node setup.mjs --chains 420105
 
-      - name: Run backend contract tests
+      - name: Run service API tests
         working-directory: test/integration-matrix
         env:
           MATRIX_ENV: node
           MATRIX_CHAIN: localcofhe
-        run: pnpm exec vitest run --project node --reporter=verbose test/backendContract.test.ts
+        run: pnpm exec vitest run --project node --reporter=verbose test/serviceApi.test.ts
 
       - name: Service logs on failure
         if: failure()

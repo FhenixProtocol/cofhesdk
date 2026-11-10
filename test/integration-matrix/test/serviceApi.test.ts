@@ -1,7 +1,7 @@
 import { describe, it, inject } from 'vitest';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { localcofheConfig } from '../src/chains/index.js';
-import { runBackendContractSuite } from '../src/suites/backendContract.js';
+import { runServiceApiSuite } from '../src/suites/serviceApi.js';
 import type { ClientFactory } from '../src/types.js';
 import { getMatrixChains } from '../src/matrix.js';
 
@@ -17,9 +17,9 @@ const [{ chain, chainEnabled, nodeEnabled }] = getMatrixChains(inject('matrixEnv
 ]);
 
 if (chainEnabled && nodeEnabled) {
-  describe(`[BACKEND CONTRACT] Node X ${chain.label}`, () => {
-    runBackendContractSuite(chain, factory);
+  describe(`[SERVICE API] Node X ${chain.label}`, () => {
+    runServiceApiSuite(chain, factory);
   });
 } else {
-  it.skip(`[BACKEND CONTRACT] Node X ${chain.label} — Skipped`, () => {});
+  it.skip(`[SERVICE API] Node X ${chain.label} — Skipped`, () => {});
 }

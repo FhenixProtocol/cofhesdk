@@ -1,5 +1,5 @@
 /**
- * Contract tests between the SDK and the real CoFHE services (teecryptor, zee-k-verifier).
+ * Service API tests: the SDK against the real CoFHE services (teecryptor, zee-k-verifier).
  *
  * The unit tests mock the service responses. These run against a live stack, so a service that
  * changes its status codes or error body breaks here before it breaks users.
@@ -34,7 +34,7 @@ async function expectDecryptRejection(
   expect(error).toMatchObject(expected);
 }
 
-export function runBackendContractSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
+export function runServiceApiSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
   let ctx: TestContext;
   let ctHash: `0x${string}`;
 
