@@ -179,11 +179,6 @@ jobs:
     name: 'SDK vs localcofhe (cofhe master, Docker)'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      # The public localcofhe dev key from test/setup/src/env.ts. setup.mjs requires
-      # TEST_PRIVATE_KEY even when it deploys to localcofhe only.
-      TEST_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
-      TEST_LOCALCOFHE_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
     steps:
       - name: Validate COFHE_READ_TOKEN availability
         env:
@@ -198,29 +193,12 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
 
-      - name: Checkout cofhe master
-        uses: actions/checkout@v5
-        with:
-          repository: FhenixProtocol/cofhe
-          ref: master
-          path: cofhe
-          token: ${{ secrets.COFHE_READ_TOKEN }}
-          submodules: recursive
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.COFHE_READ_TOKEN }}
-
-      # `latest` is the nightly master build, so the images can trail master's compose by a day.
+      # TODO before merge: pin to master once setup-localcofhe is merged in FhenixProtocol/actions.
       - name: Start localcofhe
-        working-directory: cofhe
-        run: make start-latest-cofhe TAG=latest && make wait-for-cofhe
-
-      - name: Setup pnpm 8
-        uses: pnpm/action-setup@v5
+        id: localcofhe
+        uses: FhenixProtocol/actions/.github/actions/setup-localcofhe@feat/setup-localcofhe
+        with:
+          token: ${{ secrets.COFHE_READ_TOKEN }}
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v5
@@ -228,31 +206,12 @@ jobs:
           node-version: 22.x
           package-manager-cache: false
 
-      - name: Install Dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: 1.7.1
-
-      - name: Build test dependencies
-        run: pnpm exec turbo run build --filter=@cofhe/integration-matrix^...
-
-      - name: Deploy SimpleTest to localcofhe
-        working-directory: test/setup
-        run: node setup.mjs --chains 420105
-
       - name: Run service API tests
-        working-directory: test/integration-matrix
-        env:
-          MATRIX_ENV: node
-          MATRIX_CHAIN: localcofhe
-        run: pnpm exec vitest run --project node --reporter=verbose test/serviceApi.test.ts
+        uses: ./.github/actions/service-api-tests
 
       - name: Service logs on failure
         if: failure()
-        working-directory: cofhe
+        working-directory: ${{ steps.localcofhe.outputs.cofhe-path }}
         run: docker compose logs --tail 200 teecryptor zk-verifier contracts-deployer
 
   # The matrix on Anvil with the CoFHE mocks. Needs no key, so it runs on every pull request,

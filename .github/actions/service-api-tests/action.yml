@@ -1,0 +1,27 @@
+name: SDK service API tests
+description: "Run the SDK service API suite (test/integration-matrix/test/serviceApi.test.ts) against a localcofhe already running on its default ports. Uses the cofhesdk source of the ref this action is called at."
+runs:
+  using: "composite"
+  steps:
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: 1.7.1
+
+    - name: Run service API tests
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../..
+      env:
+        # The public localcofhe dev key, the default in test/setup/src/env.ts. setup.mjs requires
+        # TEST_PRIVATE_KEY even when it deploys to localcofhe only.
+        TEST_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
+        TEST_LOCALCOFHE_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
+        MATRIX_ENV: node
+        MATRIX_CHAIN: localcofhe
+      # The repo pins pnpm 8 (lockfile v6). Callers may have another pnpm on PATH.
+      run: |
+        pnpm8() { npx --yes pnpm@8.15.6 "$@"; }
+        pnpm8 i --frozen-lockfile
+        pnpm8 exec turbo run build --filter=@cofhe/integration-matrix^...
+        (cd test/setup && node setup.mjs --chains 420105)
+        cd test/integration-matrix && pnpm8 exec vitest run --project node --reporter=verbose test/serviceApi.test.ts
