@@ -8,6 +8,7 @@ name: Test
 #                                | React hooks on a chain                        |                              |              |
 #   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
 #   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
+#   SDK vs localcofhe            | service HTTP contract: teecryptor 401 codes   | localcofhe in Docker         | local only   | COFHE_READ_TOKEN: clones cofhe, pulls its images
 #   Matrix: Anvil mocks          | app flows on the mocks: client, encrypt,      | a local Anvil                | no           | no
 #                                | decrypt, share, revoke, as an app uses them   |                              |              |
 #   Matrix: <testnet>            | the same, one leg per testnet                 | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
@@ -164,6 +165,95 @@ jobs:
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
+
+  # The SDK against a full CoFHE stack (teecryptor, zee-k-verifier, host chain) started on the
+  # runner from cofhe master, the way cofhe's own CI does. It asserts the HTTP contract the SDK
+  # depends on, so a service change that breaks the SDK fails here first.
+  #
+  # Secret COFHE_READ_TOKEN: a classic GitHub PAT, SSO-authorized for FhenixProtocol, with
+  #   - `repo`          to clone FhenixProtocol/cofhe (private) for its compose files and configs
+  #   - `read:packages` to pull the prebuilt images under ghcr.io/fhenixprotocol (internal)
+  # It reads only. Fork PRs get no secrets, so this job skips there.
+  test-localcofhe:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    name: 'SDK vs localcofhe (cofhe master, Docker)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # The public localcofhe dev key from test/setup/src/env.ts. setup.mjs requires
+      # TEST_PRIVATE_KEY even when it deploys to localcofhe only.
+      TEST_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
+      TEST_LOCALCOFHE_PRIVATE_KEY: '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
+    steps:
+      - name: Validate COFHE_READ_TOKEN availability
+        env:
+          COFHE_READ_TOKEN: ${{ secrets.COFHE_READ_TOKEN }}
+        run: |
+          if [ -z "$COFHE_READ_TOKEN" ]; then
+            echo "COFHE_READ_TOKEN secret is not available to this workflow run."
+            echo "See the comment above the test-localcofhe job for the scopes it needs."
+            exit 1
+          fi
+
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Checkout cofhe master
+        uses: actions/checkout@v5
+        with:
+          repository: FhenixProtocol/cofhe
+          ref: master
+          path: cofhe
+          token: ${{ secrets.COFHE_READ_TOKEN }}
+          submodules: recursive
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.COFHE_READ_TOKEN }}
+
+      # `latest` is the nightly master build, so the images can trail master's compose by a day.
+      - name: Start localcofhe
+        working-directory: cofhe
+        run: make start-latest-cofhe TAG=latest && make wait-for-cofhe
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Build test dependencies
+        run: pnpm exec turbo run build --filter=@cofhe/integration-matrix^...
+
+      - name: Deploy SimpleTest to localcofhe
+        working-directory: test/setup
+        run: node setup.mjs --chains 420105
+
+      - name: Run backend contract tests
+        working-directory: test/integration-matrix
+        env:
+          MATRIX_ENV: node
+          MATRIX_CHAIN: localcofhe
+        run: pnpm exec vitest run --project node --reporter=verbose test/backendContract.test.ts
+
+      - name: Service logs on failure
+        if: failure()
+        working-directory: cofhe
+        run: docker compose logs --tail 200 teecryptor zk-verifier contracts-deployer
 
   # The matrix on Anvil with the CoFHE mocks. Needs no key, so it runs on every pull request,
   # forks included. The testnet legs are the job below.
