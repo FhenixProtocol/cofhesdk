@@ -79,7 +79,7 @@ export const viemLocalcofhe = defineChain({
   },
 });
 
-const localcofheConfig: TestChainConfig = {
+export const localcofheConfig: TestChainConfig = {
   id: viemLocalcofhe.id,
   label: 'Local CoFHE',
   viemChain: viemLocalcofhe,
