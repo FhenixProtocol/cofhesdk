@@ -1,5 +1,7 @@
 name: SDK service API tests
 description: "Run the SDK service API suite (test/integration-matrix/test/serviceApi.test.ts) against a localcofhe already running on its default ports. Uses the cofhesdk source of the ref this action is called at."
+# Called from cofhe's CI, which owns the localcofhe stack. Starting that stack needs a token that
+# reads the private cofhe repo and images, so it must never run in this public repo's CI.
 runs:
   using: "composite"
   steps:

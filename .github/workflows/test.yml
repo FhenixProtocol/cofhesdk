@@ -8,7 +8,6 @@ name: Test
 #                                | React hooks on a chain                        |                              |              |
 #   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
 #   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
-#   SDK vs localcofhe            | service HTTP API: teecryptor 401 codes        | localcofhe in Docker         | local only   | COFHE_READ_TOKEN: clones cofhe, pulls its images
 #   Matrix: Anvil mocks          | app flows on the mocks: client, encrypt,      | a local Anvil                | no           | no
 #                                | decrypt, share, revoke, as an app uses them   |                              |              |
 #   Matrix: <testnet>            | the same, one leg per testnet                 | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
@@ -165,54 +164,6 @@ jobs:
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: pnpm exec turbo run test:live --filter=@cofhe/sdk
-
-  # The SDK against a full CoFHE stack (teecryptor, zee-k-verifier, host chain) started on the
-  # runner from cofhe master, the way cofhe's own CI does. It asserts the service HTTP API the SDK
-  # depends on, so a service change that breaks the SDK fails here first.
-  #
-  # Secret COFHE_READ_TOKEN: a classic GitHub PAT, SSO-authorized for FhenixProtocol, with
-  #   - `repo`          to clone FhenixProtocol/cofhe (private) for its compose files and configs
-  #   - `read:packages` to pull the prebuilt images under ghcr.io/fhenixprotocol (internal)
-  # It reads only. Fork PRs get no secrets, so this job skips there.
-  test-localcofhe:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-    name: 'SDK vs localcofhe (cofhe master, Docker)'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - name: Validate COFHE_READ_TOKEN availability
-        env:
-          COFHE_READ_TOKEN: ${{ secrets.COFHE_READ_TOKEN }}
-        run: |
-          if [ -z "$COFHE_READ_TOKEN" ]; then
-            echo "COFHE_READ_TOKEN secret is not available to this workflow run."
-            echo "See the comment above the test-localcofhe job for the scopes it needs."
-            exit 1
-          fi
-
-      - name: Checkout Repo
-        uses: actions/checkout@v5
-
-      # Pinned by commit: the action receives COFHE_READ_TOKEN. TODO before merge: pin to an actions master commit.
-      - name: Start localcofhe
-        id: localcofhe
-        uses: FhenixProtocol/actions/.github/actions/setup-localcofhe@79a9478796629e6176801251a8a22bc4f279871d # feat/setup-localcofhe
-        with:
-          token: ${{ secrets.COFHE_READ_TOKEN }}
-
-      - name: Setup Node.js 22.x
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22.x
-          package-manager-cache: false
-
-      - name: Run service API tests
-        uses: ./.github/actions/service-api-tests
-
-      - name: Service logs on failure
-        if: failure()
-        working-directory: ${{ steps.localcofhe.outputs.cofhe-path }}
-        run: docker compose logs --tail 200 teecryptor zk-verifier contracts-deployer
 
   # The matrix on Anvil with the CoFHE mocks. Needs no key, so it runs on every pull request,
   # forks included. The testnet legs are the job below.
