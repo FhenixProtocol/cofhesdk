@@ -8,7 +8,6 @@ import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import {
   classifySubmitResponse,
-  normalize404RetryTimeoutMs,
   normalizeAccessDeniedRetryTimeoutMs,
   shouldRetryAccessDenied,
   throwIfSubmitRetryTimedOut,
@@ -187,7 +186,6 @@ async function submitDecryptRequestV2(
   chainId: number,
   acp: ACPPublic | null,
   overallStartTime: number,
-  retry404TimeoutMs: number,
   accessDeniedRetryTimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
 ): Promise<DecryptSubmitResultV2> {
@@ -205,7 +203,6 @@ async function submitDecryptRequestV2(
   }
 
   let attemptIndex = 0;
-  let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
     let response: Response;
@@ -265,7 +262,7 @@ async function submitDecryptRequestV2(
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
         message: `decrypt request failed: ${responseClassification.errorMessage}`,
-        hint: 'Check the threshold network URL and request parameters.',
+        hint: responseClassification.hint ?? 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
           status: responseClassification.status,
@@ -322,10 +319,6 @@ async function submitDecryptRequestV2(
       });
     }
 
-    if (responseClassification.status === 404) {
-      last404ApiErrorMessage = responseClassification.apiErrorMessage;
-    }
-
     const elapsedMs = Date.now() - overallStartTime;
 
     throwIfSubmitRetryTimedOut({
@@ -333,12 +326,10 @@ async function submitDecryptRequestV2(
       errorCode: CofheErrorCode.DecryptFailed,
       status: responseClassification.status,
       elapsedMs,
-      retry404TimeoutMs,
       overallTimeoutMs: DECRYPT_TIMEOUT_MS,
       thresholdNetworkUrl,
       body,
       attemptIndex,
-      lastKnownErrorMessage: last404ApiErrorMessage,
     });
 
     onPoll?.({
@@ -489,16 +480,10 @@ export async function tnDecryptV2(params: {
   chainId: number;
   acp: ACPPublic | null;
   thresholdNetworkUrl: string;
-  retry404TimeoutMs?: number;
   accessDeniedRetryTimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, accessDeniedRetryTimeoutMs, onPoll } = params;
-  const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
-    timeoutMs: retry404TimeoutMs,
-    operationLabel: 'decrypt',
-    errorCode: CofheErrorCode.DecryptFailed,
-  });
+  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll } = params;
   const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
     timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'decrypt',
@@ -511,7 +496,6 @@ export async function tnDecryptV2(params: {
     chainId,
     acp,
     overallStartTime,
-    normalized404RetryTimeoutMs,
     normalizedAccessDeniedRetryTimeoutMs,
     onPoll
   );

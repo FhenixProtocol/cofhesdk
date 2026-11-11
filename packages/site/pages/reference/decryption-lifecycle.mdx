@@ -62,7 +62,7 @@ A `404` (`ct_not_found`) means the caller is allowed to decrypt the handle, but 
 
 The SDK does not retry a `404`: it fails at once with `CtNotFound` (`apiErrorCode: 'ct_not_found'`), whatever error code the body carries. Waiting does not fix it, because the answer points to a problem on the network side, not to a handle that needs more time.
 
-`.set404RetryTimeout(timeoutMs)` on either decrypt builder is deprecated. It still works: with a value above `0` the SDK retries a `404` for that long before failing. It will be removed in a future major release.
+`.set404RetryTimeout(timeoutMs)` on either decrypt builder is deprecated and has no effect. It is still accepted so existing code keeps compiling, and will be removed in a future major release.
 
 ### A `request_id` without a result: status polling
 

@@ -12,7 +12,6 @@ import { getPublicClientChainID, sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 
-const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
 const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
 /**
@@ -65,7 +64,6 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private acp?: ACP;
   private acpSelection: DecryptForTxACPSelection = 'unset';
   private pollCallback?: DecryptPollCallbackFunction;
-  private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private accessDeniedRetryTimeoutMs = DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS;
 
   constructor(params: DecryptForTxBuilderParams) {
@@ -139,29 +137,18 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   /**
-   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
-   * the handle, which waiting does not fix. This setter still works and will be removed in a
-   * future major release.
+   * @deprecated Has no effect. A 404 from the network is never retried: it means the network has
+   * no ciphertext for the handle, which waiting does not fix. Will be removed in a future major
+   * release.
    */
   set404RetryTimeout(this: DecryptForTxBuilderUnset, timeoutMs: number): DecryptForTxBuilderUnset;
   /**
-   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
-   * the handle, which waiting does not fix. This setter still works and will be removed in a
-   * future major release.
+   * @deprecated Has no effect. A 404 from the network is never retried: it means the network has
+   * no ciphertext for the handle, which waiting does not fix. Will be removed in a future major
+   * release.
    */
   set404RetryTimeout(this: DecryptForTxBuilderSelected, timeoutMs: number): DecryptForTxBuilderSelected;
-  set404RetryTimeout(timeoutMs: number): DecryptForTxBuilder {
-    if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
-      throw new CofheError({
-        code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: set404RetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
-        context: {
-          timeoutMs,
-        },
-      });
-    }
-
-    this.retry404TimeoutMs = timeoutMs;
+  set404RetryTimeout(_timeoutMs: number): DecryptForTxBuilder {
     return this;
   }
 
@@ -364,7 +351,6 @@ export class DecryptForTxBuilder extends BaseBuilder {
       chainId: this.chainId,
       acp: wireAcp,
       thresholdNetworkUrl,
-      retry404TimeoutMs: this.retry404TimeoutMs,
       accessDeniedRetryTimeoutMs: this.accessDeniedRetryTimeoutMs,
       onPoll: this.pollCallback,
     });

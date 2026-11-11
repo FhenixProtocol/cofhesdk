@@ -7,7 +7,6 @@ import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import {
   classifySubmitResponse,
-  normalize404RetryTimeoutMs,
   normalizeAccessDeniedRetryTimeoutMs,
   shouldRetryAccessDenied,
   throwIfSubmitRetryTimedOut,
@@ -146,7 +145,6 @@ async function submitSealOutputRequest(
   chainId: number,
   acp: ACPPublic,
   overallStartTime: number,
-  retry404TimeoutMs: number,
   accessDeniedRetryTimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
 ): Promise<SealOutputSubmitResult> {
@@ -156,7 +154,6 @@ async function submitSealOutputRequest(
     acp,
   };
   let attemptIndex = 0;
-  let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
     let response: Response;
@@ -216,7 +213,7 @@ async function submitSealOutputRequest(
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
         message: `sealOutput request failed: ${responseClassification.errorMessage}`,
-        hint: 'Check the threshold network URL and request parameters.',
+        hint: responseClassification.hint ?? 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
           status: responseClassification.status,
@@ -270,10 +267,6 @@ async function submitSealOutputRequest(
       });
     }
 
-    if (responseClassification.status === 404) {
-      last404ApiErrorMessage = responseClassification.apiErrorMessage;
-    }
-
     const elapsedMs = Date.now() - overallStartTime;
 
     throwIfSubmitRetryTimedOut({
@@ -281,12 +274,10 @@ async function submitSealOutputRequest(
       errorCode: CofheErrorCode.SealOutputFailed,
       status: responseClassification.status,
       elapsedMs,
-      retry404TimeoutMs,
       overallTimeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
       thresholdNetworkUrl,
       body,
       attemptIndex,
-      lastKnownErrorMessage: last404ApiErrorMessage,
     });
 
     onPoll?.({
@@ -443,16 +434,10 @@ export async function tnSealOutputV2(params: {
   chainId: number;
   acp: ACPPublic;
   thresholdNetworkUrl: string;
-  retry404TimeoutMs?: number;
   accessDeniedRetryTimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, accessDeniedRetryTimeoutMs, onPoll } = params;
-  const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
-    timeoutMs: retry404TimeoutMs,
-    operationLabel: 'sealOutput',
-    errorCode: CofheErrorCode.SealOutputFailed,
-  });
+  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll } = params;
   const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
     timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'sealOutput',
@@ -467,7 +452,6 @@ export async function tnSealOutputV2(params: {
     chainId,
     acp,
     overallStartTime,
-    normalized404RetryTimeoutMs,
     normalizedAccessDeniedRetryTimeoutMs,
     onPoll
   );

@@ -189,95 +189,15 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnDecryptV2 calls onPoll for 404 submit retries when a 404 retry window is set', async () => {
+  it('tnDecryptV2 fails on the first 404 without retrying, whatever error code the body carries', async () => {
     const onPoll = vi.fn();
-
-    let submitCalls = 0;
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        submitCalls += 1;
-
-        if (submitCalls === 1) {
-          return makeMockResponse({
-            ok: false,
-            status: 404,
-            statusText: 'Not Found',
-            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-submit-retry-404' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-submit-retry-404` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-submit-retry-404',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            decrypted: [0x01],
-            signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
-          }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 10_000,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-
-    expect(onPoll).toHaveBeenCalledTimes(1);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: '',
-        attemptIndex: 0,
-        intervalMs: 1000,
-        timeoutMs: 5 * 60 * 1000,
-      })
-    );
-
-    await vi.advanceTimersByTimeAsync(1000);
-    await promise;
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: 'req-submit-retry-404',
-        attemptIndex: 0,
-      })
-    );
-  });
-
-  it('tnDecryptV2 fails on the first 404 by default, without retrying', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
         return makeMockResponse({
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'no ciphertext' }),
         });
       }
 
@@ -286,55 +206,23 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
+    await expect(
+      tnDecryptV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: null,
+        thresholdNetworkUrl,
+        onPoll,
+        // A 404 is final even when the caller asked to wait out access denials.
+        accessDeniedRetryTimeoutMs: 60_000,
+      })
+    ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found: ciphertext not indexed yet',
+      message: 'decrypt request failed: ciphertext not found: no ciphertext',
     });
-
-    await rejection;
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('tnDecryptV2 retries any 404 inside a set window and times out with the last error message', async () => {
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 10_000,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: acp was rejected',
-    });
-
-    await vi.advanceTimersByTimeAsync(11_000);
-    await rejection;
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnDecryptV2 does not retry a 401 acp_denied submit', async () => {
@@ -362,7 +250,6 @@ describe('decrypt polling callbacks', () => {
         acp: null,
         thresholdNetworkUrl,
         onPoll,
-        retry404TimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -720,98 +607,15 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnSealOutputV2 calls onPoll for 404 submit retries when a 404 retry window is set', async () => {
+  it('tnSealOutputV2 fails on the first 404 without retrying, whatever error code the body carries', async () => {
     const onPoll = vi.fn();
-
-    let submitCalls = 0;
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        submitCalls += 1;
-
-        if (submitCalls === 1) {
-          return makeMockResponse({
-            ok: false,
-            status: 404,
-            statusText: 'Not Found',
-            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-seal-submit-retry-404' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput/req-seal-submit-retry-404` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-seal-submit-retry-404',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            sealed: {
-              data: [1, 2, 3],
-              public_key: [4, 5],
-              nonce: [6],
-            },
-          }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 10_000,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-
-    expect(onPoll).toHaveBeenCalledTimes(1);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: '',
-        attemptIndex: 0,
-        intervalMs: 1000,
-        timeoutMs: 5 * 60 * 1000,
-      })
-    );
-
-    await vi.advanceTimersByTimeAsync(1000);
-    await promise;
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: 'req-seal-submit-retry-404',
-        attemptIndex: 0,
-      })
-    );
-  });
-
-  it('tnSealOutputV2 uses custom 404 submit retry timeout', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
         return makeMockResponse({
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'no ciphertext' }),
         });
       }
 
@@ -820,56 +624,23 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 2000,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
+    await expect(
+      tnSealOutputV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: {} as any,
+        thresholdNetworkUrl,
+        onPoll,
+        // A 404 is final even when the caller asked to wait out access denials.
+        accessDeniedRetryTimeoutMs: 60_000,
+      })
+    ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 2000ms: ciphertext not indexed yet',
+      message: 'sealOutput request failed: ciphertext not found: no ciphertext',
     });
-
-    await vi.advanceTimersByTimeAsync(3000);
-    await rejection;
-  });
-
-  it('tnSealOutputV2 retries any 404 inside a set window and times out with the last error message', async () => {
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 10_000,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 10000ms: acp was rejected',
-    });
-
-    await vi.advanceTimersByTimeAsync(11_000);
-    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnSealOutputV2 does not retry a 401 acp_denied submit', async () => {
@@ -897,7 +668,6 @@ describe('decrypt polling callbacks', () => {
         acp: {} as any,
         thresholdNetworkUrl,
         onPoll,
-        retry404TimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
     expect(fetchMock).toHaveBeenCalledTimes(1);

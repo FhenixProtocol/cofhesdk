@@ -1,21 +1,13 @@
 import { CofheError, CofheErrorCode } from '../error.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 
-/**
- * A 404 means the network has no ciphertext for a handle the caller may read. That is a fault on
- * the network side, not a handle that needs more time, so it is not retried unless the caller
- * asks for a window through the deprecated `set404RetryTimeout`.
- */
-export const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
-
 /** No retry of an access-denied answer unless the caller asks for one. */
 export const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
-export type SubmitRetryableStatus = 204 | 404;
+export type SubmitRetryableStatus = 204;
 
 export type SubmitResponseClassification =
   | { kind: 'retryable'; status: 204 }
-  | { kind: 'retryable'; status: 404; apiErrorMessage: string }
   | { kind: 'parse-json' }
   | {
       kind: 'fatal-http';
@@ -23,29 +15,8 @@ export type SubmitResponseClassification =
       cofheErrorCode: CofheErrorCode;
       apiErrorCode?: string;
       errorMessage: string;
+      hint?: string;
     };
-
-export function normalize404RetryTimeoutMs(params: {
-  timeoutMs: number | undefined;
-  operationLabel: string;
-  errorCode: CofheErrorCode;
-}): number {
-  const { timeoutMs, operationLabel, errorCode } = params;
-
-  if (timeoutMs === undefined) return DEFAULT_404_RETRY_TIMEOUT_MS;
-
-  if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
-    throw new CofheError({
-      code: errorCode,
-      message: `${operationLabel} submit 404 retry timeout must be a finite number greater than or equal to 0`,
-      context: {
-        timeoutMs,
-      },
-    });
-  }
-
-  return timeoutMs;
-}
 
 export function normalizeAccessDeniedRetryTimeoutMs(params: {
   timeoutMs: number | undefined;
@@ -85,9 +56,8 @@ export function shouldRetryAccessDenied(params: {
 }
 
 /**
- * Classifies a submit (POST) response into: bodyless-retryable 204, any 404 (not-found,
- * retried only inside a 404 retry window the caller set; none by default), a 200 to be JSON-parsed, or a fatal error
- * carrying the mapped CofheErrorCode.
+ * Classifies a submit (POST) response into: bodyless-retryable 204, a 200 to be JSON-parsed, or a
+ * fatal error carrying the mapped CofheErrorCode. Any 404 is fatal and maps to CtNotFound.
  */
 export async function classifySubmitResponse(params: {
   response: Response;
@@ -106,8 +76,17 @@ export async function classifySubmitResponse(params: {
 
   const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
 
+  // A 404 means the network has no ciphertext for a handle the caller may read. That is a fault on
+  // the network side, not a handle that needs more time, so it is never retried.
   if (response.status === 404) {
-    return { kind: 'retryable', status: 404, apiErrorMessage: errorMessage };
+    return {
+      kind: 'fatal-http',
+      status: 404,
+      cofheErrorCode: CofheErrorCode.CtNotFound,
+      apiErrorCode: 'ct_not_found',
+      errorMessage: `ciphertext not found: ${errorMessage}`,
+      hint: 'The network has no ciphertext for this handle. Waiting does not help; check the chain and environment the handle belongs to.',
+    };
   }
 
   return {
@@ -124,44 +103,13 @@ export function throwIfSubmitRetryTimedOut(params: {
   errorCode: CofheErrorCode;
   status: SubmitRetryableStatus;
   elapsedMs: number;
-  retry404TimeoutMs: number;
   overallTimeoutMs: number;
   thresholdNetworkUrl: string;
   body: unknown;
   attemptIndex: number;
-  lastKnownErrorMessage?: string;
 }): void {
-  const {
-    operationLabel,
-    errorCode,
-    status,
-    elapsedMs,
-    retry404TimeoutMs,
-    overallTimeoutMs,
-    thresholdNetworkUrl,
-    body,
-    attemptIndex,
-    lastKnownErrorMessage,
-  } = params;
-
-  if (status === 404 && (retry404TimeoutMs === 0 || elapsedMs > retry404TimeoutMs)) {
-    throw new CofheError({
-      code: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      message:
-        `${operationLabel} ciphertext not found` +
-        (retry404TimeoutMs > 0 ? ` after retrying for ${retry404TimeoutMs}ms` : '') +
-        (lastKnownErrorMessage ? `: ${lastKnownErrorMessage}` : ''),
-      hint: 'The network has no ciphertext for this handle. Waiting does not help; check the chain and environment the handle belongs to.',
-      context: {
-        thresholdNetworkUrl,
-        body,
-        attemptIndex,
-        timeoutMs: retry404TimeoutMs,
-        status,
-      },
-    });
-  }
+  const { operationLabel, errorCode, status, elapsedMs, overallTimeoutMs, thresholdNetworkUrl, body, attemptIndex } =
+    params;
 
   if (elapsedMs > overallTimeoutMs) {
     throw new CofheError({

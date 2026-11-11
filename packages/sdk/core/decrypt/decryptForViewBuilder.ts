@@ -14,7 +14,6 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 
-const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
 const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
 /**
@@ -51,7 +50,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private acpHash?: string;
   private acp?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
-  private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
   private accessDeniedRetryTimeoutMs = DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
@@ -122,22 +120,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
-   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
-   * the handle, which waiting does not fix. This setter still works and will be removed in a
-   * future major release.
+   * @deprecated Has no effect. A 404 from the network is never retried: it means the network has
+   * no ciphertext for the handle, which waiting does not fix. Will be removed in a future major
+   * release.
    */
-  set404RetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
-    if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
-      throw new CofheError({
-        code: CofheErrorCode.InternalError,
-        message: 'decryptForView: set404RetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
-        context: {
-          timeoutMs,
-        },
-      });
-    }
-
-    this.retry404TimeoutMs = timeoutMs;
+  set404RetryTimeout(_timeoutMs: number): DecryptForViewBuilder<U> {
     return this;
   }
 
@@ -325,7 +312,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       chainId: this.chainId,
       acp: wireAcp,
       thresholdNetworkUrl,
-      retry404TimeoutMs: this.retry404TimeoutMs,
       accessDeniedRetryTimeoutMs: this.accessDeniedRetryTimeoutMs,
       onPoll: this.pollCallback,
     });

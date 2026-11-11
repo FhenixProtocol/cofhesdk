@@ -415,26 +415,9 @@ plaintext;
 
 ### `.set404RetryTimeout(timeoutMs)` — deprecated
 
-Deprecated, and will be removed in a future major release. A submit-time `404 Not Found` now fails at once with `CtNotFound`, because it means the network has no ciphertext for the handle and waiting does not fix that; see [Decryption Lifecycle](/reference/decryption-lifecycle).
+Deprecated and has no effect. A submit-time `404 Not Found` fails at once with `CtNotFound`, because it means the network has no ciphertext for the handle and waiting does not fix that; see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
-The setter still works: with a value above `0` the SDK retries a `404` for that long before failing. The default is `0`.
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { chains } from '@cofhe/sdk/chains';
-import { FheTypes } from '@cofhe/sdk';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const client = createCofheClient(config);
-declare const ctHash: `0x${string}`;
-// ---cut---
-const plaintext = await client
-  .decryptForView(ctHash, FheTypes.Uint32)
-  .set404RetryTimeout(15_000) // [!code focus]
-  .execute();
-
-plaintext;
-```
+The method is still accepted so existing code keeps compiling. Remove the call; it will be dropped in a future major release.
 
 ### `.setAccessDeniedRetryTimeout(timeoutMs)` — optional
 

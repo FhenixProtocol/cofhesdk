@@ -213,18 +213,11 @@ describe('DecryptForTxBuilder', () => {
       expect(selected.getAccount()).toBe('0xabc');
     });
 
-    it('should allow configuring 404 retry timeout', () => {
-      const builder = createTxBuilder();
-      const result = builder.set404RetryTimeout(15_000);
-
-      expect(result).toBe(builder);
-      expect((builder as any).retry404TimeoutMs).toBe(15_000);
-    });
-
-    it('should throw for invalid 404 retry timeout', () => {
+    it('accepts the deprecated set404RetryTimeout and ignores it', () => {
       const builder = createTxBuilder();
 
-      expect(() => builder.set404RetryTimeout(-1)).toThrow('set404RetryTimeout(timeoutMs) expects');
+      expect(builder.set404RetryTimeout(15_000)).toBe(builder);
+      expect(builder.set404RetryTimeout(-1)).toBe(builder);
     });
   });
 
@@ -356,18 +349,11 @@ describe('DecryptForViewBuilder', () => {
       expect(result.getAccount()).toBe(account.address);
     });
 
-    it('should allow configuring 404 retry timeout', () => {
-      const builder = createViewBuilder(FheTypes.Uint32);
-      const result = builder.set404RetryTimeout(12_000);
-
-      expect(result).toBe(builder);
-      expect((builder as any).retry404TimeoutMs).toBe(12_000);
-    });
-
-    it('should throw for invalid 404 retry timeout', () => {
+    it('accepts the deprecated set404RetryTimeout and ignores it', () => {
       const builder = createViewBuilder(FheTypes.Uint32);
 
-      expect(() => builder.set404RetryTimeout(-1)).toThrow('set404RetryTimeout(timeoutMs) expects');
+      expect(builder.set404RetryTimeout(12_000)).toBe(builder);
+      expect(builder.set404RetryTimeout(-1)).toBe(builder);
     });
   });
 
