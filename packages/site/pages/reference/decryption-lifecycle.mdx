@@ -83,7 +83,6 @@ The SDK uses one shared timeout budget across the full production lifecycle:
 
 - initial submit attempts,
 - repeated `204` submit retries,
-- `404` submit retries within the configured 404 retry window,
 - access-denied submit retries within the window set by `.setAccessDeniedRetryTimeout(...)`,
 - status polling, when a `request_id` comes back without a result.
 
@@ -109,7 +108,7 @@ The callback context is:
 
 Interpretation:
 
-- `requestId === ''`: the SDK is retrying the submit call (a `204`, a `404` within its window, or a denial within the access-denied window).
+- `requestId === ''`: the SDK is retrying the submit call (a `204`, or a denial within the access-denied window).
 - `requestId !== ''`: the SDK is polling an existing request.
 - `operation === 'decrypt'`: `decryptForTx` flow.
 - `operation === 'sealoutput'`: `decryptForView` flow.
