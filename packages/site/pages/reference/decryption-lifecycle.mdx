@@ -60,7 +60,9 @@ The submit endpoint answers `200` and the response carries the result. The SDK r
 
 A `404` (`ct_not_found`) means the caller is allowed to decrypt the handle, but the network has no ciphertext for it. This is not a normal step for a new handle: a handle the network has not seen yet is answered with `401` (State 1), and one that is still being computed with `204` (State 2).
 
-The SDK still retries a submit-time `404` for a short window, in case it is brief, whatever error code the body carries. By default the window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder. A `404` that lasts past the window fails with `CtNotFound` (`apiErrorCode: 'ct_not_found'`). A longer window rarely helps: a `404` that does not clear within seconds points to a problem on the network side, not to a handle that needs more time.
+The SDK does not retry a `404`: it fails at once with `CtNotFound` (`apiErrorCode: 'ct_not_found'`), whatever error code the body carries. Waiting does not fix it, because the answer points to a problem on the network side, not to a handle that needs more time.
+
+`.set404RetryTimeout(timeoutMs)` on either decrypt builder is deprecated. It still works: with a value above `0` the SDK retries a `404` for that long before failing. It will be removed in a future major release.
 
 ### A `request_id` without a result: status polling
 
@@ -123,8 +125,7 @@ decrypt call starts
        with setAccessDeniedRetryTimeout: SDK retries submit until that window ends
     -> 204: SDK retries submit automatically
     -> 200 with the result: return decrypt result
-    -> 404, within retry window: SDK retries submit automatically
-    -> 404, after retry window: fail with CtNotFound
+    -> 404: fail with CtNotFound
     -> 200 with only a request_id (not sent by the current networks): SDK starts status polling
       -> PROCESSING: keep polling
       -> COMPLETED, is_succeed true: return decrypt result
@@ -133,10 +134,10 @@ decrypt call starts
 
 ## Practical guidance
 
-- Wait for the receipt before decrypting. A handle the network has not seen yet fails with `ACPDenied`, not `CtNotFound`, and raising `.set404RetryTimeout(...)` does not help.
+- Wait for the receipt before decrypting. A handle the network has not seen yet fails with `ACPDenied`, not `CtNotFound`.
 - If you decrypt right after the receipt, set `.setAccessDeniedRetryTimeout(...)` to a few seconds so a network that is a block behind does not fail the decrypt.
 - A `204` needs no handling on your side: the SDK retries it until the result is ready or the timeout runs out.
-- `CtNotFound` is not a sign that the handle needs more time. Retry the decrypt once; if it keeps failing, check the chain and environment the handle belongs to.
+- `CtNotFound` is not a sign that the handle needs more time, and the SDK does not retry it. Check the chain and environment the handle belongs to.
 - If you want progress UI, use `.onPoll(...)`. On the current networks it only fires while the SDK retries the submit call, with an empty `requestId`.
 
 ## Error codes
@@ -145,7 +146,7 @@ Decrypt/sealoutput failures throw a typed `CofheError` (see [Migrating from cofh
 
 - `acp_denied`, `acp_expired`, `acp_invalid`, `acp_malformed` — ACP was rejected or malformed.
 - `not_publicly_allowed` — no ACP was supplied and the handle isn't publicly decryptable.
-- `ct_not_found` — the network has no ciphertext for the handle (after the 404 retry window has elapsed).
+- `ct_not_found` — the network has no ciphertext for the handle.
 - `unsupported_security_zone`, `unsupported_type` — the handle's zone or encryption type isn't supported.
 - `internal_error`, `signing_failed`, `ct_source_error`, `acp_verifier_error`, `ct_source_timeout`, `acp_verifier_timeout` — backend-side failures.
 - `acp_required`, `seal_failed` — sealoutput-specific.

@@ -430,11 +430,11 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       let polls = 0;
       const onPoll = () => polls++;
       await expect(
-        ctx.cofheClient.decryptForView(predicted, FheTypes.Uint32).set404RetryTimeout(60_000).onPoll(onPoll).execute()
+        ctx.cofheClient.decryptForView(predicted, FheTypes.Uint32).onPoll(onPoll).execute()
       ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
-      await expect(
-        ctx.cofheClient.decryptForTx(predicted).withACP().set404RetryTimeout(60_000).onPoll(onPoll).execute()
-      ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
+      await expect(ctx.cofheClient.decryptForTx(predicted).withACP().onPoll(onPoll).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ACPDenied,
+      });
       expect(polls, 'acp_denied is not retried').toBe(0);
 
       const addTxHash = await ctx.bobWalletClient.writeContract({

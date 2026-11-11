@@ -1,7 +1,12 @@
 import { CofheError, CofheErrorCode } from '../error.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 
-export const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+/**
+ * A 404 means the network has no ciphertext for a handle the caller may read. That is a fault on
+ * the network side, not a handle that needs more time, so it is not retried unless the caller
+ * asks for a window through the deprecated `set404RetryTimeout`.
+ */
+export const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
 
 /** No retry of an access-denied answer unless the caller asks for one. */
 export const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
@@ -81,7 +86,7 @@ export function shouldRetryAccessDenied(params: {
 
 /**
  * Classifies a submit (POST) response into: bodyless-retryable 204, any 404 (not-found,
- * retryable under the 404 retry budget), a 200 to be JSON-parsed, or a fatal error
+ * retried only inside a 404 retry window the caller set; none by default), a 200 to be JSON-parsed, or a fatal error
  * carrying the mapped CofheErrorCode.
  */
 export async function classifySubmitResponse(params: {
@@ -139,14 +144,15 @@ export function throwIfSubmitRetryTimedOut(params: {
     lastKnownErrorMessage,
   } = params;
 
-  if (status === 404 && elapsedMs > retry404TimeoutMs) {
+  if (status === 404 && (retry404TimeoutMs === 0 || elapsedMs > retry404TimeoutMs)) {
     throw new CofheError({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
       message:
-        `${operationLabel} ciphertext not found after retrying for ${retry404TimeoutMs}ms` +
+        `${operationLabel} ciphertext not found` +
+        (retry404TimeoutMs > 0 ? ` after retrying for ${retry404TimeoutMs}ms` : '') +
         (lastKnownErrorMessage ? `: ${lastKnownErrorMessage}` : ''),
-      hint: 'The network has no ciphertext for this handle. Retry the decrypt; if it keeps failing, check the chain and environment the handle belongs to.',
+      hint: 'The network has no ciphertext for this handle. Waiting does not help; check the chain and environment the handle belongs to.',
       context: {
         thresholdNetworkUrl,
         body,

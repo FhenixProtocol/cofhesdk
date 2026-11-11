@@ -12,7 +12,7 @@ import { getPublicClientChainID, sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 
-const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
 const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
 /**
@@ -138,7 +138,17 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return this;
   }
 
+  /**
+   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
+   * the handle, which waiting does not fix. This setter still works and will be removed in a
+   * future major release.
+   */
   set404RetryTimeout(this: DecryptForTxBuilderUnset, timeoutMs: number): DecryptForTxBuilderUnset;
+  /**
+   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
+   * the handle, which waiting does not fix. This setter still works and will be removed in a
+   * future major release.
+   */
   set404RetryTimeout(this: DecryptForTxBuilderSelected, timeoutMs: number): DecryptForTxBuilderSelected;
   set404RetryTimeout(timeoutMs: number): DecryptForTxBuilder {
     if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {

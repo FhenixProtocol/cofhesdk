@@ -189,7 +189,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnDecryptV2 calls onPoll for 404 submit retries', async () => {
+  it('tnDecryptV2 calls onPoll for 404 submit retries when a 404 retry window is set', async () => {
     const onPoll = vi.fn();
 
     let submitCalls = 0;
@@ -236,6 +236,7 @@ describe('decrypt polling callbacks', () => {
       chainId: 1,
       acp: null,
       thresholdNetworkUrl,
+      retry404TimeoutMs: 10_000,
       onPoll,
     });
 
@@ -269,7 +270,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnDecryptV2 times out 404 submit retries using default timeout', async () => {
+  it('tnDecryptV2 fails on the first 404 by default, without retrying', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
         return makeMockResponse({
@@ -295,14 +296,14 @@ describe('decrypt polling callbacks', () => {
     const rejection = expect(promise).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: ciphertext not indexed yet',
+      message: 'decrypt ciphertext not found: ciphertext not indexed yet',
     });
 
-    await vi.advanceTimersByTimeAsync(11_000);
     await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('tnDecryptV2 retries any 404 and times out with the last error message', async () => {
+  it('tnDecryptV2 retries any 404 inside a set window and times out with the last error message', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
         return makeMockResponse({
@@ -323,6 +324,7 @@ describe('decrypt polling callbacks', () => {
       chainId: 1,
       acp: null,
       thresholdNetworkUrl,
+      retry404TimeoutMs: 10_000,
     });
 
     const rejection = expect(promise).rejects.toMatchObject({
@@ -718,7 +720,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnSealOutputV2 calls onPoll for 404 submit retries', async () => {
+  it('tnSealOutputV2 calls onPoll for 404 submit retries when a 404 retry window is set', async () => {
     const onPoll = vi.fn();
 
     let submitCalls = 0;
@@ -768,6 +770,7 @@ describe('decrypt polling callbacks', () => {
       chainId: 1,
       acp: {} as any,
       thresholdNetworkUrl,
+      retry404TimeoutMs: 10_000,
       onPoll,
     });
 
@@ -835,7 +838,7 @@ describe('decrypt polling callbacks', () => {
     await rejection;
   });
 
-  it('tnSealOutputV2 retries any 404 and times out with the last error message', async () => {
+  it('tnSealOutputV2 retries any 404 inside a set window and times out with the last error message', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
         return makeMockResponse({
@@ -856,6 +859,7 @@ describe('decrypt polling callbacks', () => {
       chainId: 1,
       acp: {} as any,
       thresholdNetworkUrl,
+      retry404TimeoutMs: 10_000,
     });
 
     const rejection = expect(promise).rejects.toMatchObject({

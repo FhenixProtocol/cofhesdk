@@ -37,7 +37,7 @@ describe('classifySubmitResponse', () => {
     expect(result).toEqual({ kind: 'parse-json' });
   });
 
-  it('classifies 404 with error=ct_not_found as retryable', async () => {
+  it('classifies 404 with error=ct_not_found as retryable (retried only inside a set 404 window)', async () => {
     const response = makeResponse({
       ok: false,
       status: 404,
@@ -122,6 +122,19 @@ describe('throwIfSubmitRetryTimedOut', () => {
         overallTimeoutMs: 300_000,
       })
     ).not.toThrow();
+  });
+
+  it('throws CtNotFound on the first 404 when no 404 retry window is set', () => {
+    expect(() =>
+      throwIfSubmitRetryTimedOut({
+        ...baseParams,
+        status: 404,
+        elapsedMs: 0,
+        retry404TimeoutMs: 0,
+        overallTimeoutMs: 300_000,
+        lastKnownErrorMessage: 'ciphertext missing',
+      })
+    ).toThrow('decrypt ciphertext not found: ciphertext missing');
   });
 
   it('throws CtNotFound with the last-known message once the 404 retry budget elapses', () => {

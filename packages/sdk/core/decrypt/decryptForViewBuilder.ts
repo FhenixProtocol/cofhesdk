@@ -14,7 +14,7 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 
-const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+const DEFAULT_404_RETRY_TIMEOUT_MS = 0;
 const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
 /**
@@ -121,6 +121,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     return this;
   }
 
+  /**
+   * @deprecated A 404 is no longer retried by default: it means the network has no ciphertext for
+   * the handle, which waiting does not fix. This setter still works and will be removed in a
+   * future major release.
+   */
   set404RetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
     if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
       throw new CofheError({

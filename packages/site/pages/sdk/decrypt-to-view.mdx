@@ -392,7 +392,7 @@ Registers a callback that runs once per poll attempt while waiting for the thres
 
 This is useful for showing “decrypting…” UI, measuring latency, or logging.
 
-During submit retries, `requestId` is an empty string. This happens while the SDK is retrying a `204` (result not ready yet) or a short-lived `404` submit response.
+During submit retries, `requestId` is an empty string. This happens while the SDK is retrying a `204` (result not ready yet) submit response.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -413,11 +413,11 @@ const plaintext = await client
 plaintext;
 ```
 
-### `.set404RetryTimeout(timeoutMs)` — optional
+### `.set404RetryTimeout(timeoutMs)` — deprecated
 
-Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing with `CtNotFound`. The default is `10000` ms.
+Deprecated, and will be removed in a future major release. A submit-time `404 Not Found` now fails at once with `CtNotFound`, because it means the network has no ciphertext for the handle and waiting does not fix that; see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
-A `404` is not a normal step for a new handle, so most apps never need to change this; see [Decryption Lifecycle](/reference/decryption-lifecycle).
+The setter still works: with a value above `0` the SDK retries a `404` for that long before failing. The default is `0`.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
