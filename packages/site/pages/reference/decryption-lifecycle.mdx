@@ -23,7 +23,7 @@ A freshly produced handle moves through these in order. The first two are short:
 
 Before anything else, the network checks that the caller may decrypt the `ctHash`. It does this against the chain: the grant comes from the transaction that produced the handle (for example `FHE.allowSender` in your contract).
 
-Until the network has seen that transaction, it finds no grant and answers `401` with `acp_denied`. It answers the same way for a handle that never existed. The SDK does **not** retry this: the decrypt fails at once with `ACPDenied`, whatever `.set404RetryTimeout(...)` is set to, and `.onPoll(...)` is not called.
+Until the network has seen that transaction, it finds no grant and answers `401` with `acp_denied` (`403` with `not_publicly_allowed` when no ACP is sent). It answers the same way for a handle that never existed. By default the SDK does **not** retry this: the decrypt fails at once with `ACPDenied`, whatever `.set404RetryTimeout(...)` is set to, and `.onPoll(...)` is not called.
 
 You reach this state when:
 
@@ -31,7 +31,7 @@ You reach this state when:
 - you decrypt right after the receipt, and the network has not observed that block yet,
 - the ACP really does not cover the handle (wrong account, scope, or chain).
 
-Wait for the receipt before decrypting. If a decrypt right after the receipt fails with `ACPDenied` and you know the ACP covers the handle, retry it after a few seconds.
+Wait for the receipt before decrypting. If you decrypt right after the receipt and know the grant is on its way, add `.setAccessDeniedRetryTimeout(timeoutMs)` to the builder: the SDK then keeps asking for that long instead of failing on the first denial, and calls `.onPoll(...)` with an empty `requestId` for each retry. It is off by default because the network cannot tell a grant it has not seen yet from one that will never come; only the caller knows.
 
 ## State 2: access granted, result not ready yet
 
@@ -84,6 +84,7 @@ The SDK uses one shared timeout budget across the full production lifecycle:
 - initial submit attempts,
 - repeated `204` submit retries,
 - `404` submit retries within the configured 404 retry window,
+- access-denied submit retries within the window set by `.setAccessDeniedRetryTimeout(...)`,
 - status polling, when a `request_id` comes back without a result.
 
 ## How `.onPoll(...)` fits in
@@ -108,7 +109,7 @@ The callback context is:
 
 Interpretation:
 
-- `requestId === ''`: the SDK is retrying the submit call (a `204`, or a `404` within its window).
+- `requestId === ''`: the SDK is retrying the submit call (a `204`, a `404` within its window, or a denial within the access-denied window).
 - `requestId !== ''`: the SDK is polling an existing request.
 - `operation === 'decrypt'`: `decryptForTx` flow.
 - `operation === 'sealoutput'`: `decryptForView` flow.
@@ -118,7 +119,8 @@ Interpretation:
 ```text
 decrypt call starts
   -> submit request
-    -> 401 acp_denied: fail with ACPDenied, no retry (also before the network has seen the transaction)
+    -> 401 acp_denied: fail with ACPDenied (also before the network has seen the transaction)
+       with setAccessDeniedRetryTimeout: SDK retries submit until that window ends
     -> 204: SDK retries submit automatically
     -> 200 with the result: return decrypt result
     -> 404, within retry window: SDK retries submit automatically
@@ -132,7 +134,7 @@ decrypt call starts
 ## Practical guidance
 
 - Wait for the receipt before decrypting. A handle the network has not seen yet fails with `ACPDenied`, not `CtNotFound`, and raising `.set404RetryTimeout(...)` does not help.
-- If a decrypt right after the receipt fails with `ACPDenied` and the ACP covers the handle, retry it after a few seconds.
+- If you decrypt right after the receipt, set `.setAccessDeniedRetryTimeout(...)` to a few seconds so a network that is a block behind does not fail the decrypt.
 - A `204` needs no handling on your side: the SDK retries it until the result is ready or the timeout runs out.
 - `CtNotFound` is not a sign that the handle needs more time. Retry the decrypt once; if it keeps failing, check the chain and environment the handle belongs to.
 - If you want progress UI, use `.onPoll(...)`. On the current networks it only fires while the SDK retries the submit call, with an empty `requestId`.

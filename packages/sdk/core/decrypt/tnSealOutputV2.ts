@@ -5,7 +5,13 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
-import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
+import {
+  classifySubmitResponse,
+  normalize404RetryTimeoutMs,
+  normalizeAccessDeniedRetryTimeoutMs,
+  shouldRetryAccessDenied,
+  throwIfSubmitRetryTimedOut,
+} from './submitRetry.js';
 import {} from './tnDecryptUtils.js';
 
 // Polling configuration
@@ -141,6 +147,7 @@ async function submitSealOutputRequest(
   acp: ACPPublic,
   overallStartTime: number,
   retry404TimeoutMs: number,
+  accessDeniedRetryTimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
 ): Promise<SealOutputSubmitResult> {
   const body = {
@@ -184,6 +191,27 @@ async function submitSealOutputRequest(
     });
 
     if (responseClassification.kind === 'fatal-http') {
+      const elapsedMs = Date.now() - overallStartTime;
+      if (
+        shouldRetryAccessDenied({
+          apiErrorCode: responseClassification.apiErrorCode,
+          elapsedMs,
+          accessDeniedRetryTimeoutMs,
+        })
+      ) {
+        onPoll?.({
+          operation: 'sealoutput',
+          requestId: '',
+          attemptIndex,
+          elapsedMs,
+          intervalMs: SUBMIT_RETRY_INTERVAL_MS,
+          timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+        });
+        await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+        attemptIndex += 1;
+        continue;
+      }
+
       throw new CofheError({
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
@@ -416,11 +444,17 @@ export async function tnSealOutputV2(params: {
   acp: ACPPublic;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
+  accessDeniedRetryTimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, accessDeniedRetryTimeoutMs, onPoll } = params;
   const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
     timeoutMs: retry404TimeoutMs,
+    operationLabel: 'sealOutput',
+    errorCode: CofheErrorCode.SealOutputFailed,
+  });
+  const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
+    timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'sealOutput',
     errorCode: CofheErrorCode.SealOutputFailed,
   });
@@ -434,6 +468,7 @@ export async function tnSealOutputV2(params: {
     acp,
     overallStartTime,
     normalized404RetryTimeoutMs,
+    normalizedAccessDeniedRetryTimeoutMs,
     onPoll
   );
 

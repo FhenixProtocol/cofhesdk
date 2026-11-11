@@ -367,6 +367,87 @@ describe('decrypt polling callbacks', () => {
     expect(onPoll).not.toHaveBeenCalled();
   });
 
+  it('tnDecryptV2 retries not_publicly_allowed inside the access-denied retry window, then returns the result', async () => {
+    const onPoll = vi.fn();
+    let calls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        calls += 1;
+        // The network has not seen the grant for the first two requests.
+        if (calls <= 2) {
+          return makeMockResponse({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'not_publicly_allowed' }),
+          });
+        }
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-after-grant',
+            decrypted: [0x00, 0x00, 0x00, 0x5c],
+            signature: `${'01'.repeat(32)}${'02'.repeat(32)}1b`,
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: null,
+      thresholdNetworkUrl,
+      onPoll,
+      accessDeniedRetryTimeoutMs: 30_000,
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    const result = await promise;
+
+    expect(result.decryptedValue).toBe(92n);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenCalledWith(expect.objectContaining({ requestId: '', attemptIndex: 0 }));
+  });
+
+  it('tnDecryptV2 fails with the denial once the access-denied retry window ends', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 403,
+          json: async () => ({ error: 'not_publicly_allowed' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: null,
+      thresholdNetworkUrl,
+      accessDeniedRetryTimeoutMs: 3_000,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.NotPubliclyAllowed,
+      apiErrorCode: 'not_publicly_allowed',
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await rejection;
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+  });
+
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
     const onPoll = vi.fn();
 
@@ -817,6 +898,88 @@ describe('decrypt polling callbacks', () => {
     ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onPoll).not.toHaveBeenCalled();
+  });
+
+  it('tnSealOutputV2 retries acp_denied inside the access-denied retry window, then returns the result', async () => {
+    const onPoll = vi.fn();
+    let calls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        calls += 1;
+        // The network has not seen the grant for the first two requests.
+        if (calls <= 2) {
+          return makeMockResponse({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: 'acp_denied' }),
+          });
+        }
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-seal-after-grant',
+            sealed_data: [1, 2, 3],
+            ephemeral_public_key: [4, 5],
+            nonce: [6],
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+      accessDeniedRetryTimeoutMs: 30_000,
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    const result = await promise;
+
+    expect(Array.from(result.data)).toEqual([1, 2, 3]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenCalledWith(expect.objectContaining({ requestId: '', attemptIndex: 0 }));
+  });
+
+  it('tnSealOutputV2 fails with the denial once the access-denied retry window ends', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'acp_denied' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: {} as any,
+      thresholdNetworkUrl,
+      accessDeniedRetryTimeoutMs: 3_000,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.ACPDenied,
+      apiErrorCode: 'acp_denied',
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await rejection;
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
   });
 
   it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {

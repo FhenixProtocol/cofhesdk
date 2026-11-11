@@ -19,7 +19,7 @@ import {
   toHex,
   type Hex,
 } from 'viem';
-import { CofheErrorCode, Encryptable, FheTypes, isCofheError } from '@cofhe/sdk';
+import { CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
 import {
   ACPUtils,
   describeShareMetadata,
@@ -414,20 +414,6 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       return withMetadata(hash, BigInt(stored) & 0xffn);
     }
 
-    // Right after a receipt the network can still be a block behind and answer acp_denied for a
-    // handle it is about to see. Ask again for up to 30 seconds. Any other error still fails.
-    async function decryptOnceGrantIsSeen<T>(decrypt: () => Promise<T>): Promise<T> {
-      for (let attempt = 0; ; attempt++) {
-        try {
-          return await decrypt();
-        } catch (error) {
-          const denied = isCofheError(error) && error.code === CofheErrorCode.ACPDenied;
-          if (!denied || attempt >= 6) throw error;
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
-      }
-    }
-
     // Before the transaction that creates a handle is mined, the network has no grant for it and
     // answers acp_denied, not "not found". That answer is final: the SDK does not retry it, however
     // long the not-found retry window is. Once the transaction is mined, the same handle decrypts.
@@ -474,12 +460,78 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         })
       );
       expect(handle, 'the add produced the predicted handle').toBe(predicted);
+      alreadyFetchedCtHash = handle;
 
-      const result = await decryptOnceGrantIsSeen(() =>
-        ctx.cofheClient.decryptForView(handle, FheTypes.Uint32).execute()
-      );
+      // Right after a receipt the network can still be a block behind and answer acp_denied for
+      // a handle it is about to see, so let the SDK keep asking for up to 30 seconds.
+      const result = await ctx.cofheClient
+        .decryptForView(handle, FheTypes.Uint32)
+        .setAccessDeniedRetryTimeout(30_000)
+        .execute();
       expect(result).toBe(storedValue + addend);
     }, 180_000);
+
+    // With an access-denied retry window, a decrypt asked for too early no longer fails: the SDK
+    // keeps asking until the network has seen the transaction. The decrypt starts first and the
+    // add is only sent after the first denial, so at least one retry is certain. Skipped on the
+    // mocks, which have no network that could be behind.
+    it.skipIf(chainConfig.id === 31337)(
+      'decrypts a handle requested before its transaction is sent, when setAccessDeniedRetryTimeout is set',
+      async () => {
+        const stored = toHex(BigInt(alreadyFetchedCtHash), { size: 32 });
+        const storedValue = await ctx.cofheClient.decryptForView(stored, FheTypes.Uint32).execute();
+        const addend = 1n;
+        const [addendHash, addendSignature] = await ctx.cofheClient
+          .encryptInputs([Encryptable.uint32(addend)])
+          .setConsumingContract(ctx.contractAddress)
+          .execute();
+        const predicted = predictAddHandle(stored, addendHash as Hex);
+
+        let retries = 0;
+        let sawFirstDenial!: () => void;
+        const firstDenial = new Promise<void>((resolve) => (sawFirstDenial = resolve));
+        const early = ctx.cofheClient
+          .decryptForView(predicted, FheTypes.Uint32)
+          .setAccessDeniedRetryTimeout(120_000)
+          .onPoll(({ requestId }) => {
+            if (requestId !== '') return;
+            retries++;
+            sawFirstDenial();
+          })
+          .execute();
+        early.catch(() => {}); // awaited below; this only keeps an earlier failure from going unhandled
+        await Promise.race([firstDenial, early]);
+
+        const addTxHash = await ctx.bobWalletClient.writeContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'addValueBatch',
+          args: [[addendHash], addendSignature],
+          chain: chainConfig.viemChain,
+          account: ctx.bobAccount,
+        });
+        const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+          hash: addTxHash,
+          retryCount: 30,
+          pollingInterval: 4_000,
+          confirmations: chainConfig.txConfirmationsRequired,
+        });
+        const handle = await readAtBlock(() =>
+          ctx.publicClient.readContract({
+            address: ctx.contractAddress,
+            abi: simpleTestAbi,
+            functionName: 'getValueHash',
+            blockNumber: addBlock,
+          })
+        );
+        expect(handle, 'the add produced the predicted handle').toBe(predicted);
+        alreadyFetchedCtHash = handle;
+
+        expect(await early).toBe(storedValue + addend);
+        expect(retries, 'the early request was denied and retried before it succeeded').toBeGreaterThan(0);
+      },
+      180_000
+    );
 
     // No test here for the 204 answer ("result not ready yet"), on purpose.
     // The network gives it between the 401 above and the 200: on Ethereum Sepolia it was seen as

@@ -436,6 +436,29 @@ const plaintext = await client
 plaintext;
 ```
 
+### `.setAccessDeniedRetryTimeout(timeoutMs)` — optional
+
+Keeps asking for up to `timeoutMs` while the network answers that the ACP does not grant access to the handle (`acp_denied`). The default is `0`: that answer fails at once with `ACPDenied`.
+
+Use it when you decrypt a handle right after the transaction that grants access to it. The network reads grants from the chain and can be a block behind your own RPC, so for a moment it can refuse a handle you are about to be allowed to read. Keep the window short: a handle the ACP really does not cover is refused the same way, and that decrypt then fails only when the window ends. See [Decryption Lifecycle](/reference/decryption-lifecycle).
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .setAccessDeniedRetryTimeout(30_000) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
 ### `.withACP(...)` — optional
 
 Select which ACP to use:
