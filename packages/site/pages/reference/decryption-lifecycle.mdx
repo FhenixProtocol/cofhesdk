@@ -23,7 +23,7 @@ A freshly produced handle moves through these in order. The first two are short:
 
 Before anything else, the network checks that the caller may decrypt the `ctHash`. It does this against the chain: the grant comes from the transaction that produced the handle (for example `FHE.allowSender` in your contract).
 
-Until the network has seen that transaction, it finds no grant and answers `401` with `acp_denied` (`403` with `not_publicly_allowed` when no ACP is sent). It answers the same way for a handle that never existed. By default the SDK does **not** retry this: the decrypt fails at once with `ACPDenied`, whatever `.set404RetryTimeout(...)` is set to, and `.onPoll(...)` is not called.
+Until the network has seen that transaction, it finds no grant and answers `401` with `acp_denied` (`403` with `not_publicly_allowed` when no ACP is sent). It answers the same way for a handle that never existed. By default the SDK does **not** retry this: the decrypt fails at once with `ACPDenied`, and `.onPoll(...)` is not called.
 
 You reach this state when:
 
@@ -61,8 +61,6 @@ The submit endpoint answers `200` and the response carries the result. The SDK r
 A `404` (`ct_not_found`) means the caller is allowed to decrypt the handle, but the network has no ciphertext for it. This is not a normal step for a new handle: a handle the network has not seen yet is answered with `401` (State 1), and one that is still being computed with `204` (State 2).
 
 The SDK does not retry a `404`: it fails at once with `CtNotFound` (`apiErrorCode: 'ct_not_found'`). Waiting does not fix it, because the answer points to a problem on the network side, not to a handle that needs more time.
-
-`.set404RetryTimeout(timeoutMs)` on either decrypt builder is deprecated and has no effect. It is still accepted so existing code keeps compiling, and will be removed in a future major release.
 
 ### A `request_id` without a result: status polling
 

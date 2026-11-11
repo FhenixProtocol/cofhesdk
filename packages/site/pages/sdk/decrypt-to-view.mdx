@@ -413,12 +413,6 @@ const plaintext = await client
 plaintext;
 ```
 
-### `.set404RetryTimeout(timeoutMs)` — deprecated
-
-Deprecated and has no effect. A submit-time `404 Not Found` fails at once with `CtNotFound`, because it means the network has no ciphertext for the handle and waiting does not fix that; see [Decryption Lifecycle](/reference/decryption-lifecycle).
-
-The method is still accepted so existing code keeps compiling. Remove the call; it will be dropped in a future major release.
-
 ### `.setAccessDeniedRetryTimeout(timeoutMs)` — optional
 
 Keeps asking for up to `timeoutMs` while the network answers that the ACP does not grant access to the handle (`acp_denied`). The default is `0`: that answer fails at once with `ACPDenied`.
