@@ -392,7 +392,7 @@ Registers a callback that runs once per poll attempt while waiting for the thres
 
 This is useful for showing “decrypting…” UI, measuring latency, or logging.
 
-During submit retries, `requestId` is an empty string because the backend has not created a request yet. This can happen while the SDK is retrying transient `204` or short-lived `404` submit responses.
+During submit retries, `requestId` is an empty string. This happens while the SDK is retrying a `204` (result not ready yet) or a short-lived `404` submit response.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -417,7 +417,7 @@ plaintext;
 
 Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing with `CtNotFound`. The default is `10000` ms.
 
-Use this when your backend is eventually consistent and may need a few seconds to index a freshly-created ciphertext handle.
+A `404` is not a normal step for a new handle, so most apps never need to change this; see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';

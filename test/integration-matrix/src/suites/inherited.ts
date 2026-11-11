@@ -480,6 +480,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       );
       expect(result).toBe(storedValue + addend);
     }, 180_000);
+
+    // No test here for the 204 answer ("result not ready yet"), on purpose.
+    // The network gives it between the 401 above and the 200: on Ethereum Sepolia it was seen as
+    // 401 acp_denied -> 204 -> 200, and the SDK retried the 204 by itself. But the window is
+    // under half a second and falls about when the block arrives, before the receipt reaches the
+    // client. A test would have to hit that window by timing its requests, and would be flaky.
+    // The SDK's reaction to a 204 is pinned in packages/sdk/core/test/pollCallbacks.test.ts.
+    // A test of the real sequence belongs here once a network can hold a handle in that state.
   });
 
   it('Decrypt for Tx (without acp) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
