@@ -189,7 +189,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnDecryptV2 fails on the first 404 without retrying, whatever error code the body carries', async () => {
+  it('tnDecryptV2 fails on the first 404 ct_not_found without retrying', async () => {
     const onPoll = vi.fn();
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
@@ -197,7 +197,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'no ciphertext' }),
+          json: async () => ({ error: 'ct_not_found' }),
         });
       }
 
@@ -213,13 +213,10 @@ describe('decrypt polling callbacks', () => {
         acp: null,
         thresholdNetworkUrl,
         onPoll,
-        // A 404 is final even when the caller asked to wait out access denials.
-        accessDeniedRetryTimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt request failed: ciphertext not found: no ciphertext',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onPoll).not.toHaveBeenCalled();
@@ -607,7 +604,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnSealOutputV2 fails on the first 404 without retrying, whatever error code the body carries', async () => {
+  it('tnSealOutputV2 fails on the first 404 ct_not_found without retrying', async () => {
     const onPoll = vi.fn();
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
@@ -615,7 +612,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'no ciphertext' }),
+          json: async () => ({ error: 'ct_not_found' }),
         });
       }
 
@@ -631,13 +628,10 @@ describe('decrypt polling callbacks', () => {
         acp: {} as any,
         thresholdNetworkUrl,
         onPoll,
-        // A 404 is final even when the caller asked to wait out access denials.
-        accessDeniedRetryTimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'sealOutput request failed: ciphertext not found: no ciphertext',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onPoll).not.toHaveBeenCalled();

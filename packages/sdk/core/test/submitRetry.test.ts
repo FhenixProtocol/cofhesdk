@@ -37,32 +37,11 @@ describe('classifySubmitResponse', () => {
     expect(result).toEqual({ kind: 'parse-json' });
   });
 
-  it('classifies any 404 as fatal CtNotFound, whatever error code the body carries', async () => {
+  it('classifies 404 ct_not_found as fatal CtNotFound, not retryable', async () => {
     const response = makeResponse({
       ok: false,
       status: 404,
-      json: async () => ({ error: 'acp_denied', error_message: 'no ciphertext' }),
-    });
-
-    const result = await classifySubmitResponse({ response, fallbackErrorCode: CofheErrorCode.DecryptFailed });
-
-    expect(result).toMatchObject({
-      kind: 'fatal-http',
-      status: 404,
-      cofheErrorCode: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      errorMessage: 'ciphertext not found: no ciphertext',
-    });
-  });
-
-  it('classifies 404 with an unparsable body as fatal CtNotFound', async () => {
-    const response = makeResponse({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-      json: async () => {
-        throw new Error('not json');
-      },
+      json: async () => ({ error: 'ct_not_found' }),
     });
 
     const result = await classifySubmitResponse({ response, fallbackErrorCode: CofheErrorCode.DecryptFailed });

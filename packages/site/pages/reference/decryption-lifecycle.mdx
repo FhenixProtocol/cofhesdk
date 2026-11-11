@@ -60,7 +60,7 @@ The submit endpoint answers `200` and the response carries the result. The SDK r
 
 A `404` (`ct_not_found`) means the caller is allowed to decrypt the handle, but the network has no ciphertext for it. This is not a normal step for a new handle: a handle the network has not seen yet is answered with `401` (State 1), and one that is still being computed with `204` (State 2).
 
-The SDK does not retry a `404`: it fails at once with `CtNotFound` (`apiErrorCode: 'ct_not_found'`), whatever error code the body carries. Waiting does not fix it, because the answer points to a problem on the network side, not to a handle that needs more time.
+The SDK does not retry a `404`: it fails at once with `CtNotFound` (`apiErrorCode: 'ct_not_found'`). Waiting does not fix it, because the answer points to a problem on the network side, not to a handle that needs more time.
 
 `.set404RetryTimeout(timeoutMs)` on either decrypt builder is deprecated and has no effect. It is still accepted so existing code keeps compiling, and will be removed in a future major release.
 

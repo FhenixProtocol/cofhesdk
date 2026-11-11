@@ -22,9 +22,9 @@ const SHARED_ERROR_CASES: Array<{ status: number; error: string; cofheErrorCode:
   { status: 504, error: 'ct_source_timeout', cofheErrorCode: CofheErrorCode.CtSourceTimeout },
   { status: 504, error: 'acp_verifier_timeout', cofheErrorCode: CofheErrorCode.ACPVerifierTimeout },
 ];
-// ct_not_found (404) is deliberately excluded here: on the submit endpoints any 404 maps to
-// CtNotFound whatever the body says (covered by pollCallbacks.test.ts / submitRetry.test.ts), and on
-// the poll endpoints it's documented bodyless (covered separately below).
+// ct_not_found (404) is not in this table: the submit endpoints are covered by
+// pollCallbacks.test.ts / submitRetry.test.ts, and on the poll endpoints a 404 is documented
+// bodyless (covered separately below).
 
 const makeMockResponse = (opts: { ok: boolean; status?: number; statusText?: string; json: () => Promise<any> }) => {
   return {

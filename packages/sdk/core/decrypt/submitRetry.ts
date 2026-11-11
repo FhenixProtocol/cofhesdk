@@ -57,7 +57,8 @@ export function shouldRetryAccessDenied(params: {
 
 /**
  * Classifies a submit (POST) response into: bodyless-retryable 204, a 200 to be JSON-parsed, or a
- * fatal error carrying the mapped CofheErrorCode. Any 404 is fatal and maps to CtNotFound.
+ * fatal error carrying the CofheErrorCode mapped from the body's error code. A 404 is fatal like
+ * any other error status.
  */
 export async function classifySubmitResponse(params: {
   response: Response;
@@ -76,25 +77,20 @@ export async function classifySubmitResponse(params: {
 
   const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
 
-  // A 404 means the network has no ciphertext for a handle the caller may read. That is a fault on
-  // the network side, not a handle that needs more time, so it is never retried.
-  if (response.status === 404) {
-    return {
-      kind: 'fatal-http',
-      status: 404,
-      cofheErrorCode: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      errorMessage: `ciphertext not found: ${errorMessage}`,
-      hint: 'The network has no ciphertext for this handle. Waiting does not help; check the chain and environment the handle belongs to.',
-    };
-  }
+  const cofheErrorCode = mapApiErrorCodeToCofheErrorCode(apiErrorCode, fallbackErrorCode);
 
   return {
     kind: 'fatal-http',
     status: response.status,
-    cofheErrorCode: mapApiErrorCodeToCofheErrorCode(apiErrorCode, fallbackErrorCode),
+    cofheErrorCode,
     apiErrorCode,
     errorMessage,
+    // `ct_not_found` (sent with a 404) means the network has no ciphertext for a handle the caller
+    // may read. That is a fault on the network side, not a handle that needs more time.
+    hint:
+      cofheErrorCode === CofheErrorCode.CtNotFound
+        ? 'The network has no ciphertext for this handle. Waiting does not help; check the chain and environment the handle belongs to.'
+        : undefined,
   };
 }
 
