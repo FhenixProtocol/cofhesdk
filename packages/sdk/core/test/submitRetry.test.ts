@@ -106,7 +106,7 @@ describe('throwIfSubmitRetryTimedOut', () => {
       const cofheError = error as CofheError;
       expect(cofheError.code).toBe(CofheErrorCode.DecryptFailed);
       expect(cofheError.apiErrorCode).toBeUndefined();
-      expect(cofheError.message).toBe('decrypt submit retried without receiving request_id for 300000ms');
+      expect(cofheError.message).toBe('decrypt result was not ready after retrying for 300000ms');
     }
   });
 });

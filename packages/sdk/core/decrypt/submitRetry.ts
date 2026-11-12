@@ -110,8 +110,8 @@ export function throwIfSubmitRetryTimedOut(params: {
   if (elapsedMs > overallTimeoutMs) {
     throw new CofheError({
       code: errorCode,
-      message: `${operationLabel} submit retried without receiving request_id for ${overallTimeoutMs}ms`,
-      hint: 'The ciphertext may still be propagating. Try again later.',
+      message: `${operationLabel} result was not ready after retrying for ${overallTimeoutMs}ms`,
+      hint: 'The network kept answering that the result is not ready yet. Try again later.',
       context: {
         thresholdNetworkUrl,
         body,
