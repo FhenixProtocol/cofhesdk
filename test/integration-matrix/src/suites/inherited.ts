@@ -493,8 +493,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         const early = ctx.cofheClient
           .decryptForView(predicted, FheTypes.Uint32)
           .setAccessDeniedRetryTimeout(120_000)
-          .onPoll(({ requestId }) => {
-            if (requestId !== '') return;
+          .onPoll(() => {
             retries++;
             sawFirstDenial();
           })

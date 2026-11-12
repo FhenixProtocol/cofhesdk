@@ -114,6 +114,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     return this.account;
   }
 
+  /**
+   * Registers a callback that runs before each retry of the request: while the network answers
+   * that the result is not ready yet (204), or that access is denied inside the window set by
+   * `setAccessDeniedRetryTimeout`.
+   */
   onPoll(callback: DecryptPollCallbackFunction): DecryptForViewBuilder<U> {
     this.pollCallback = callback;
     return this;

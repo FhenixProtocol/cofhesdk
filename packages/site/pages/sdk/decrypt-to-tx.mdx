@@ -299,11 +299,9 @@ result.signature;
 
 ### `.onPoll(callback)` — optional
 
-Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+Registers a callback that runs before each retry of the request, while the network answers that the result is not ready yet (`204`) or, with `.setAccessDeniedRetryTimeout(...)`, that access is denied.
 
-During submit retries, `requestId` is an empty string. This happens while the SDK is retrying a `204` (result not ready yet) submit response.
-
-For the full meaning of submit retries versus request-status polling, see [Decryption Lifecycle](/reference/decryption-lifecycle).
+For when the SDK retries, see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -316,7 +314,7 @@ declare const ctHash: `0x${string}`;
 const result = await client
   .decryptForTx(ctHash)
   .onPoll(({ attemptIndex, elapsedMs }) => { // [!code focus]
-    console.log('decrypt polling', { attemptIndex, elapsedMs }); // [!code focus]
+    console.log('decrypt retry', { attemptIndex, elapsedMs }); // [!code focus]
   }) // [!code focus]
   .withACP()
   .execute();
