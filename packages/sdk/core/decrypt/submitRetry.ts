@@ -40,8 +40,8 @@ export function normalize404RetryTimeoutMs(params: {
 }
 
 /**
- * Classifies a submit (POST) response into: bodyless-retryable 204, any 404 (not-found,
- * retryable under the 404 retry budget), a 200 to be JSON-parsed, or a fatal error
+ * Classifies a submit (POST) response into: bodyless-retryable 204, any 404 (still-indexing /
+ * not-found — retryable under the 404 retry budget), a 200 to be JSON-parsed, or a fatal error
  * carrying the mapped CofheErrorCode.
  */
 export async function classifySubmitResponse(params: {
@@ -106,7 +106,7 @@ export function throwIfSubmitRetryTimedOut(params: {
       message:
         `${operationLabel} ciphertext not found after retrying for ${retry404TimeoutMs}ms` +
         (lastKnownErrorMessage ? `: ${lastKnownErrorMessage}` : ''),
-      hint: 'The network has no ciphertext for this handle. Retry the decrypt; if it keeps failing, check the chain and environment the handle belongs to.',
+      hint: 'The ciphertext may not be indexed yet. Increase set404RetryTimeout(...) if the backend is slow to index ciphertexts.',
       context: {
         thresholdNetworkUrl,
         body,
