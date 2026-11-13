@@ -388,11 +388,9 @@ plaintext;
 
 ### `.onPoll(callback)` — optional
 
-Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+Registers a callback that runs before each retry of the request, while the network answers that the result is not ready yet (`204`) or, with `.setAccessDeniedRetryTimeout(...)`, that access is denied.
 
 This is useful for showing “decrypting…” UI, measuring latency, or logging.
-
-During submit retries, `requestId` is an empty string because the backend has not created a request yet. This can happen while the SDK is retrying transient `204` or short-lived `404` submit responses.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -406,18 +404,18 @@ declare const ctHash: `0x${string}`;
 const plaintext = await client
   .decryptForView(ctHash, FheTypes.Uint32)
   .onPoll(({ attemptIndex, elapsedMs }) => { // [!code focus]
-    console.log('sealoutput polling', { attemptIndex, elapsedMs }); // [!code focus]
+    console.log('sealoutput retry', { attemptIndex, elapsedMs }); // [!code focus]
   }) // [!code focus]
   .execute();
 
 plaintext;
 ```
 
-### `.set404RetryTimeout(timeoutMs)` — optional
+### `.setAccessDeniedRetryTimeout(timeoutMs)` — optional
 
-Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing with `CtNotFound`. The default is `10000` ms.
+Keeps asking for up to `timeoutMs` while the network answers that the ACP does not grant access to the handle (`acp_denied`). The default is `0`: that answer fails at once with `ACPDenied`.
 
-Use this when your backend is eventually consistent and may need a few seconds to index a freshly-created ciphertext handle.
+Use it when you decrypt a handle right after the transaction that grants access to it. The network reads grants from the chain and can be a block behind your own RPC, so for a moment it can refuse a handle you are about to be allowed to read. Keep the window short: a handle the ACP really does not cover is refused the same way, and that decrypt then fails only when the window ends. See [Decryption Lifecycle](/reference/decryption-lifecycle).
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -430,7 +428,7 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const plaintext = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .set404RetryTimeout(15_000) // [!code focus]
+  .setAccessDeniedRetryTimeout(30_000) // [!code focus]
   .execute();
 
 plaintext;

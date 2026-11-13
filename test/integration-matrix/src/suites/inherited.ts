@@ -8,8 +8,18 @@
  */
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
-import { BaseError, ContractFunctionRevertedError, ResourceNotFoundRpcError, toFunctionSelector, type Hex } from 'viem';
-import { Encryptable, FheTypes } from '@cofhe/sdk';
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ResourceNotFoundRpcError,
+  concat,
+  keccak256,
+  pad,
+  toFunctionSelector,
+  toHex,
+  type Hex,
+} from 'viem';
+import { CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
 import {
   ACPUtils,
   describeShareMetadata,
@@ -245,14 +255,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForView right after the receipt', async () => {
       const [addendHash, addendSignature] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(valueToAdd)])
         .setConsumingContract(ctx.contractAddress)
         .execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
-      // The SDK should retry transparently if the backend still responds with 404 or no content.
+      // If the network answers "not found" or "not ready" the SDK asks again, but the network is
+      // usually done before the first ask, so this does not exercise that retry. The retry is covered
+      // against scripted answers in packages/sdk/core/test/pollCallbacks.test.ts.
       const addTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -281,7 +293,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(unsealedResult).toBe(expectedViewValue);
     }, 180_000);
 
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForTx right after the receipt, then publishes the result', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
       const [secondAddendHash, secondAddendSignature] = await ctx.cofheClient
@@ -290,7 +302,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
-      // The SDK should keep retrying until the backend has both discovered and computed it.
+      // As above: a check that the fresh handle decrypts, not of the SDK's retry.
       const secondAddTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -389,6 +401,144 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       },
       180_000
     );
+
+    // The task manager derives an op's handle from its operands alone, so the handle of an add is
+    // known before the add is sent. Its layout: the last two bytes carry the type and the security
+    // zone. A verified input gets them written over its hash, and an op result is keccak256(lhs ||
+    // rhs || op) with them written over it. op 8 is add; type 4 is euint32; inputs use zone 0.
+    const withMetadata = (hash: bigint, securityZone: bigint) =>
+      toHex((hash & ~0xffffn) | (4n << 8n) | securityZone, { size: 32 });
+    function predictAddHandle(stored: Hex, input: Hex): Hex {
+      const verifiedInput = withMetadata(BigInt(input), 0n);
+      const hash = BigInt(keccak256(concat([pad(stored, { size: 32 }), verifiedInput, '0x08'])));
+      return withMetadata(hash, BigInt(stored) & 0xffn);
+    }
+
+    // Before the transaction that creates a handle is mined, the network has no grant for it and
+    // answers acp_denied, not "not found". That answer is final: the SDK does not retry it, however
+    // long the not-found retry window is. Once the transaction is mined, the same handle decrypts.
+    it('refuses a handle whose transaction is not mined yet with ACP_DENIED, without retrying, then decrypts it once mined', async () => {
+      const stored = toHex(BigInt(alreadyFetchedCtHash), { size: 32 });
+      const storedValue = await ctx.cofheClient.decryptForView(stored, FheTypes.Uint32).execute();
+      const addend = 1n;
+      const [addendHash, addendSignature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(addend)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
+      const predicted = predictAddHandle(stored, addendHash as Hex);
+
+      let polls = 0;
+      const onPoll = () => polls++;
+      await expect(
+        ctx.cofheClient.decryptForView(predicted, FheTypes.Uint32).onPoll(onPoll).execute()
+      ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
+      await expect(ctx.cofheClient.decryptForTx(predicted).withACP().onPoll(onPoll).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ACPDenied,
+      });
+      expect(polls, 'acp_denied is not retried').toBe(0);
+
+      const addTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'addValueBatch',
+        args: [[addendHash], addendSignature],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+        hash: addTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+      const handle = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: addBlock,
+        })
+      );
+      expect(handle, 'the add produced the predicted handle').toBe(predicted);
+      alreadyFetchedCtHash = handle;
+
+      // Right after a receipt the network can still be a block behind and answer acp_denied for
+      // a handle it is about to see, so let the SDK keep asking for up to 30 seconds.
+      const result = await ctx.cofheClient
+        .decryptForView(handle, FheTypes.Uint32)
+        .setAccessDeniedRetryTimeout(30_000)
+        .execute();
+      expect(result).toBe(storedValue + addend);
+    }, 180_000);
+
+    // With an access-denied retry window, a decrypt asked for too early no longer fails: the SDK
+    // keeps asking until the network has seen the transaction. The decrypt starts first and the
+    // add is only sent after the first denial, so at least one retry is certain. Skipped on the
+    // mocks, which have no network that could be behind.
+    it.skipIf(chainConfig.id === 31337)(
+      'decrypts a handle requested before its transaction is sent, when setAccessDeniedRetryTimeout is set',
+      async () => {
+        const stored = toHex(BigInt(alreadyFetchedCtHash), { size: 32 });
+        const storedValue = await ctx.cofheClient.decryptForView(stored, FheTypes.Uint32).execute();
+        const addend = 1n;
+        const [addendHash, addendSignature] = await ctx.cofheClient
+          .encryptInputs([Encryptable.uint32(addend)])
+          .setConsumingContract(ctx.contractAddress)
+          .execute();
+        const predicted = predictAddHandle(stored, addendHash as Hex);
+
+        let retries = 0;
+        let sawFirstDenial!: () => void;
+        const firstDenial = new Promise<void>((resolve) => (sawFirstDenial = resolve));
+        const early = ctx.cofheClient
+          .decryptForView(predicted, FheTypes.Uint32)
+          .setAccessDeniedRetryTimeout(120_000)
+          .onPoll(() => {
+            retries++;
+            sawFirstDenial();
+          })
+          .execute();
+        early.catch(() => {}); // awaited below; this only keeps an earlier failure from going unhandled
+        await Promise.race([firstDenial, early]);
+
+        const addTxHash = await ctx.bobWalletClient.writeContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'addValueBatch',
+          args: [[addendHash], addendSignature],
+          chain: chainConfig.viemChain,
+          account: ctx.bobAccount,
+        });
+        const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+          hash: addTxHash,
+          retryCount: 30,
+          pollingInterval: 4_000,
+          confirmations: chainConfig.txConfirmationsRequired,
+        });
+        const handle = await readAtBlock(() =>
+          ctx.publicClient.readContract({
+            address: ctx.contractAddress,
+            abi: simpleTestAbi,
+            functionName: 'getValueHash',
+            blockNumber: addBlock,
+          })
+        );
+        expect(handle, 'the add produced the predicted handle').toBe(predicted);
+        alreadyFetchedCtHash = handle;
+
+        expect(await early).toBe(storedValue + addend);
+        expect(retries, 'the early request was denied and retried before it succeeded').toBeGreaterThan(0);
+      },
+      180_000
+    );
+
+    // No test here for the 204 answer ("result not ready yet"), on purpose.
+    // The network gives it between the 401 above and the 200: on Ethereum Sepolia it was seen as
+    // 401 acp_denied -> 204 -> 200, and the SDK retried the 204 by itself. But the window is
+    // under half a second and falls about when the block arrives, before the receipt reaches the
+    // client. A test would have to hit that window by timing its requests, and would be flaky.
+    // The SDK's reaction to a 204 is pinned in packages/sdk/core/test/pollCallbacks.test.ts.
+    // A test of the real sequence belongs here once a network can hold a handle in that state.
   });
 
   it('Decrypt for Tx (without acp) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {

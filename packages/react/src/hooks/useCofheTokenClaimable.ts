@@ -186,8 +186,8 @@ export async function fetchUnshieldClaimsSummary({
   // value lives encrypted in ctHash until the claim proves it, so showing a figure means
   // decrypting under the holder's own ACP, which is what this does.
   //
-  // Failures are tolerated per claim: a missing or expired ACP, or a ciphertext the
-  // threshold network has not indexed yet, degrades the TOTAL and is counted in
+  // Failures are tolerated per claim: a missing or expired ACP, or a decrypt the
+  // threshold network does not answer with a result, degrades the TOTAL and is counted in
   // undecryptedCount. It never drops a claim from the list, because an amount we cannot
   // read is not the same as an amount that is not there — hiding it would strand funds.
   const decrypted = await Promise.all(
