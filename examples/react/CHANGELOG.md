@@ -1,5 +1,44 @@
 # @cofhe/example-react
 
+## 1.1.0
+
+### Patch Changes
+
+- Updated dependencies [511f34f]
+- Updated dependencies [90621f0]
+- Updated dependencies [6926b07]
+- Updated dependencies [1378c87]
+- Updated dependencies [800cdb3]
+- Updated dependencies [6b902e7]
+- Updated dependencies [781cfc4]
+- Updated dependencies [06348ba]
+- Updated dependencies [4119d87]
+- Updated dependencies [ed2841a]
+- Updated dependencies [a430437]
+- Updated dependencies [b4b1553]
+- Updated dependencies [3d577c8]
+- Updated dependencies [f003b79]
+- Updated dependencies [dd3c731]
+- Updated dependencies [5b6b5b6]
+- Updated dependencies [e14eb04]
+- Updated dependencies [d3c68bb]
+- Updated dependencies [b3829f1]
+- Updated dependencies [288525d]
+- Updated dependencies [070a0f6]
+- Updated dependencies [43d84b9]
+- Updated dependencies [e7c9ad8]
+- Updated dependencies [ddd7026]
+- Updated dependencies [81acc28]
+- Updated dependencies [bc7a5ca]
+- Updated dependencies [d0ddf1c]
+- Updated dependencies [bbd9b03]
+- Updated dependencies [4418149]
+- Updated dependencies [b70a067]
+- Updated dependencies [f8c6219]
+- Updated dependencies [8fb65ec]
+  - @cofhe/react@1.1.0
+  - @cofhe/sdk@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes

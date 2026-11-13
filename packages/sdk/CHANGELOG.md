@@ -1,5 +1,44 @@
 # @cofhe/sdk Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- 6b902e7: Adds `setAccessDeniedRetryTimeout(timeoutMs)` to `decryptForView` and `decryptForTx`. With it, a decrypt sent right after the transaction that grants access keeps asking for up to `timeoutMs` while the network answers `ACPDenied` or `NotPubliclyAllowed`. Off by default (`0`). [Docs](https://cofhesdk.fhenix.io/reference/decryption-lifecycle)
+
+  Changes `decryptForView` and `decryptForTx` to fail with `CtNotFound` on the first `404`. Previously they retried it for 10 seconds.
+
+  Changes `decryptForView` and `decryptForTx` to take the result only from the response to the decrypt request. They no longer ask a status endpoint when a response has a `request_id` and no result; such a response now fails with `DecryptReturnedNull` or `SealOutputReturnedNull`. `onPoll` still runs before each retry.
+
+  Deprecates `requestId` in the `onPoll` callback context: it is always an empty string.
+
+  Deprecates `set404RetryTimeout`: the call is still accepted and has no effect. Remove it.
+
+- bc7a5ca: Corrects `client.acp` to create ACPs that expire `defaultACPExpiration` seconds after the latest block, and to check stored and imported ACPs for expiry against that block. Previously the option was ignored (every ACP lasted 7 days by the local clock), and after a Hardhat `time.increase` the client kept reusing an expired ACP, so decrypts failed as expired.
+
+  Adds an optional `nowSec` argument to `ValidationUtils.isExpired`, `isSignedAndNotExpired` and `isValid`, and to their `ACPUtils` counterparts. The `defaultACPExpiration` default changes from 30 to 7 days, the lifetime ACPs already had, and a value that is not a positive whole number of seconds is now rejected.
+
+### Patch Changes
+
+- 90621f0: Corrects `Encryptable` string inputs to reject empty or whitespace-only values. Previously `Encryptable.uint64('')` was encrypted as `0`.
+- 800cdb3: Corrects `decryptForView` and `decryptForTx` to throw `CofheErrorCode.ChainIdMismatch` when the builder's `chainId` is set and differs from the chain the ACP was signed for, before anything is sent to the threshold network. Previously the ACP's chain silently won and the request failed later, or against the wrong chain. Adds `ChainIdMismatch` to the `CofheErrorCode` enum, so an exhaustive `switch` or `Record<CofheErrorCode, …>` over it needs a new case.
+- 06348ba: Corrects `encryptInputs` to encrypt in the security zone given to `Encryptable` (e.g. `Encryptable.uint32(5n, 1)`) and to throw `ZkPackFailed` for inputs from different zones. Previously the input's zone was ignored and the value was encrypted in zone 0.
+- ed2841a: Changes `encryptInputs` to keep working when the key storage fails to read or write: the default web storage falls back from the shared `iframe-shared-storage` hub to the page's own IndexedDB, and any storage that still fails is given up for the session with the keys kept in memory, with one warning each time. Previously a storage that could not be read made every `encryptInputs` call throw `REHYDRATE_KEYS_STORE_FAILED`, and a write that failed surfaced as an unhandled promise rejection.
+
+  Adds `createWebStorage` and `createIndexedDbStorage` to `@cofhe/sdk/web`: the default `fheKeyStorage` and its same-origin fallback. `createWebStorage({ onFallback })` reports the switch to the fallback (which call failed, and the error), so an app can count sessions that lost the shared storage; the result is passed as `fheKeyStorage` in `createCofheConfig`.
+
+- a430437: Corrects `encryptInputs` on a mocks chain to register the encrypted inputs through the connected node when no zk verifier wallet client is configured. Previously it always sent to `127.0.0.1:8545`, so a node on another port or host failed with `ZkMocksInsertCtHashesFailed`.
+- 43d84b9: Corrects `createSelf` and `createSharing` to reject an `issuer` that is not the connected account. Previously the ACP was signed by the connected account anyway and, for `createSelf`, replaced the active ACP, so the next decrypt reverted with `PermissionInvalid_IssuerSignature`.
+- e7c9ad8: Corrects `createCofheConfig` to keep the `fheKeyStorage` object it was given. Previously it copied the three methods onto a new object, so a storage written as a class lost `this` and every `encryptInputs` call failed with `REHYDRATE_KEYS_STORE_FAILED`.
+- ddd7026: Corrects `createCofheConfig` to reject unknown keys inside `mocks` and `acp`, as it already does at the top level. Previously they were dropped without an error, so a config still using the pre-0.3 `mocks.sealOutputDelay` (now `decryptDelay`) silently ran with a `decryptDelay` of 0.
+- 81acc28: Marks `setCofheDebugInterceptors`, `getCofheDebugInterceptors` and `cofheFetch` as internal. They stay exported for internal use but are undocumented, unsupported and may change in any release.
+- d0ddf1c: Corrects `encryptInputs` to reject an empty list with `ZkPackFailed`, on Hardhat as on a live network. Previously `encryptInputs([])` returned a lone signature on Hardhat, while a live network built and sent the proof and the verifier answered with HTTP 400.
+- bbd9b03: Importing a share (`importShared`, `importFromChain`, `ACPUtils.importSharedAndSign`) now fails before signing when the connected account is not the share's recipient, or when the share has already expired. Such a share can never pass the ACL, and importing it used to replace the active ACP by default.
+- 4418149: `decryptForView` and `decryptForTx` on the mocks now fail with the same error codes as the threshold network: a rejected ACP throws `ACPDenied`, `ACPExpired` or `ACPInvalid`, and `decryptForTx().withoutACP()` on a value that is not public throws `NotPubliclyAllowed`, each with its `apiErrorCode`. Previously every mock rejection was a generic `SealOutputFailed` or `DecryptFailed`.
+- b70a067: Corrects `acp.revokeACP` and `acp.revokeAllACPs` to work with a wallet client that has no `chain`, as `acp.shareOnChain` already does. Previously they threw `No chain was provided to the request` with the client `hre.cofhe.createClientWithBatteries()` builds.
+- f8c6219: `encryptInputs(...).execute()` in `@cofhe/sdk/web` now starts a new proving worker when the previous one failed to start. Previously one failed start (for example the worker script failing to load) was kept for the rest of the session, so every later proof silently ran on the main thread.
+- 8fb65ec: Corrects `verifyDecryptResult` to return `false` for signatures that the on-chain `TaskManager` would reject: anything other than 65 bytes with `v` of 27 or 28 and a low `s` value. Previously a re-encoded but genuine signature verified off-chain and reverted on-chain with `InvalidSignature`.
+
 ## 1.0.1
 
 ### Patch Changes
