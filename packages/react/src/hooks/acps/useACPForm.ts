@@ -69,10 +69,10 @@ export function useACPForm(options: UseACPFormOptions = {}): UseACPFormResult {
       }
     }
     try {
-      const expirationSeconds = Math.floor(Date.now() / 1000) + durationSeconds;
+      // Counted from the latest block, which the ACL checks expiry against, not from the local clock.
       const args: CreateACPArgs = isDelegate
-        ? { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, expirationSeconds }
-        : { name: nameToUse, isSelf: true, expirationSeconds };
+        ? { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, durationSeconds }
+        : { name: nameToUse, isSelf: true, durationSeconds };
 
       await createACPMutateAsync(args);
       setACPName('');
