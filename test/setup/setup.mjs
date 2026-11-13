@@ -4,9 +4,17 @@
  * @cofhe/test-setup — deploy contracts, initialize on-chain state, build.
  *
  * Phases:
- *   1. Deploy    — forge build → forge create per chain. Skips if bytecodeHash matches.
- *   2. Init      — Store pre-encrypted values on PRIMARY_TEST_CHAIN for core SDK tests.
- *   3. Build     — pnpm build (tsup) to bake registries into dist/.
+ *   1. Deploy    — forge build, then per chain: CREATE2 through the deterministic deployer
+ *                  where it has code (skipped when the computed address already has code),
+ *                  otherwise forge create (skipped when the local record's bytecodeHash
+ *                  matches and the address has code). Writes deployments.local.json.
+ *   2. Values    — store SimpleTest's two values on PRIMARY_TEST_CHAIN (and staging when
+ *                  enabled) and pin the handles in deployments.local.json, unless the handles
+ *                  pinned there are still readable by this account.
+ *   3. Build     — pnpm build (tsup) to bake deployments.local.json into dist/.
+ *
+ * Nothing here is committed: the chain is the source of truth, this script only finds or
+ * creates what the tests need and hands the addresses to the bundle of this checkout.
  *
  * Usage:
  *   node setup.mjs                          # all enabled chains
@@ -28,13 +36,14 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getContractAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { CREATE2_DEPLOYER, create2Address, create2Salt, readCreationBytecode } from './create2.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
-const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.json');
-const STAGING_REGISTRY_PATH = resolve(__dirname, 'src/stagingTestChainRegistry.json');
+// What this checkout found, deployed or stored: SimpleTest's address per chain, and the handles of
+// the values stored for the decrypt tests. Not committed (see .gitignore); tsup inlines it into
+// dist/ so the tests of this checkout use exactly these.
+const REGISTRY_PATH = resolve(__dirname, 'deployments.local.json');
 
 // ── .env ────────────────────────────────────────────────────────────────────
 
@@ -83,6 +92,14 @@ const LOCALCOFHE_CHAIN = {
 
 const CONTRACTS = ['SimpleTest'];
 
+// Calling CREATE2_DEPLOYER (create2.mjs) with `salt ++ initcode` as calldata runs CREATE2, so the
+// contract address depends only on the salt and the bytecode: a rebuilt contract lands at a new
+// address, an unchanged one is found where the last run left it, and concurrent runs cannot deploy
+// duplicates. Chains without code at the deployer address (CoFHE staging, Local CoFHE) fall back to
+// `forge create`; since those chains reset, a fresh checkout deploys there once per run.
+// The proxy is `msg.sender` while the constructor runs. SimpleTest has no constructor and no owner,
+// so nothing records that sender.
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const run = (cmd) => execSync(cmd, { cwd: __dirname, encoding: 'utf8' }).trim();
@@ -95,12 +112,17 @@ function writeRegistry(reg) {
   writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2) + '\n');
 }
 
-function bytecodeHash(contractName) {
-  const artifact = JSON.parse(
-    readFileSync(resolve(__dirname, `out/${contractName}.sol/${contractName}.json`), 'utf8')
-  );
-  return '0x' + createHash('sha256').update(artifact.bytecode.object).digest('hex');
+function creationBytecode(contractName) {
+  return readCreationBytecode(resolve(__dirname, `out/${contractName}.sol/${contractName}.json`));
 }
+
+function bytecodeHash(contractName) {
+  return '0x' + createHash('sha256').update(creationBytecode(contractName)).digest('hex');
+}
+
+const create2AddressOf = (contractName) => create2Address(contractName, creationBytecode(contractName));
+
+const sameAddress = (a, b) => typeof a === 'string' && a.toLowerCase() === b.toLowerCase();
 
 function hasCodeOnChain(rpc, address) {
   try {
@@ -125,20 +147,49 @@ function getGasPrice(rpc) {
   }
 }
 
-function deploy(rpc, privateKeyEnvName, contractName) {  
-    const priorityGasPrice = privateKeyEnvName === 'TEST_LOCALCOFHE_PRIVATE_KEY'
-      ? getMaxPriorityFeePerGas(rpc)
-      : null;
-    const gasPrice = priorityGasPrice ? getGasPrice(rpc) : null;
-    const priorityGasPriceArg = priorityGasPrice ? ` --priority-gas-price ${priorityGasPrice}` : '';
-    const gasPriceArg = gasPrice ? ` --gas-price ${gasPrice}` : '';
+// Local CoFHE needs explicit fee fields; the other chains take the tool's estimates.
+function gasArgs(rpc, privateKeyEnvName) {
+  const priorityGasPrice =
+    privateKeyEnvName === 'TEST_LOCALCOFHE_PRIVATE_KEY' ? getMaxPriorityFeePerGas(rpc) : null;
+  const gasPrice = priorityGasPrice ? getGasPrice(rpc) : null;
+  const gasPriceArg = gasPrice ? ` --gas-price ${gasPrice}` : '';
+  const priorityGasPriceArg = priorityGasPrice ? ` --priority-gas-price ${priorityGasPrice}` : '';
+  return `${gasPriceArg}${priorityGasPriceArg}`;
+}
+
+function deploy(rpc, privateKeyEnvName, contractName) {
+  const out = run(
+    `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast${gasArgs(rpc, privateKeyEnvName)}`
+  );
+  const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
+  const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
+  if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
+  return { address: addressMatch[1], txHash: txMatch?.[1] };
+}
+
+// Sends `salt ++ initcode` to CREATE2_DEPLOYER and reports whether `address` has code afterwards.
+// A failed send still counts when the code is there: another run deployed the same bytecode first,
+// and the proxy reverts on a second attempt.
+function deployCreate2(rpc, privateKeyEnvName, contractName, address) {
+  let txHash;
+  let sendError;
+  try {
+    const data = `${create2Salt(contractName)}${creationBytecode(contractName).slice(2)}`;
     const out = run(
-      `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast${gasPriceArg}${priorityGasPriceArg}`
+      `cast send ${CREATE2_DEPLOYER} --data ${data} --rpc-url ${rpc} --private-key $${privateKeyEnvName}${gasArgs(rpc, privateKeyEnvName)}`
     );
-    const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
-    const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
-    if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
-    return { address: addressMatch[1], txHash: txMatch?.[1] };
+    txHash = out.match(/transactionHash\s+(0x[0-9a-fA-F]{64})/)?.[1];
+  } catch (err) {
+    sendError = err;
+  }
+
+  if (!hasCodeOnChain(rpc, address)) {
+    const error = sendError
+      ? sendError.message
+      : `CREATE2 transaction ${txHash ?? '(hash not parsed)'} mined but left no code at ${address}`;
+    return { ok: false, error };
+  }
+  return { ok: true, txHash, raced: Boolean(sendError) };
 }
 
 function getBalance(rpc, address) {
@@ -370,7 +421,8 @@ const targets = args.chains
 
 for (const contract of CONTRACTS) {
   const hash = bytecodeHash(contract);
-  console.log(`\n${contract}  bytecodeHash: ${hash.slice(0, 18)}...`);
+  const create2Target = create2AddressOf(contract);
+  console.log(`\n${contract}  bytecodeHash: ${hash.slice(0, 18)}...  CREATE2 address: ${create2Target}`);
 
   if (!registry[contract]) registry[contract] = {};
 
@@ -387,7 +439,21 @@ for (const contract of CONTRACTS) {
       continue;
     }
 
-    if (!entry?.address) {
+    // Detected per chain rather than listed: where the deterministic deployer has code, the decision
+    // comes from the computed address and the chain, not from anything recorded locally.
+    const useCreate2 = hasCodeOnChain(rpc, CREATE2_DEPLOYER);
+
+    if (useCreate2) {
+      const deployed = hasCodeOnChain(rpc, create2Target);
+      const recorded = sameAddress(entry?.address, create2Target) && entry.bytecodeHash === hash;
+      if (deployed && recorded) {
+        action = 'skip'; reason = 'CREATE2 address has code';
+      } else if (deployed) {
+        action = 'record'; reason = 'CREATE2 address has code, recording it';
+      } else {
+        action = 'deploy'; reason = 'no code at the CREATE2 address';
+      }
+    } else if (!entry?.address) {
       action = 'deploy'; reason = 'no registry entry';
     } else if (entry.bytecodeHash === hash && hasCodeOnChain(rpc, entry.address)) {
       action = 'skip'; reason = 'up to date';
@@ -398,21 +464,41 @@ for (const contract of CONTRACTS) {
       reason = entry.bytecodeHash !== hash ? 'bytecodeHash changed' : 'no code on-chain';
     }
 
-    console.log(`  ${chain.label} (${chain.id}): ${action} — ${reason}`);
+    const via = useCreate2 ? 'CREATE2' : 'forge create, no CREATE2 deployer on this chain';
+    console.log(`  ${chain.label} (${chain.id}): ${action} — ${reason} [${via}]`);
 
     if (action === 'skip') continue;
 
     if (action === 'record') {
-      registry[contract][key] = { ...entry, bytecodeHash: hash, deployedAt: entry.deployedAt || new Date().toISOString() };
+      registry[contract][key] = useCreate2
+        ? { address: create2Target, bytecodeHash: hash, deployedAt: new Date().toISOString() }
+        : { ...entry, bytecodeHash: hash, deployedAt: entry.deployedAt || new Date().toISOString() };
       changed = true;
       continue;
     }
 
-    if (args.dryRun) { console.log('    [dry-run] would deploy'); continue; }
+    if (args.dryRun) { console.log(`    [dry-run] would deploy via ${via}`); continue; }
 
     const chainDeployer = run(`cast wallet address $${pkEnvName}`);
     const bal = getBalance(rpc, chainDeployer);
     if (bal === '0') { console.error(`    Deployer ${chainDeployer} has 0 balance on ${chain.label}, skipping`); continue; }
+
+    if (useCreate2) {
+      const result = deployCreate2(rpc, pkEnvName, contract, create2Target);
+      if (!result.ok) {
+        console.error(`    FAILED: ${result.error}`);
+        deploymentFailed = true;
+        continue;
+      }
+      console.log(
+        result.raced
+          ? `    Deploy transaction failed, but ${create2Target} has code: another run deployed it first`
+          : `    Deployed: ${create2Target}  tx: ${result.txHash}`
+      );
+      registry[contract][key] = { address: create2Target, bytecodeHash: hash, deployedAt: new Date().toISOString() };
+      changed = true;
+      continue;
+    }
 
     try {
       const result = deploy(rpc, pkEnvName, contract);
@@ -438,180 +524,83 @@ if (deploymentFailed) {
   process.exit(1);
 }
 
-// ── Primary test chain initialization ───────────────────────────────────────
+// ── Stored values ───────────────────────────────────────────────────────────
+//
+// The decrypt tests need two handles from SimpleTest on the primary test chain (and on staging
+// when enabled): storedValue, readable only by the account that stored it, and publicValue,
+// readable by everyone. The fixture is shared and other suites overwrite both, so the tests cannot
+// read the current handles from the contract. Setup stores the values, pins the resulting handles
+// in deployments.local.json, and the tests use those. A handle stays decryptable after the
+// contract moves on, so a checkout reuses its pinned handles for as long as the ACL still allows
+// them; a fresh checkout stores once.
 
 const PRIMARY_TEST_CHAIN = Number(process.env.PRIMARY_TEST_CHAIN || '421614');
-
 const PRIVATE_VALUE = 42;
 const PUBLIC_VALUE = 7;
-const ADD_VALUE = 50;
+const TASK_MANAGER_ID = 1;
 
-function readPrimaryRegistry() {
-  try { return JSON.parse(readFileSync(PRIMARY_REGISTRY_PATH, 'utf8')); } catch { return {}; }
-}
-
-function writePrimaryRegistry(reg) {
-  writeFileSync(PRIMARY_REGISTRY_PATH, JSON.stringify(reg, null, 2) + '\n');
-}
-
-function castSend(rpc, pkEnvName, to, sig, ...callArgs) {
+function castCall(rpc, to, sig, ...callArgs) {
   const argsStr = callArgs.length ? ' ' + callArgs.join(' ') : '';
-  run(`cast send ${to} "${sig}"${argsStr} --rpc-url ${rpc} --private-key $${pkEnvName}`);
+  return run(`cast call ${to} "${sig}"${argsStr} --rpc-url ${rpc}`);
 }
 
-function castCall(rpc, to, sig) {
-  return run(`cast call ${to} "${sig}" --rpc-url ${rpc}`);
-}
-
-function initializePrimaryChain() {
-  const primaryChain = ALL_CHAINS.find(c => c.id === PRIMARY_TEST_CHAIN);
-  if (!primaryChain) {
-    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: not in chain list, skipping initialization`);
-    return;
+function pinnedValuesReadable(rpc, record, contractAddress, account) {
+  if (!record || !sameAddress(record.contractAddress, contractAddress) || !sameAddress(record.account, account)) {
+    return false;
   }
+  const taskManager = castCall(rpc, COFHE_ADDRESS_BOOK_ADDRESS, 'getTm(uint256)(address)', TASK_MANAGER_ID);
+  return (
+    castCall(rpc, taskManager, 'isAllowed(uint256,address)(bool)', record.privateValue.ctHash, account) === 'true' &&
+    castCall(rpc, taskManager, 'isPubliclyAllowed(uint256)(bool)', record.publicValue.ctHash) === 'true'
+  );
+}
 
-  const contractAddress = registry['SimpleTest']?.[String(PRIMARY_TEST_CHAIN)]?.address;
+// Stores `value` through `sig` and returns the handle it produced, read at the block of our own
+// transaction so a concurrent write by another suite cannot slip in between.
+function storeValue(rpc, pkEnvName, contractAddress, sig, value, hashGetter) {
+  console.log(`  ${sig.split('(')[0]}(${value})`);
+  const out = run(`cast send ${contractAddress} "${sig}" ${value} --rpc-url ${rpc} --private-key $${pkEnvName}`);
+  const block = out.match(/blockNumber\s+(\d+)/)?.[1];
+  const blockArg = block ? ` --block ${block}` : '';
+  const ctHash = run(`cast call ${contractAddress} "${hashGetter}()(bytes32)" --rpc-url ${rpc}${blockArg}`);
+  return { value, ctHash };
+}
+
+function initializeValues(chain) {
+  const key = chain.registryKey || String(chain.id);
+  const contractAddress = registry['SimpleTest']?.[key]?.address;
   if (!contractAddress) {
-    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: no SimpleTest deployment, skipping initialization`);
+    console.log(`\n${chain.label}: no SimpleTest deployment, skipping value initialization`);
     return;
   }
 
-  const primaryReg = readPrimaryRegistry();
-  const deployedAt = registry['SimpleTest'][String(PRIMARY_TEST_CHAIN)].deployedAt;
-  const needsInit = !primaryReg.chainId
-    || primaryReg.contractAddress !== contractAddress
-    || primaryReg.deploymentTimestamp !== deployedAt;
+  const rpc = process.env[chain.rpcEnv] || chain.rpc;
+  const pkEnvName = getPrivateKeyEnvName(chain);
+  const account = run(`cast wallet address $${pkEnvName}`);
+  const record = registry['SimpleTestValues']?.[key];
 
-  if (!needsInit) {
-    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: values already initialized`);
+  if (pinnedValuesReadable(rpc, record, contractAddress, account)) {
+    console.log(`\n${chain.label}: pinned SimpleTest values still readable by ${account}`);
     return;
   }
 
   if (args.dryRun) {
-    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: [dry-run] would initialize values`);
+    console.log(`\n${chain.label}: [dry-run] would store values in SimpleTest ${contractAddress} as ${account}`);
     return;
   }
 
-  const rpc = process.env[primaryChain.rpcEnv] || primaryChain.rpc;
-  const pkEnvName = getPrivateKeyEnvName(primaryChain);
-
-  console.log(`\nInitializing primary test chain values on ${primaryChain.label} (${PRIMARY_TEST_CHAIN})...`);
-
-  // 1. Store private value via setValueTrivial
-  console.log(`  setValueTrivial(${PRIVATE_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', String(PRIVATE_VALUE));
-  const privateCtHash = castCall(rpc, contractAddress, 'getValueHash()');
-  const privateHandle = castCall(rpc, contractAddress, 'getValue()');
-  console.log(`    ctHash: ${privateCtHash}`);
-
-  // 2. Store public value via setPublicValueTrivial
-  console.log(`  setPublicValueTrivial(${PUBLIC_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', String(PUBLIC_VALUE));
-  const publicCtHash = castCall(rpc, contractAddress, 'publicValueHash()');
-  const publicHandle = castCall(rpc, contractAddress, 'publicValue()');
-  console.log(`    ctHash: ${publicCtHash}`);
-
-  // 3. Add value via addValueTrivial (adds to storedValue which is currently PRIVATE_VALUE)
-  console.log(`  addValueTrivial(${ADD_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'addValueTrivial(uint256)', String(ADD_VALUE));
-  const addedCtHash = castCall(rpc, contractAddress, 'getValueHash()');
-  const addedHandle = castCall(rpc, contractAddress, 'getValue()');
-  console.log(`    ctHash: ${addedCtHash}  (expected sum: ${PRIVATE_VALUE + ADD_VALUE})`);
-
-  const newPrimaryReg = {
-    chainId: PRIMARY_TEST_CHAIN,
-    contractAddress,
-    deploymentTimestamp: deployedAt,
-    privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
-    publicValue: { value: PUBLIC_VALUE, ctHash: publicCtHash, handle: publicHandle },
-    addedValue: {
-      value: PRIVATE_VALUE + ADD_VALUE,
-      addend: ADD_VALUE,
-      expectedSum: PRIVATE_VALUE + ADD_VALUE,
-      ctHash: addedCtHash,
-      handle: addedHandle,
-    },
-    initializedAt: new Date().toISOString(),
-  };
-
-  writePrimaryRegistry(newPrimaryReg);
-  console.log(`  Primary test chain registry updated: ${PRIMARY_REGISTRY_PATH}`);
+  console.log(`\nStoring values in SimpleTest ${contractAddress} on ${chain.label} as ${account}...`);
+  const privateValue = storeValue(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', PRIVATE_VALUE, 'storedValueHash');
+  const publicValue = storeValue(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', PUBLIC_VALUE, 'publicValueHash');
+  if (!registry['SimpleTestValues']) registry['SimpleTestValues'] = {};
+  registry['SimpleTestValues'][key] = { contractAddress, account, privateValue, publicValue, storedAt: new Date().toISOString() };
+  writeRegistry(registry);
+  console.log(`  Pinned in ${REGISTRY_PATH}`);
 }
 
-initializePrimaryChain();
-
-
-function initializeStagingChain() {
-  if (process.env.TEST_STAGING_ENABLED !== 'true') return;
-
-  const contractAddress = registry['SimpleTest']?.[STAGING_CHAIN.registryKey]?.address;
-  if (!contractAddress) {
-    console.log(`\nStaging chain: no SimpleTest deployment, skipping value initialization`);
-    return;
-  }
-
-  let stagingReg;
-  try { stagingReg = JSON.parse(readFileSync(STAGING_REGISTRY_PATH, 'utf8')); } catch { stagingReg = {}; }
-  const initPkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
-  const initializedBy = run(`cast wallet address --private-key $${initPkEnvName}`).trim().toLowerCase();
-  const deployedAt = registry['SimpleTest'][STAGING_CHAIN.registryKey].deployedAt;
-  const needsInit = !stagingReg.chainId
-    || stagingReg.contractAddress !== contractAddress
-    || stagingReg.deploymentTimestamp !== deployedAt
-    || (stagingReg.initializedBy || '').toLowerCase() !== initializedBy;
-
-  if (!needsInit) {
-    console.log(`\nStaging chain: values already initialized`);
-    return;
-  }
-
-  if (args.dryRun) {
-    console.log(`\nStaging chain: [dry-run] would initialize values`);
-    return;
-  }
-
-  const rpc = process.env[STAGING_CHAIN.rpcEnv] || STAGING_CHAIN.rpc;
-  const pkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
-
-  console.log(`\nInitializing staging chain values on ${STAGING_CHAIN.label}...`);
-
-  console.log(`  setValueTrivial(${PRIVATE_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', String(PRIVATE_VALUE));
-  const privateCtHash = castCall(rpc, contractAddress, 'getValueHash()');
-  const privateHandle = castCall(rpc, contractAddress, 'getValue()');
-
-  console.log(`  setPublicValueTrivial(${PUBLIC_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', String(PUBLIC_VALUE));
-  const publicCtHash = castCall(rpc, contractAddress, 'publicValueHash()');
-  const publicHandle = castCall(rpc, contractAddress, 'publicValue()');
-
-  console.log(`  addValueTrivial(${ADD_VALUE})...`);
-  castSend(rpc, pkEnvName, contractAddress, 'addValueTrivial(uint256)', String(ADD_VALUE));
-  const addedCtHash = castCall(rpc, contractAddress, 'getValueHash()');
-  const addedHandle = castCall(rpc, contractAddress, 'getValue()');
-
-  const newStagingReg = {
-    chainId: STAGING_CHAIN.id,
-    initializedBy,
-    contractAddress,
-    deploymentTimestamp: deployedAt,
-    privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
-    publicValue: { value: PUBLIC_VALUE, ctHash: publicCtHash, handle: publicHandle },
-    addedValue: {
-      value: PRIVATE_VALUE + ADD_VALUE,
-      addend: ADD_VALUE,
-      expectedSum: PRIVATE_VALUE + ADD_VALUE,
-      ctHash: addedCtHash,
-      handle: addedHandle,
-    },
-    initializedAt: new Date().toISOString(),
-  };
-
-  writeFileSync(STAGING_REGISTRY_PATH, JSON.stringify(newStagingReg, null, 2) + '\n');
-  console.log(`  Staging test chain registry updated: ${STAGING_REGISTRY_PATH}`);
+for (const chain of targets) {
+  if (chain === STAGING_CHAIN || chain.id === PRIMARY_TEST_CHAIN) initializeValues(chain);
 }
-
-initializeStagingChain();
 
 // ── Write SimpleTest.sol abi ────────────────────────────────────────────────
 

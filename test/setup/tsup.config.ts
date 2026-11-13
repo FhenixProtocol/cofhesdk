@@ -17,6 +17,11 @@ if (existsSync(envPath)) {
   }
 }
 
+// Where SimpleTest is on each chain, written by setup.mjs for this checkout and never committed.
+// A checkout where setup has not run inlines '{}'.
+const deploymentsPath = resolve(__dirname, 'deployments.local.json');
+const deployments = existsSync(deploymentsPath) ? readFileSync(deploymentsPath, 'utf8') : '{}';
+
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
@@ -30,5 +35,6 @@ export default defineConfig({
     'process.env.PRIMARY_TEST_CHAIN': JSON.stringify(process.env.PRIMARY_TEST_CHAIN ?? ''),
     'process.env.TEST_ALICE_PRIVATE_KEY': JSON.stringify(process.env.TEST_ALICE_PRIVATE_KEY ?? ''),
     'process.env.STAGING_RPC_URL': JSON.stringify(process.env.STAGING_RPC_URL ?? ''),
+    __SIMPLE_TEST_DEPLOYMENTS__: JSON.stringify(deployments),
   },
 });

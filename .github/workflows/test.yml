@@ -1,20 +1,27 @@
 name: Test
 
-# What runs here, and why two jobs need the test account's key.
+# What runs here, and why three jobs need the test account's key.
 #
 #   Job                          | Tests                                         | Chain                        | Writes       | Key
 #   -----------------------------+-----------------------------------------------+------------------------------+--------------+-----------------------------------------------
 #   Unit, plugins, React hooks   | unit tests, Hardhat and Foundry plugins,      | none, or a local Anvil       | no           | no
 #                                | React hooks on a chain                        |                              |              |
 #   SDK thread pool              | the four worker-pool browser tests, serially  | none                         | no           | no
+#   Test fixtures: <testnet>     | none: finds or deploys SimpleTest, stores the | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
+#                                | two values on Arbitrum, one leg per testnet   | Base Sepolia                 |              |
 #   SDK vs real CoFHE            | SDK internals: decrypt, share-metadata labels | Arbitrum Sepolia             | no           | yes: the ACL lets only that account read the fixtures
 #   Matrix: Anvil mocks          | app flows on the mocks: client, encrypt,      | a local Anvil                | no           | no
 #                                | decrypt, share, revoke, as an app uses them   |                              |              |
 #   Matrix: <testnet>            | the same, one leg per testnet                 | Ethereum, Arbitrum and       | yes          | yes: it pays for and signs the transactions
 #                                |                                               | Base Sepolia                 |              |
 #
-# Fork PRs get no secrets, so the two keyed jobs skip there. A maintainer runs them on a fork PR
-# by adding the `run-matrix` label: the two "on label" jobs below run the same suites with the keys.
+# The fixtures job runs first and hands what it found to the two test jobs as an artifact, one per
+# testnet (test/setup/deployments.local.json). It is the only place setup runs, and it shares a
+# concurrency group with the matrix leg of the same testnet, so no two jobs send transactions from
+# the test account on one chain at the same time. The live suite only reads.
+#
+# Fork PRs get no secrets, so the keyed jobs skip there. A maintainer runs them on a fork PR
+# by adding the `run-matrix` label: the "on label" jobs below run the same steps with the keys.
 
 on:
   pull_request:
@@ -110,19 +117,98 @@ jobs:
           TEST_THREADPOOL_ENABLED: 'true'
         run: pnpm exec turbo run test:threadpool --filter=@cofhe/sdk
 
+  # The only job that runs test setup, one leg per testnet. Both keyed test jobs below wait for
+  # it and read its record. Setup sends transactions from the TEST_PRIVATE_KEY account, and so does
+  # the matrix leg of the same testnet, so the two share a concurrency group and never overlap,
+  # within a run or across runs.
+  test-setup:
+    # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
+    # third kind of event and does not match. On that event test-setup-labeled below runs instead.
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: Ethereum Sepolia
+            slug: sepolia
+            setupChainId: '11155111'
+          - name: Arbitrum Sepolia
+            slug: arb-sepolia
+            setupChainId: '421614'
+          - name: Base Sepolia
+            slug: base-sepolia
+            setupChainId: '84532'
+    concurrency:
+      group: testnet-integration-${{ matrix.network.slug }}
+      cancel-in-progress: false
+    name: 'Test fixtures: ${{ matrix.network.name }} (writes, key)'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      # Finds SimpleTest on this testnet and deploys it when the bytecode changed. On Arbitrum
+      # Sepolia it also stores the two values the decrypt tests read and pins their handles.
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+
+      # Addresses and handles only, nothing secret. The test jobs put the file back in place
+      # before they build @cofhe/test-setup, which inlines it into the bundle.
+      - name: Upload fixtures record
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-fixtures-${{ matrix.network.slug }}
+          path: test/setup/deployments.local.json
+          if-no-files-found: error
+          retention-days: 1
+
   # The SDK's live suite: its decrypt internals and share-metadata labels against
-  # real CoFHE on Arbitrum Sepolia. Read-only on-chain, but it signs with the
-  # TEST_PRIVATE_KEY wallet, the one the ACL lets read the fixtures, so it only
-  # runs where repository secrets exist: pushes and same-repo pull requests.
+  # real CoFHE on Arbitrum Sepolia. Read-only on-chain: the fixtures come from test-setup.
+  # It signs with the TEST_PRIVATE_KEY wallet, the one the ACL lets read the fixtures, so it
+  # only runs where repository secrets exist: pushes and same-repo pull requests.
   # Fork PRs skip this job entirely instead of failing on a missing secret.
   test-live:
+    needs: test-setup
     # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
     # third kind of event and does not match. On that event test-live-labeled below runs instead.
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    # `!cancelled()` lets it start when the fixtures leg of another testnet failed. If the
+    # Arbitrum leg failed, the download step below fails and says so.
+    if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) }}
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: SDK vs real CoFHE (Arbitrum Sepolia, read-only, key)
+    name: SDK vs real CoFHE (Arbitrum Sepolia, key)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repo
@@ -159,6 +245,14 @@ jobs:
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1
           fi
+
+      # Where SimpleTest is on Arbitrum Sepolia and the handles of its two stored values, as
+      # test-setup left them. Must be in place before the build inside the next step.
+      - name: Download fixtures record
+        uses: actions/download-artifact@v7
+        with:
+          name: test-fixtures-arb-sepolia
+          path: test/setup
 
       - name: Run Live Tests
         env:
@@ -202,9 +296,12 @@ jobs:
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
   test-network:
+    needs: test-setup
     # Only on a push, or on a pull_request from a branch of this repo. The `run-matrix` label is a
     # third kind of event and does not match. On that event test-network-labeled below runs instead.
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    # `!cancelled()` lets a leg start when the fixtures leg of another testnet failed. If its own
+    # fixtures leg failed, the download step below fails and says so.
+    if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) }}
     strategy:
       fail-fast: false
       matrix:
@@ -259,11 +356,13 @@ jobs:
             exit 1
           fi
 
-      - name: Setup test fixtures
-        if: matrix.network.setupChainId
-        env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+      # Where SimpleTest is on this testnet, as the fixtures job left it. Must be in place
+      # before the build inside the next step.
+      - name: Download fixtures record
+        uses: actions/download-artifact@v7
+        with:
+          name: test-fixtures-${{ matrix.network.slug }}
+          path: test/setup
 
       - name: Run Integration Matrix Tests
         env:
@@ -272,13 +371,95 @@ jobs:
           MATRIX_CHAIN: ${{ matrix.network.slug }}
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
-  # The two keyed suites on a contributor's PR, with the repository's testnet
-  # keys. Fork PRs get no secrets on `pull_request`, so this is the only way
-  # they run on them. The PR's own code runs with the keys here, so a
-  # maintainer adds the label only after reading the diff.
-  test-network-labeled:
-    # Only when the `run-matrix` label is added. Any other label is ignored.
+  # The keyed jobs on a contributor's PR, with the repository's testnet
+  # keys: the fixtures job, then the two suites. Fork PRs get no secrets on
+  # `pull_request`, so this is the only way they run on them. The PR's own code
+  # runs with the keys here, so a maintainer adds the label only after reading the diff.
+  test-setup-labeled:
+    # Same gate, same permissions and same checkout as test-network-labeled below.
     if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: Ethereum Sepolia
+            slug: sepolia
+            setupChainId: '11155111'
+          - name: Arbitrum Sepolia
+            slug: arb-sepolia
+            setupChainId: '421614'
+          - name: Base Sepolia
+            slug: base-sepolia
+            setupChainId: '84532'
+    # Same group as test-setup and the matrix legs of the same testnet.
+    concurrency:
+      group: testnet-integration-${{ matrix.network.slug }}
+      cancel-in-progress: false
+    name: 'Test fixtures on label: ${{ matrix.network.name }} (writes, key)'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          # actions/checkout refuses fork code in a pull_request_target run unless told so.
+          # The run-matrix label is that decision, taken by a maintainer who read the diff.
+          allow-unsafe-pr-checkout: true
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      # Finds SimpleTest on this testnet and deploys it when the bytecode changed. On Arbitrum
+      # Sepolia it also stores the two values the decrypt tests read and pins their handles.
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+
+      # Addresses and handles only, nothing secret. The test jobs put the file back in place
+      # before they build @cofhe/test-setup, which inlines it into the bundle.
+      - name: Upload fixtures record
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-fixtures-${{ matrix.network.slug }}
+          path: test/setup/deployments.local.json
+          if-no-files-found: error
+          retention-days: 1
+
+  test-network-labeled:
+    needs: test-setup-labeled
+    # Only when the `run-matrix` label is added. Any other label is ignored.
+    # `!cancelled()`: as on test-network above.
+    if: ${{ !cancelled() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix' }}
     # Untrusted code runs here. The token can read the repo and nothing else.
     permissions:
       contents: read
@@ -346,11 +527,13 @@ jobs:
             exit 1
           fi
 
-      - name: Setup test fixtures
-        if: matrix.network.setupChainId
-        env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
+      # Where SimpleTest is on this testnet, as the fixtures job left it. Must be in place
+      # before the build inside the next step.
+      - name: Download fixtures record
+        uses: actions/download-artifact@v7
+        with:
+          name: test-fixtures-${{ matrix.network.slug }}
+          path: test/setup
 
       - name: Run Integration Matrix Tests
         env:
@@ -360,15 +543,16 @@ jobs:
         run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
 
   test-live-labeled:
+    needs: test-setup-labeled
     # Same gate, same permissions and same checkout as test-network-labeled above.
-    if: github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix'
+    if: ${{ !cancelled() && github.event_name == 'pull_request_target' && github.event.label.name == 'run-matrix' }}
     permissions:
       contents: read
     # Same group as test-live, so runs queue instead of overlapping.
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: SDK vs real CoFHE on label (Arbitrum Sepolia, read-only, key)
+    name: SDK vs real CoFHE on label (Arbitrum Sepolia, key)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout PR head
@@ -411,6 +595,14 @@ jobs:
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1
           fi
+
+      # Where SimpleTest is on Arbitrum Sepolia and the handles of its two stored values, as
+      # test-setup-labeled left them. Must be in place before the build inside the next step.
+      - name: Download fixtures record
+        uses: actions/download-artifact@v7
+        with:
+          name: test-fixtures-arb-sepolia
+          path: test/setup
 
       - name: Run Live Tests
         env:
