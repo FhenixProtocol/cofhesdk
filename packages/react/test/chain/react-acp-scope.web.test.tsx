@@ -325,6 +325,72 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
         .filter((q) => q.queryKey[4] === shared.hash && q.state.data !== undefined);
     await waitFor(() => expect(underShare()).toHaveLength(0), { timeout: 10_000 });
   }, 180_000);
+
+  it('a revoked share made active turns unscoped decrypts off', async () => {
+    // Twin of the scoped revoke case: the share is the ACTIVE ACP (no <CofheACPScope>), so the
+    // gate goes through useCofheEffectiveACP's active path. Before this fix that path only used
+    // local isValid and kept decrypting after an on-chain revoke.
+    const publicClient = createPublicClient({ chain, transport: custom(transport()) });
+    const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
+    const aliceWallet = createWalletClient({ chain, transport: custom(transport()), account: ALICE });
+    const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    const hash = await bobWallet.writeContract({
+      address: SIMPLE_TEST,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [47n],
+      account: BOB,
+      chain,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    const bobClient = createCofheClient(config);
+    await bobClient.connect(publicClient, bobWallet);
+    const sharing = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'active then revoke',
+    });
+
+    const aliceClient = createCofheClient(config);
+    await aliceClient.connect(publicClient, aliceWallet);
+    // Default import activates the share — unscoped decrypts use it as the active ACP.
+    const shared = await aliceClient.acp.importShared(bobClient.acp.export(sharing));
+    expect(aliceClient.acp.getActiveACPHash()).toBe(shared.hash);
+
+    render(
+      <CofheProvider
+        cofheClient={aliceClient}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={aliceWallet}
+      >
+        {/* No <CofheACPScope>: Decrypt gates through useCofheEffectiveACP's active path. */}
+        <Decrypt label="active" />
+      </CofheProvider>
+    );
+
+    await waitFor(() => expect(shown('active')).toBe('47'), { timeout: 90_000 });
+
+    const underShare = () =>
+      queryClient
+        .getQueryCache()
+        .findAll({ queryKey: ['decryptCiphertext'] })
+        .filter((q) => q.queryKey[4] === shared.hash && q.state.data !== undefined);
+    expect(underShare().length).toBeGreaterThan(0);
+
+    const revokeTx = await bobClient.acp.revokeACP(sharing);
+    await publicClient.waitForTransactionReceipt({ hash: revokeTx });
+    // Force the same re-check scope revoke uses (otherwise minute interval / window focus).
+    await queryClient.invalidateQueries({ queryKey: ['cofheACPStatus'] });
+
+    await waitFor(() => expect(shown('active')).toBe('no valid acp'), { timeout: 30_000 });
+    expect(shown('active value')).toBe('');
+    await waitFor(() => expect(underShare()).toHaveLength(0), { timeout: 10_000 });
+  }, 180_000);
+
   it('a revoked share turns the scope off; a SNAPSHOT share flags values it does not cover', async () => {
     const publicClient = createPublicClient({ chain, transport: custom(transport()) });
     const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
