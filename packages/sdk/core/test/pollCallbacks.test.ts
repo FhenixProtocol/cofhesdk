@@ -335,6 +335,38 @@ describe('decrypt polling callbacks', () => {
     await rejection;
   });
 
+  it('tnDecryptV2 does not retry a 401 acp_denied submit', async () => {
+    const onPoll = vi.fn();
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        // The v2 error body carries the code only.
+        return makeMockResponse({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          json: async () => ({ error: 'acp_denied' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    await expect(
+      tnDecryptV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: null,
+        thresholdNetworkUrl,
+        onPoll,
+        retry404TimeoutMs: 60_000,
+      })
+    ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
+  });
+
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
     const onPoll = vi.fn();
 
@@ -753,6 +785,38 @@ describe('decrypt polling callbacks', () => {
 
     await vi.advanceTimersByTimeAsync(11_000);
     await rejection;
+  });
+
+  it('tnSealOutputV2 does not retry a 401 acp_denied submit', async () => {
+    const onPoll = vi.fn();
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        // The v2 error body carries the code only.
+        return makeMockResponse({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          json: async () => ({ error: 'acp_denied' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    await expect(
+      tnSealOutputV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: {} as any,
+        thresholdNetworkUrl,
+        onPoll,
+        retry404TimeoutMs: 60_000,
+      })
+    ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {
