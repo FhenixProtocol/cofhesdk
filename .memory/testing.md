@@ -4,7 +4,7 @@
 
 ```
 test/
-  setup/                       # shared contracts, deployment registry, setup script
+  setup/                       # shared contracts and the setup script that finds or deploys them
   integration-matrix/          # cross-chain × cross-environment SDK test runner
   hardhat-plugin-test/         # HH2 plugin integration tests
   hardhat-3-plugin-test/       # HH3 plugin integration tests
@@ -49,19 +49,21 @@ Workspace package that provides shared test infrastructure consumed by SDK tests
 | Export | Purpose |
 |---|---|
 | `simpleTestAbi` | ABI for `SimpleTest.sol` |
-| `getSimpleTestAddress(chainId)` | Looks up deployed address from `deployments.json` |
+| `getSimpleTestAddress(chainId)` | Where `SimpleTest` is on a chain, from `deployments.local.json` (written by setup, not committed, inlined at build). `undefined` when setup has not run in this checkout |
 | `TEST_PRIVATE_KEY` | Deployer/test key (inlined at build time) |
 | `PRIMARY_TEST_CHAIN` | Chain ID used for pre-stored values (default: Arb Sepolia / 421614) |
-| `primaryTestChainRegistry` | Pre-stored ctHashes/handles for core decrypt tests |
+| `getSimpleTestValues(chainId)` | Handles of the two values setup stored for the core decrypt tests, from the same file |
 
 ### `setup.mjs`
 
 Single entry point for preparing the test environment. Run via `pnpm --filter @cofhe/test-setup run setup` or root `pnpm test:setup`.
 
 Three phases:
-1. **Deploy** — `forge create` `SimpleTest` to all enabled chains. Uses `bytecodeHash` to skip redeployment when contract is unchanged. Results in `src/deployments.json`.
-2. **Initialize primary chain** — Calls `setValueTrivial`, `setPublicValueTrivial`, `addValueTrivial` on the primary chain to pre-store encrypted values. Results in `src/primaryTestChainRegistry.json`. Skipped when registry matches current deployment.
-3. **Build** — Runs `tsup` + `forge build`. Environment variables are inlined via tsup's `define` so they work in browser test contexts.
+1. **Deploy** — The chain is the only source of truth; no registry is committed. Where the deterministic CREATE2 deployer exists (the public testnets), `SimpleTest` lives at an address computed from a fixed salt and its bytecode: setup skips when that address has code and deploys through the deployer otherwise. Chains without the deployer (CoFHE staging, local CoFHE) use `forge create`. Results in `deployments.local.json` (gitignored).
+2. **Store values** — On the primary chain, stores `storedValue` and `publicValue` and pins the resulting handles in the same local file. Skipped while the pinned handles are still readable by this account. The decrypt tests use the pinned handles, because the matrix suites overwrite the contract's current values.
+3. **Build** — Runs `tsup` + `forge build`. Environment variables and `deployments.local.json` are inlined via tsup's `define` so they work in browser test contexts.
+
+In CI, setup runs only in the `Test fixtures` jobs of `.github/workflows/test.yml`, one leg per testnet. Each leg uploads its `deployments.local.json` as an artifact, and the live and matrix jobs download it before they build. Setup sends transactions from the test account, so a job that also ran it next to a matrix leg on the same chain would collide on the nonce: do not add a setup step to a test job.
 
 Env vars loaded from root `.env`:
 
@@ -144,10 +146,10 @@ Chains with `optIn: true` in their `TestChainConfig` are excluded when no `MATRI
 ### Testnet auto-enablement
 
 A testnet chain is enabled only when:
-1. `getSimpleTestAddress(chainId)` returns an address (contract deployed via `setup.mjs`).
+1. `getSimpleTestAddress(chainId)` returns an address (`setup.mjs` ran in this checkout, or CI downloaded the fixtures record).
 2. `TEST_PRIVATE_KEY` is not the default Anvil key (i.e., a real funded key is present).
 
-No manual flags needed — run `setup.mjs` once, then testnets that have deployments are included automatically.
+No manual flags needed — run `setup.mjs` once per checkout, then the testnets it covered are included automatically.
 
 ---
 
@@ -157,7 +159,7 @@ No manual flags needed — run `setup.mjs` once, then testnets that have deploym
 # Full pipeline: deploy contracts, then run all SDK + plugin tests
 pnpm test
 
-# Setup only (deploy contracts, initialize primary chain, build)
+# Setup only (find or deploy contracts, store the primary chain's values, build)
 pnpm test:setup
 
 # Integration matrix only
