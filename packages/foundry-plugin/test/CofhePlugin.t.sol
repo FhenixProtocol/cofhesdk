@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import { Test } from 'forge-std/Test.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient, SharedACPExport } from '../contracts/CofheClient.sol';
-import { ACP } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ACP } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 import { ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 

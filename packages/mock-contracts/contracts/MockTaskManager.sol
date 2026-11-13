@@ -3,7 +3,7 @@
 pragma solidity >=0.8.25 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
-import { ACP } from './Permissioned.sol';
+import { ACP } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 // import {PlaintextsStorage} from "./PlaintextsStorage.sol";
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';

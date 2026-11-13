@@ -2,7 +2,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
-import { ACP, SCOPE_GLOBAL, SCOPE_CONTRACT, SCOPE_HANDLES } from './Permissioned.sol';
+import { ACP, SCOPE_GLOBAL, SCOPE_CONTRACT, SCOPE_HANDLES } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 import { MockPermissioned } from './MockPermissioned.sol';
 
 /**
