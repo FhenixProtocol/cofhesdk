@@ -1,5 +1,52 @@
 # @cofhe/react
 
+## 1.1.0
+
+### Patch Changes
+
+- 511f34f: **@cofhe/abi**
+
+  Corrects `transformEncryptedReturnTypes` to read the outputs of the overload selected by the call's `args`, now accepted as an optional fourth parameter. Previously it used the first ABI entry with that name, so a plaintext `5n` from an overloaded view could come back as `{ ctHash: 5n, utype: FheTypes.Uint64 }`, or an encrypted result as a raw `bytes32`.
+
+  **@cofhe/react**
+
+  Corrects `useCofheReadContract` to return the result of the overload its `args` select when reading an overloaded view function.
+
+- 6926b07: Scope unshield claim summaries by the active ACP used to decrypt their displayed amounts, bind in-flight fetches to that ACP, and refetch invalidated summaries when an ACP is reselected.
+- 1378c87: Corrects `useCofheSimulateWriteContract` to key its cache on every simulation option that affects the result, such as `blockNumber`, `blockTag` and `stateOverride`, and to leave `enabled` out of the key. Previously two simulations that differed only in those options shared one cached result.
+- 781cfc4: Corrects `displayDecimals: 0` in `useCofheTokenPublicBalance`, `useCofheTokenDecryptedBalance` and `useTokensWithPublicBalances` to round the formatted balance to a whole number. Previously `0` was ignored and `1.234567` was shown at full precision.
+- 4119d87: `useCofheAutoConnect` now follows the latest public and wallet clients when they change during an in-flight connection. Previously a rapid account or chain switch could leave CoFHE connected to the old client pair.
+- b4b1553: Adds `onceMined` and `isMining` to `useCofheTokenApprove` and `useCofheTokenShield`, as `useCofheTokenUnshield` already has them: `onceMined` fires once when the transaction mines, with its final status, and `isMining` is true from the hash until then. An approval needs the `extras` on the write, which is what records it in the transaction store.
+- 3d577c8: Corrects `useResolvedCofheToken` and `useTransactionReceiptsByHash` to stay disabled while an explicit `chainId` differs from the connected chain, as `useCofheReadContract` already does. Previously they read through the connected chain's client anyway and cached the result under the requested chain id.
+- f003b79: `useCofheTokenDecryptedBalance` now passes its query options (`refetchInterval`, `staleTime`, `retry`, react-query `meta` and the rest) to the decrypt query. They used to be ignored, except `enabled`, and a react-query `meta` replaced the decrypt meta, dropping its label.
+- dd3c731: `useCofheTokenDecryptedBalance` takes `readQueryOptions` for the on-chain ciphertext read behind the balance (`refetchInterval`, `staleTime`, `retry` and the other timing options). A `refetchInterval` there polls the balance: a changed handle decrypts on its own, an unchanged one is not decrypted again. The hook's other options keep shaping the decrypt query.
+- 5b6b5b6: Marks `CofheEncryptInput` as internal. It stays exported from `@cofhe/react/ui` but is a demo component for now, unsupported and may change in any release; encrypt inputs with `useCofheEncrypt` instead.
+- e14eb04: Corrects `FheTypesList` to report the exact `maxValue` for `uint64` and `uint128`. Previously they were computed through a float (`BigInt(2 ** 64 - 1)`), which rounds up to 2^64 and 2^128, so `CofheEncryptInput` accepted a value one above the type's range.
+- d3c68bb: `useCofheRevokeACP`, `useCofheShareOnChain` and `useCofheRemoveShare` now reject when the mined transaction reverted. They used to resolve and call `onSuccess`, so the UI reported a revocation, share or removal that never happened on chain.
+- b3829f1: Corrects `useTokensWithPublicBalances` and `useCofheTokensWithExistingEncryptedBalances` to skip their balance reads while an explicit `chainId` differs from the connected chain. Previously they listed that chain's tokens but read the balances on the connected chain, so Sepolia fhETH showed the wallet's Base Sepolia ETH.
+- 288525d: Corrects `getAllTransactionsByToken` to keep persisted transactions that have no `account` when filtering by account, as `getAllTransactions` already does. Previously such an entry threw a `TypeError` and the whole token history failed to load.
+- 070a0f6: Corrects `CofheProvider`'s transaction tracking to keep a transaction pending, and keep polling for its receipt, when the receipt fetch fails. Previously any RPC error while waiting marked the transaction Failed in the store and skipped the balance refresh, so a shield that had mined successfully could show as Failed until the page was reloaded.
+- Updated dependencies [511f34f]
+- Updated dependencies [90621f0]
+- Updated dependencies [800cdb3]
+- Updated dependencies [6b902e7]
+- Updated dependencies [06348ba]
+- Updated dependencies [ed2841a]
+- Updated dependencies [a430437]
+- Updated dependencies [43d84b9]
+- Updated dependencies [e7c9ad8]
+- Updated dependencies [ddd7026]
+- Updated dependencies [81acc28]
+- Updated dependencies [bc7a5ca]
+- Updated dependencies [d0ddf1c]
+- Updated dependencies [bbd9b03]
+- Updated dependencies [4418149]
+- Updated dependencies [b70a067]
+- Updated dependencies [f8c6219]
+- Updated dependencies [8fb65ec]
+  - @cofhe/abi@1.1.0
+  - @cofhe/sdk@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @cofhe/mock-contracts Changelog
 
+## 1.1.0
+
+### Patch Changes
+
+- 26d8cd6: Restrict mock contract reinitialization to the configured owner while preserving repeated Hardhat and Foundry deployments.
+- 5b3e61c: Corrects `MockTaskManager` to emit the TaskManager's `InputVerified`, `SecurityZonesChanged`, `VerifierSignerChanged`, `DecryptResultSignerChanged` and `ACLContractChanged` events, and to report the target type as `input2` of `TaskCreated` for `cast`. Previously none of these events were emitted and `cast` reported `input2` as `0`.
+- 8731a28: Corrects `MockTaskManager` to revert with `UnsupportedType` for the types the TaskManager rejects, and with `DecryptFunctionNotSupported` for a decrypt task. Previously encrypting, casting or generating a random value as `Utils.EUINT256_TFHE` passed in local tests but reverted on chain.
+- afeb3c8: Corrects `MockZkVerifier` to give every input of an `encryptInputs` batch its own ctHash. Previously equal values encrypted together, such as `[Encryptable.uint32(9n), Encryptable.uint32(9n)]`, came back with the same ctHash on Hardhat.
+- 0fed6d9: Corrects `MockTaskManager` to implement `addToAccessList` and `removeFromAccessList`, added to `ITaskManager` in `@fhenixprotocol/cofhe-contracts` 1.0.2. Previously, with cofhe-contracts 1.0.2 installed, the mocks failed to compile with `Contract "MockTaskManager" should be marked as abstract`.
+
 ## 1.0.1
 
 ## 1.0.0
