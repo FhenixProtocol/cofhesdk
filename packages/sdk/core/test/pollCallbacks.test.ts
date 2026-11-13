@@ -12,7 +12,7 @@ const makeMockResponse = (opts: { ok: boolean; status?: number; statusText?: str
   } as unknown as Response;
 };
 
-describe('decrypt polling callbacks', () => {
+describe('decrypt request retries and onPoll', () => {
   const thresholdNetworkUrl = 'http://threshold.local';
 
   beforeEach(() => {
@@ -24,43 +24,11 @@ describe('decrypt polling callbacks', () => {
     vi.restoreAllMocks();
   });
 
-  it('tnDecryptV2 calls onPoll once per poll attempt', async () => {
+  it('tnDecryptV2 fails when a 200 carries a request_id and no result, without asking a status endpoint', async () => {
     const onPoll = vi.fn();
-
-    let decryptStatusCalls = 0;
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-1' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-1` && options?.method === 'GET') {
-        decryptStatusCalls += 1;
-
-        if (decryptStatusCalls === 1) {
-          return makeMockResponse({
-            ok: true,
-            json: async () => ({
-              request_id: 'req-1',
-              status: 'PROCESSING',
-              submitted_at: 't',
-            }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-1',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            decrypted: [0x01],
-            signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
-          }),
-        });
+        return makeMockResponse({ ok: true, status: 200, json: async () => ({ request_id: 'req-1' }) });
       }
 
       throw new Error(`Unexpected fetch: ${url}`);
@@ -68,44 +36,11 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-    expect(onPoll).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(1000);
-    const result = await promise;
-
-    expect(result.decryptedValue).toBe(1n);
-    expect(result.signature.startsWith('0x')).toBe(true);
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: 'req-1',
-        attemptIndex: 0,
-        intervalMs: 1000,
-        timeoutMs: 5 * 60 * 1000,
-      })
+    await expect(tnDecryptV2({ ctHash: 1n, chainId: 1, acp: null, thresholdNetworkUrl, onPoll })).rejects.toMatchObject(
+      { code: CofheErrorCode.DecryptReturnedNull }
     );
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: 'req-1',
-        attemptIndex: 1,
-      })
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnDecryptV2 calls onPoll for 204 submit retries', async () => {
@@ -128,18 +63,9 @@ describe('decrypt polling callbacks', () => {
 
         return makeMockResponse({
           ok: true,
-          json: async () => ({ request_id: 'req-submit-retry' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-submit-retry` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
+          status: 200,
           json: async () => ({
             request_id: 'req-submit-retry',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
             decrypted: [0x01],
             signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
           }),
@@ -178,105 +104,19 @@ describe('decrypt polling callbacks', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await promise;
 
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: 'req-submit-retry',
-        attemptIndex: 0,
-      })
-    );
+    expect(onPoll).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('tnDecryptV2 calls onPoll for 404 submit retries', async () => {
+  it('tnDecryptV2 fails on the first 404 ct_not_found without retrying', async () => {
     const onPoll = vi.fn();
-
-    let submitCalls = 0;
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        submitCalls += 1;
-
-        if (submitCalls === 1) {
-          return makeMockResponse({
-            ok: false,
-            status: 404,
-            statusText: 'Not Found',
-            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-submit-retry-404' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-submit-retry-404` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-submit-retry-404',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            decrypted: [0x01],
-            signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
-          }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-
-    expect(onPoll).toHaveBeenCalledTimes(1);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: '',
-        attemptIndex: 0,
-        intervalMs: 1000,
-        timeoutMs: 5 * 60 * 1000,
-      })
-    );
-
-    await vi.advanceTimersByTimeAsync(1000);
-    await promise;
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId: 'req-submit-retry-404',
-        attemptIndex: 0,
-      })
-    );
-  });
-
-  it('tnDecryptV2 times out 404 submit retries using default timeout', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
         return makeMockResponse({
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
+          json: async () => ({ error: 'ct_not_found' }),
         });
       }
 
@@ -285,54 +125,20 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
+    await expect(
+      tnDecryptV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: null,
+        thresholdNetworkUrl,
+        onPoll,
+      })
+    ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: ciphertext not indexed yet',
     });
-
-    await vi.advanceTimersByTimeAsync(11_000);
-    await rejection;
-  });
-
-  it('tnDecryptV2 retries any 404 and times out with the last error message', async () => {
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: acp was rejected',
-    });
-
-    await vi.advanceTimersByTimeAsync(11_000);
-    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnDecryptV2 does not retry a 401 acp_denied submit', async () => {
@@ -360,14 +166,94 @@ describe('decrypt polling callbacks', () => {
         acp: null,
         thresholdNetworkUrl,
         onPoll,
-        retry404TimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onPoll).not.toHaveBeenCalled();
   });
 
-  it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
+  it('tnDecryptV2 retries not_publicly_allowed inside the access-denied retry window, then returns the result', async () => {
+    const onPoll = vi.fn();
+    let calls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        calls += 1;
+        // The network has not seen the grant for the first two requests.
+        if (calls <= 2) {
+          return makeMockResponse({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'not_publicly_allowed' }),
+          });
+        }
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-after-grant',
+            decrypted: [0x00, 0x00, 0x00, 0x5c],
+            signature: `${'01'.repeat(32)}${'02'.repeat(32)}1b`,
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: null,
+      thresholdNetworkUrl,
+      onPoll,
+      accessDeniedRetryTimeoutMs: 30_000,
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    const result = await promise;
+
+    expect(result.decryptedValue).toBe(92n);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenCalledWith(expect.objectContaining({ requestId: '', attemptIndex: 0 }));
+  });
+
+  it('tnDecryptV2 fails with the denial once the access-denied retry window ends', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 403,
+          json: async () => ({ error: 'not_publicly_allowed' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: null,
+      thresholdNetworkUrl,
+      accessDeniedRetryTimeoutMs: 3_000,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.NotPubliclyAllowed,
+      apiErrorCode: 'not_publicly_allowed',
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await rejection;
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('tnDecryptV2 returns immediately when submit answers 200 with the result', async () => {
     const onPoll = vi.fn();
 
     const fetchMock = vi.fn(async (url: string, options?: any) => {
@@ -403,39 +289,16 @@ describe('decrypt polling callbacks', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('tnDecryptV2 uses one timeout budget across submit retries and polling', async () => {
+  it('tnDecryptV2 gives up once the timeout budget is spent on 204 retries', async () => {
     const onPoll = vi.fn();
-
-    const requestId = 'req-timeout-budget';
-    const testStartTime = Date.now();
-    let statusCalls = 0;
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
-        if (Date.now() - testStartTime < 299_000) {
-          return makeMockResponse({
-            ok: true,
-            status: 204,
-            json: async () => {
-              throw new Error('json() should not be called for 204 submit responses');
-            },
-          });
-        }
-
         return makeMockResponse({
           ok: true,
-          json: async () => ({ request_id: requestId }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/decrypt/${requestId}` && options?.method === 'GET') {
-        statusCalls += 1;
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: requestId,
-            status: 'PROCESSING',
-            submitted_at: 't',
-          }),
+          status: 204,
+          json: async () => {
+            throw new Error('json() should not be called for 204 submit responses');
+          },
         });
       }
 
@@ -444,70 +307,24 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: null,
-      thresholdNetworkUrl,
-      onPoll,
-    });
+    const promise = tnDecryptV2({ ctHash: 1n, chainId: 1, acp: null, thresholdNetworkUrl, onPoll });
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'decrypt polling timed out after 300000ms',
+      message: 'decrypt result was not ready after retrying for 300000ms',
     });
 
     await vi.advanceTimersByTimeAsync(310_000);
 
     await rejection;
-    expect(statusCalls).toBe(1);
     expect(onPoll).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        operation: 'decrypt',
-        requestId,
-        timeoutMs: 5 * 60 * 1000,
-      })
+      expect.objectContaining({ operation: 'decrypt', requestId: '', timeoutMs: 5 * 60 * 1000 })
     );
   });
 
-  it('tnSealOutputV2 calls onPoll once per poll attempt', async () => {
+  it('tnSealOutputV2 fails when a 200 carries a request_id and no result, without asking a status endpoint', async () => {
     const onPoll = vi.fn();
-
-    let sealStatusCalls = 0;
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-2' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput/req-2` && options?.method === 'GET') {
-        sealStatusCalls += 1;
-
-        if (sealStatusCalls === 1) {
-          return makeMockResponse({
-            ok: true,
-            json: async () => ({
-              request_id: 'req-2',
-              status: 'PROCESSING',
-              submitted_at: 't',
-            }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-2',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            sealed: {
-              data: [1, 2, 3],
-              public_key: [4, 5],
-              nonce: [6],
-            },
-          }),
-        });
+        return makeMockResponse({ ok: true, status: 200, json: async () => ({ request_id: 'req-1' }) });
       }
 
       throw new Error(`Unexpected fetch: ${url}`);
@@ -515,42 +332,11 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-    expect(onPoll).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(1000);
-    const sealed = await promise;
-
-    expect(sealed.data).toBeInstanceOf(Uint8Array);
-    expect(Array.from(sealed.data)).toEqual([1, 2, 3]);
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: 'req-2',
-        attemptIndex: 0,
-      })
-    );
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: 'req-2',
-        attemptIndex: 1,
-      })
-    );
+    await expect(
+      tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl, onPoll })
+    ).rejects.toMatchObject({ code: CofheErrorCode.SealOutputReturnedNull });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnSealOutputV2 calls onPoll for 204 submit retries', async () => {
@@ -573,23 +359,12 @@ describe('decrypt polling callbacks', () => {
 
         return makeMockResponse({
           ok: true,
-          json: async () => ({ request_id: 'req-seal-submit-retry' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput/req-seal-submit-retry` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
+          status: 200,
           json: async () => ({
             request_id: 'req-seal-submit-retry',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            sealed: {
-              data: [1, 2, 3],
-              public_key: [4, 5],
-              nonce: [6],
-            },
+            sealed_data: [1, 2, 3],
+            ephemeral_public_key: [4, 5],
+            nonce: [6],
           }),
         });
       }
@@ -626,108 +401,19 @@ describe('decrypt polling callbacks', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await promise;
 
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: 'req-seal-submit-retry',
-        attemptIndex: 0,
-      })
-    );
+    expect(onPoll).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('tnSealOutputV2 calls onPoll for 404 submit retries', async () => {
+  it('tnSealOutputV2 fails on the first 404 ct_not_found without retrying', async () => {
     const onPoll = vi.fn();
-
-    let submitCalls = 0;
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        submitCalls += 1;
-
-        if (submitCalls === 1) {
-          return makeMockResponse({
-            ok: false,
-            status: 404,
-            statusText: 'Not Found',
-            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
-          });
-        }
-
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({ request_id: 'req-seal-submit-retry-404' }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput/req-seal-submit-retry-404` && options?.method === 'GET') {
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: 'req-seal-submit-retry-404',
-            status: 'COMPLETED',
-            submitted_at: 't',
-            is_succeed: true,
-            sealed: {
-              data: [1, 2, 3],
-              public_key: [4, 5],
-              nonce: [6],
-            },
-          }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      onPoll,
-    });
-
-    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
-      await Promise.resolve();
-    }
-
-    expect(onPoll).toHaveBeenCalledTimes(1);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: '',
-        attemptIndex: 0,
-        intervalMs: 1000,
-        timeoutMs: 5 * 60 * 1000,
-      })
-    );
-
-    await vi.advanceTimersByTimeAsync(1000);
-    await promise;
-
-    expect(onPoll).toHaveBeenCalledTimes(2);
-    expect(onPoll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId: 'req-seal-submit-retry-404',
-        attemptIndex: 0,
-      })
-    );
-  });
-
-  it('tnSealOutputV2 uses custom 404 submit retry timeout', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
         return makeMockResponse({
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
+          json: async () => ({ error: 'ct_not_found' }),
         });
       }
 
@@ -736,55 +422,20 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      retry404TimeoutMs: 2000,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
+    await expect(
+      tnSealOutputV2({
+        ctHash: 1n,
+        chainId: 1,
+        acp: {} as any,
+        thresholdNetworkUrl,
+        onPoll,
+      })
+    ).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 2000ms: ciphertext not indexed yet',
     });
-
-    await vi.advanceTimersByTimeAsync(3000);
-    await rejection;
-  });
-
-  it('tnSealOutputV2 retries any 404 and times out with the last error message', async () => {
-    const fetchMock = vi.fn(async (url: string, options?: any) => {
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        return makeMockResponse({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    global.fetch = fetchMock as any;
-
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-    });
-
-    const rejection = expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.CtNotFound,
-      apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 10000ms: acp was rejected',
-    });
-
-    await vi.advanceTimersByTimeAsync(11_000);
-    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onPoll).not.toHaveBeenCalled();
   });
 
   it('tnSealOutputV2 does not retry a 401 acp_denied submit', async () => {
@@ -812,14 +463,95 @@ describe('decrypt polling callbacks', () => {
         acp: {} as any,
         thresholdNetworkUrl,
         onPoll,
-        retry404TimeoutMs: 60_000,
       })
     ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied, apiErrorCode: 'acp_denied' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onPoll).not.toHaveBeenCalled();
   });
 
-  it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {
+  it('tnSealOutputV2 retries acp_denied inside the access-denied retry window, then returns the result', async () => {
+    const onPoll = vi.fn();
+    let calls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        calls += 1;
+        // The network has not seen the grant for the first two requests.
+        if (calls <= 2) {
+          return makeMockResponse({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: 'acp_denied' }),
+          });
+        }
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-seal-after-grant',
+            sealed_data: [1, 2, 3],
+            ephemeral_public_key: [4, 5],
+            nonce: [6],
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+      accessDeniedRetryTimeoutMs: 30_000,
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    const result = await promise;
+
+    expect(Array.from(result.data)).toEqual([1, 2, 3]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenCalledWith(expect.objectContaining({ requestId: '', attemptIndex: 0 }));
+  });
+
+  it('tnSealOutputV2 fails with the denial once the access-denied retry window ends', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'acp_denied' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      acp: {} as any,
+      thresholdNetworkUrl,
+      accessDeniedRetryTimeoutMs: 3_000,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.ACPDenied,
+      apiErrorCode: 'acp_denied',
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await rejection;
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('tnSealOutputV2 returns immediately when submit answers 200 with the result', async () => {
     const onPoll = vi.fn();
 
     const fetchMock = vi.fn(async (url: string, options?: any) => {
@@ -857,39 +589,16 @@ describe('decrypt polling callbacks', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('tnSealOutputV2 uses one timeout budget across submit retries and polling', async () => {
+  it('tnSealOutputV2 gives up once the timeout budget is spent on 204 retries', async () => {
     const onPoll = vi.fn();
-
-    const requestId = 'req-seal-timeout-budget';
-    const testStartTime = Date.now();
-    let statusCalls = 0;
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
-        if (Date.now() - testStartTime < 299_000) {
-          return makeMockResponse({
-            ok: true,
-            status: 204,
-            json: async () => {
-              throw new Error('json() should not be called for 204 submit responses');
-            },
-          });
-        }
-
         return makeMockResponse({
           ok: true,
-          json: async () => ({ request_id: requestId }),
-        });
-      }
-
-      if (url === `${thresholdNetworkUrl}/v2/sealoutput/${requestId}` && options?.method === 'GET') {
-        statusCalls += 1;
-        return makeMockResponse({
-          ok: true,
-          json: async () => ({
-            request_id: requestId,
-            status: 'PROCESSING',
-            submitted_at: 't',
-          }),
+          status: 204,
+          json: async () => {
+            throw new Error('json() should not be called for 204 submit responses');
+          },
         });
       }
 
@@ -898,27 +607,16 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2({
-      ctHash: 1n,
-      chainId: 1,
-      acp: {} as any,
-      thresholdNetworkUrl,
-      onPoll,
-    });
+    const promise = tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl, onPoll });
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'sealOutput polling timed out after 300000ms',
+      message: 'sealOutput result was not ready after retrying for 300000ms',
     });
 
     await vi.advanceTimersByTimeAsync(310_000);
 
     await rejection;
-    expect(statusCalls).toBe(1);
     expect(onPoll).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        operation: 'sealoutput',
-        requestId,
-        timeoutMs: 5 * 60 * 1000,
-      })
+      expect.objectContaining({ operation: 'sealoutput', requestId: '', timeoutMs: 5 * 60 * 1000 })
     );
   });
 });

@@ -3,8 +3,8 @@ import { tnDecryptV2 } from '../decrypt/tnDecryptV2.js';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2.js';
 import { CofheErrorCode } from '../error.js';
 
-// Cross-reference: API-RESPONSES.md's "Shared errors" table (applies to all decrypt/sealoutput
-// submit and poll endpoints).
+// Cross-reference: API-RESPONSES.md's "Shared errors" table (applies to the decrypt and sealoutput
+// endpoints).
 const SHARED_ERROR_CASES: Array<{ status: number; error: string; cofheErrorCode: CofheErrorCode }> = [
   { status: 400, error: 'bad_request', cofheErrorCode: CofheErrorCode.BadRequest },
   { status: 400, error: 'unknown_chain', cofheErrorCode: CofheErrorCode.UnknownChain },
@@ -22,9 +22,8 @@ const SHARED_ERROR_CASES: Array<{ status: number; error: string; cofheErrorCode:
   { status: 504, error: 'ct_source_timeout', cofheErrorCode: CofheErrorCode.CtSourceTimeout },
   { status: 504, error: 'acp_verifier_timeout', cofheErrorCode: CofheErrorCode.ACPVerifierTimeout },
 ];
-// ct_not_found (404) is deliberately excluded here: on the submit endpoints it's the
-// conditionally-retryable case (covered by pollCallbacks.test.ts / submitRetry.test.ts), and on
-// the poll endpoints it's documented bodyless (covered separately below).
+// ct_not_found (404) is not in this table: it is covered by pollCallbacks.test.ts and
+// submitRetry.test.ts.
 
 const makeMockResponse = (opts: { ok: boolean; status?: number; statusText?: string; json: () => Promise<any> }) => {
   return {
@@ -148,70 +147,5 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
         apiErrorCode: 'seal_failed',
       }
     );
-  });
-
-  describe.each([
-    {
-      operation: 'decrypt' as const,
-      submitPath: '/v2/decrypt',
-      statusPath: (id: string) => `/v2/decrypt/${id}`,
-      run: tnDecryptV2,
-      fallback: CofheErrorCode.DecryptFailed,
-    },
-    {
-      operation: 'sealoutput' as const,
-      submitPath: '/v2/sealoutput',
-      statusPath: (id: string) => `/v2/sealoutput/${id}`,
-      run: tnSealOutputV2,
-      fallback: CofheErrorCode.SealOutputFailed,
-    },
-  ])('$operation poll (GET status endpoint)', ({ submitPath, statusPath, run, fallback }) => {
-    const requestId = 'req-poll-errors';
-
-    it('maps a non-404 non-ok status via the shared error table (e.g. 500 internal_error)', async () => {
-      const fetchMock = vi.fn(async (url: string) => {
-        if (url === `${thresholdNetworkUrl}${submitPath}`) {
-          return makeMockResponse({ ok: true, json: async () => ({ request_id: requestId }) });
-        }
-        if (url === `${thresholdNetworkUrl}${statusPath(requestId)}`) {
-          return makeMockResponse({
-            ok: false,
-            status: 500,
-            json: async () => ({ error: 'internal_error', error_message: 'decrypt task panicked' }),
-          });
-        }
-        throw new Error(`Unexpected fetch: ${url}`);
-      });
-      global.fetch = fetchMock as any;
-
-      const promise = run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any);
-
-      await expect(promise).rejects.toMatchObject({
-        code: CofheErrorCode.InternalError,
-        apiErrorCode: 'internal_error',
-        message: expect.stringContaining('decrypt task panicked'),
-      });
-    });
-
-    it('throws immediately on a bodyless 404 (unknown/evicted request_id) without calling response.json()', async () => {
-      const statusJson = vi.fn(async () => {
-        throw new Error('json() should not be called for a bodyless 404');
-      });
-      const fetchMock = vi.fn(async (url: string) => {
-        if (url === `${thresholdNetworkUrl}${submitPath}`) {
-          return makeMockResponse({ ok: true, json: async () => ({ request_id: requestId }) });
-        }
-        if (url === `${thresholdNetworkUrl}${statusPath(requestId)}`) {
-          return makeMockResponse({ ok: false, status: 404, json: statusJson });
-        }
-        throw new Error(`Unexpected fetch: ${url}`);
-      });
-      global.fetch = fetchMock as any;
-
-      const promise = run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any);
-
-      await expect(promise).rejects.toMatchObject({ code: fallback });
-      expect(statusJson).not.toHaveBeenCalled();
-    });
   });
 });
