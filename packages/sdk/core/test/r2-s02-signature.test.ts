@@ -51,8 +51,9 @@ describe('malformed TN signatures fail as CofheError', () => {
       'fetch',
       vi.fn(async () => jsonResp({ request_id: 'r1', decrypted: [42], signature: goodSig }))
     );
-    await expect(
-      tnDecryptV2({ ctHash: 123n, chainId: 1, acp: null, thresholdNetworkUrl: TN })
-    ).resolves.toMatchObject({ decryptedValue: 42n, signature: goodSig });
+    await expect(tnDecryptV2({ ctHash: 123n, chainId: 1, acp: null, thresholdNetworkUrl: TN })).resolves.toMatchObject({
+      decryptedValue: 42n,
+      signature: goodSig,
+    });
   });
 });
