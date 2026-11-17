@@ -194,6 +194,32 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
   }
 }
 
+// The MockZkVerifier salt a ctHash is calculated from, and the nonce of the verifier signer that
+// inserts it, are shared by every encrypt on the node, whatever the client or account. Each encrypt
+// calculates and inserts its ctHashes before the next one starts. Otherwise two concurrent encrypts
+// read the same salt (equal values get the same ctHash) and nonce (the second insert is rejected).
+let calcAndInsertQueue: Promise<unknown> = Promise.resolve();
+
+function calcAndInsertCtHashes(
+  items: EncryptableItem[],
+  account: string,
+  securityZone: number,
+  publicClient: PublicClient,
+  walletClient: WalletClient
+): Promise<EncryptableItemWithCtHash[]> {
+  const result = calcAndInsertQueue.then(async () => {
+    // Call MockZkVerifier contract to calculate the ctHashes
+    const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
+
+    // Insert the ctHashes into the MockZkVerifier contract
+    await insertCtHashes(encryptableItems, walletClient);
+
+    return encryptableItems;
+  });
+  calcAndInsertQueue = result.catch(() => undefined);
+  return result;
+}
+
 /**
  * The mocks verify a batch's signature against the known verifier signer account.
  * Locally, we create the single batch signature from the known signer account, over
@@ -272,11 +298,8 @@ export async function cofheMocksZkVerifySign(
   // Use config._internal?.zkvWalletClient if provided, otherwise use a mock zk verifier signer
   const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner(publicClient);
 
-  // Call MockZkVerifier contract to calculate the ctHashes
-  const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
-
-  // Insert the ctHashes into the MockZkVerifier contract
-  await insertCtHashes(encryptableItems, _walletClient);
+  // Calculate the ctHashes and insert them into the MockZkVerifier contract, one encrypt at a time
+  const encryptableItems = await calcAndInsertCtHashes(items, account, securityZone, publicClient, _walletClient);
 
   // Locally create the single batch signature from the known signer account
   const signature = await createBatchProofSignature(encryptableItems, securityZone, account, consumingContract);
