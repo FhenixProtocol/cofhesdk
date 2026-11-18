@@ -26,23 +26,24 @@ import {
   clearAclServedAddresses,
 } from '@/acps';
 
-import { type Hex, type PublicClient, type WalletClient, zeroAddress } from 'viem';
+import { type Hex, type PublicClient, zeroAddress } from 'viem';
+import type { WalletClientWithAccount } from './utils.js';
 
 // HELPERS
 
 // Store an ACP without changing which acp is active.
-const storeACP = async (acp: ACP, publicClient: any, walletClient: any) => {
+const storeACP = async (acp: ACP, publicClient: PublicClient, walletClient: WalletClientWithAccount) => {
   const chainId = await publicClient.getChainId();
-  const account = walletClient.account!.address;
+  const account = walletClient.account.address;
 
   acpStore.setACP(chainId, account, acp);
 };
 
 // Store an ACP AND select it as the active acp.
-const storeActiveACP = async (acp: ACP, publicClient: any, walletClient: any) => {
+const storeActiveACP = async (acp: ACP, publicClient: PublicClient, walletClient: WalletClientWithAccount) => {
   await storeACP(acp, publicClient, walletClient);
   const chainId = await publicClient.getChainId();
-  const account = walletClient.account!.address;
+  const account = walletClient.account.address;
   acpStore.setActiveACPHash(chainId, account, acp.hash);
 };
 
@@ -54,8 +55,8 @@ const storeActiveACP = async (acp: ACP, publicClient: any, walletClient: any) =>
 const createACPWithSign = async <T, TACP extends ACP>(
   options: T,
   publicClient: PublicClient,
-  walletClient: WalletClient,
-  acpMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TACP>,
+  walletClient: WalletClientWithAccount,
+  acpMethod: (options: T, publicClient: PublicClient, walletClient: WalletClientWithAccount) => Promise<TACP>,
   activate = true
 ): Promise<TACP> => {
   const acp = await acpMethod(options, publicClient, walletClient);
@@ -78,7 +79,7 @@ const createACPWithSign = async <T, TACP extends ACP>(
 const createSelf = async (
   options: CreateSelfACPOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClientWithAccount
 ): Promise<SelfACP> => {
   return createACPWithSign(options, publicClient, walletClient, ACPUtils.createSelfAndSign);
 };
@@ -86,7 +87,7 @@ const createSelf = async (
 const createSharing = async (
   options: CreateSharingACPOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClientWithAccount
 ): Promise<SharingACP> => {
   // A sharing acp is delegated to a recipient — it is never the issuer's own active acp, so
   // creating one only stores it (unlike self/imported acps, which activate).
@@ -115,7 +116,7 @@ export type ImportSharedOptions = ImportActivationOptions & {
 const importShared = async (
   options: ImportSharedACPOptions | string,
   publicClient: PublicClient,
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   { activate = true, name }: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
   return createACPWithSign(
@@ -186,14 +187,14 @@ const selectActiveACP = (chainId: number, account: string, hash: string): void =
  */
 const getOrCreateSelfACP = async (
   publicClient: PublicClient,
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   chainId?: number,
   account?: string,
   options?: CreateSelfACPOptions,
   nowSec?: number
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
-  const _account = account ?? walletClient.account!.address;
+  const _account = account ?? walletClient.account.address;
 
   // Try to get active acp first
   const activeACP = await getActiveACP(_chainId, _account);
@@ -224,14 +225,14 @@ const getOrCreateSelfACP = async (
  */
 const getOrCreateSharingACP = async (
   publicClient: PublicClient,
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   options: CreateSharingACPOptions,
   chainId?: number,
   account?: string,
   nowSec?: number
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
-  const _account = account ?? walletClient.account!.address;
+  const _account = account ?? walletClient.account.address;
 
   // Try to get active acp first
   const activeACP = await getActiveACP(_chainId, _account);
@@ -326,11 +327,10 @@ const getLatestBlockTimestamp = async (publicClient: PublicClient): Promise<numb
  *
  * @returns the revocation transaction hash
  */
-const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => {
+const revokeACP = async (acp: ACP, walletClient: WalletClientWithAccount): Promise<Hex> => {
   if (acp.revokerContract === zeroAddress || acp.revokerData === 0) {
     throw new Error('ACP is not revocable: it has no revoker (revokerContract/revokerData unset)');
   }
-  if (walletClient.account == null) throw new Error('Missing walletClient account');
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the acp issuer can revoke it');
   }
@@ -355,12 +355,10 @@ const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => 
  * @returns the revocation transaction hash
  */
 const revokeAllACPs = async (
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   publicClient: PublicClient,
   revokerContract?: Hex
 ): Promise<Hex> => {
-  if (walletClient.account == null) throw new Error('Missing walletClient account');
-
   let revoker = revokerContract;
   if (revoker == null) {
     const chainId = await publicClient.getChainId();
@@ -433,7 +431,7 @@ const metadataOf = (acp: ACP, { labels, metadata, appKey }: ShareOnChainOptions)
  */
 const shareOnChain = async (
   acp: ACP,
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   registry: Hex,
   options: ShareOnChainOptions = {}
 ): Promise<{ txHash: Hex; shareId: Hex }> => {
@@ -443,7 +441,6 @@ const shareOnChain = async (
   if (acp.issuerSignature === '0x') {
     throw new Error('Cannot share an unsigned sharing ACP — sign it first.');
   }
-  if (walletClient.account == null) throw new Error('Missing walletClient account');
   if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
     throw new Error('Only the ACP issuer can share it on-chain');
   }
@@ -522,7 +519,7 @@ const getShareFromChain = async (
 const importFromChain = async (
   share: IncomingShare,
   publicClient: PublicClient,
-  walletClient: WalletClient,
+  walletClient: WalletClientWithAccount,
   importOptions: ImportSharedOptions = {}
 ): Promise<RecipientACP> => {
   const { shareId: _shareId, appKey: _appKey, ...options } = share;
@@ -530,8 +527,7 @@ const importFromChain = async (
 };
 
 /** Remove a share from the registry (issuer retracts / recipient dismisses). */
-const removeShareOnChain = async (shareId: Hex, walletClient: WalletClient, registry: Hex): Promise<Hex> => {
-  if (walletClient.account == null) throw new Error('Missing walletClient account');
+const removeShareOnChain = async (shareId: Hex, walletClient: WalletClientWithAccount, registry: Hex): Promise<Hex> => {
   return walletClient.writeContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
