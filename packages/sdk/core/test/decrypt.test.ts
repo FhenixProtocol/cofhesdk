@@ -20,8 +20,8 @@ import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
 // Live-chain suite: needs the funded TEST_PRIVATE_KEY (signs decrypt requests for the values that
 // `pnpm test:setup` stored in SimpleTest as this account). Without it — fork PRs, where secrets are
-// unavailable — the suite skips; CI runs it separately with the key (test-live job, which runs
-// setup first).
+// unavailable — the suite skips; CI runs it separately with the key (test-live job, which reads
+// the record the test-setup job left).
 const LIVE_TESTS = Boolean(TEST_PRIVATE_KEY);
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY);

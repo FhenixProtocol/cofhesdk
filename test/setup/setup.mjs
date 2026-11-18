@@ -69,7 +69,7 @@ const TESTNET_CHAINS = [
 ];
 
 // Shares a chain ID with LOCALCOFHE_CHAIN (same devnet genesis, hosted remotely) —
-// use a distinct registry key so their deployments.json entries don't collide.
+// use a distinct registry key so their deployments.local.json entries don't collide.
 const STAGING_CHAIN = {
   id: 420105,
   label: 'CoFHE Staging',
