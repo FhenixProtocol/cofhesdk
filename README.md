@@ -81,6 +81,10 @@ pnpm changeset
 
 Add a changeset only when a published package changes. Changes to docs, `@cofhe/site`, the examples, or the private config packages don't need one. Keep the changeset short and written for consumers of the package, and call out breaking changes.
 
+## Internal APIs
+
+Some exports are used internally and are not a supported API. They are marked `@internal` in their JSDoc, are not documented on the docs site, and may change in any release without a major version bump. Do not build on them, and do not open PRs that extend them; they are not a supported API. The SDK's debug request interceptors (`setCofheDebugInterceptors`, `getCofheDebugInterceptors`, `cofheFetch`) and the React `CofheEncryptInput` demo component are the current examples.
+
 ## Notes
 
 - FHE keys are fetched only when `client.encryptInputs(...).execute()` is called because they are only needed for input encryption.

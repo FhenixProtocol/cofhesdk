@@ -53,6 +53,10 @@ export interface CofheEncryptInputProps extends BaseProps {
   onEncryptError?: (_error: string) => void;
 }
 
+/**
+ * @internal Demo component for now, used internally; not a supported API. Undocumented and may change in any
+ * release. Use `useCofheEncrypt` to encrypt inputs in an app.
+ */
 export const CofheEncryptInput: React.FC<CofheEncryptInputProps> = ({
   className,
   testId,

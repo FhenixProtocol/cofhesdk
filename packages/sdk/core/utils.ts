@@ -1,4 +1,4 @@
-import { type PublicClient, type WalletClient } from 'viem';
+import { type Account, type Chain, type PublicClient, type Transport, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { FheTypes } from './types.js';
 
@@ -28,6 +28,11 @@ export const fromHexString = (hexString: string): Uint8Array => {
 export const toBigIntOrThrow = (value: bigint | string): bigint => {
   if (typeof value === 'bigint') {
     return value;
+  }
+
+  // BigInt('') and BigInt('   ') are 0n, which would silently encrypt a missing value as zero
+  if (typeof value === 'string' && value.trim() === '') {
+    throw new Error('Invalid input: Unable to convert to bigint');
   }
 
   try {
@@ -72,27 +77,25 @@ export async function getPublicClientChainID(publicClient: PublicClient) {
   return chainId;
 }
 
-export async function getWalletClientAccount(walletClient: WalletClient) {
-  let address: `0x${string}` | undefined;
-  try {
-    address = walletClient.account?.address;
-    if (!address) {
-      address = (await walletClient.getAddresses())?.[0];
-    }
-  } catch (e) {
+/** A viem wallet client with its `account` set, the only kind `connect` accepts. */
+export type WalletClientWithAccount = WalletClient<Transport, Chain | undefined, Account>;
+
+export const hasAccount = (walletClient: WalletClient): walletClient is WalletClientWithAccount =>
+  walletClient.account != null;
+
+/**
+ * Returns the wallet client narrowed to one with an `account`, or throws `WalletClientAccountMissing`.
+ * The SDK signs ACPs and sends transactions as that account, so a client without one cannot be used.
+ */
+export function requireWalletClientAccount(walletClient: WalletClient): WalletClientWithAccount {
+  if (!hasAccount(walletClient)) {
     throw new CofheError({
-      code: CofheErrorCode.PublicWalletGetAddressesFailed,
-      message: 'getting address from wallet client failed',
-      cause: e instanceof Error ? e : undefined,
+      code: CofheErrorCode.WalletClientAccountMissing,
+      message: 'wallet client has no account',
+      hint: 'Create the wallet client with `account` set, e.g. createWalletClient({ account, chain, transport }).',
     });
   }
-  if (!address) {
-    throw new CofheError({
-      code: CofheErrorCode.PublicWalletGetAddressesFailed,
-      message: 'address from wallet client is null',
-    });
-  }
-  return address;
+  return walletClient;
 }
 
 /**

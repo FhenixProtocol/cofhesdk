@@ -98,6 +98,16 @@ describe('toBigIntOrThrow', () => {
   it('throws for invalid string', () => {
     expect(() => toBigIntOrThrow('not-a-number')).toThrow('Invalid input: Unable to convert to bigint');
   });
+
+  it('throws for empty and blank strings instead of returning 0', () => {
+    expect(() => toBigIntOrThrow('')).toThrow('Invalid input: Unable to convert to bigint');
+    expect(() => toBigIntOrThrow('   ')).toThrow('Invalid input: Unable to convert to bigint');
+  });
+
+  it('still converts numbers passed at runtime', () => {
+    expect(toBigIntOrThrow(42 as unknown as string)).toBe(42n);
+    expect(toBigIntOrThrow(0 as unknown as string)).toBe(0n);
+  });
 });
 
 describe('validateBigIntInRange', () => {

@@ -149,10 +149,27 @@ describe('useTrackPendingTransactions', () => {
     expect(mocks.onTransactionMined).not.toHaveBeenCalled();
   });
 
-  it('marks the tx failed when the receipt cannot be fetched', async () => {
+  it('keeps the tx pending when the receipt cannot be fetched, and keeps retrying', async () => {
     mocks.waitForTransactionReceipt.mockRejectedValue(new Error('rpc down'));
 
-    expect(await runReceiptQuery()).toBe(TransactionStatus.Failed);
+    expect(await runReceiptQuery()).toBe(TransactionStatus.Pending);
     expect(mocks.onWatchReceiptFailure).toHaveBeenCalledTimes(1);
+    expect(mocks.onTransactionMined).not.toHaveBeenCalled();
+    const query = mocks.queries[0] as unknown as { retry: boolean; retryDelay: (attempt: number) => number };
+    expect(query.retry).toBe(true);
+    expect(query.retryDelay(0)).toBe(1000);
+    expect(query.retryDelay(10)).toBe(30_000);
+  });
+
+  it('reports a fetch failure once per tx', async () => {
+    mocks.waitForTransactionReceipt.mockRejectedValue(new Error('rpc down'));
+
+    renderToString(<Probe />);
+    const { queryFn } = mocks.queries[0]!;
+    // Two attempts of the same query, as react-query's retry makes them: one toast.
+    await queryFn({ signal: new AbortController().signal }).catch(() => undefined);
+    await queryFn({ signal: new AbortController().signal }).catch(() => undefined);
+    expect(mocks.onWatchReceiptFailure).toHaveBeenCalledTimes(1);
+    expect(useTransactionStore.getState().getTransaction(CHAIN_ID, TX_HASH)?.status).toBe(TransactionStatus.Pending);
   });
 });

@@ -30,6 +30,15 @@ import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain 
 import { encodeShareMetadata } from './share-metadata/encode.js';
 import { UNLABELLED } from './share-metadata/presets';
 
+// The ACL checks the issuer signature against `acp.issuer`, so an ACP signed by any other
+// account could never be used.
+const assertSignerIsIssuer = (acp: ACP, walletClient: WalletClient): void => {
+  const account = walletClient?.account?.address;
+  if (account != null && account.toLowerCase() !== acp.issuer.toLowerCase()) {
+    throw new Error(`Cannot sign an ACP for issuer ${acp.issuer} as ${account}`);
+  }
+};
+
 /** The name of an imported acp unless the recipient gives one: who it came from. */
 const sharedByName = (issuer: Hex): string => `Shared by ${issuer.slice(0, 6)}…${issuer.slice(-4)}`;
 
@@ -180,6 +189,7 @@ export const ACPUtils = {
     walletClient: WalletClient
   ): Promise<SelfACP> => {
     const acp = ACPUtils.createSelf(options);
+    assertSignerIsIssuer(acp, walletClient);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
@@ -192,6 +202,7 @@ export const ACPUtils = {
     walletClient: WalletClient
   ): Promise<SharingACP> => {
     const acp = ACPUtils.createSharing(options);
+    assertSignerIsIssuer(acp, walletClient);
     return ACPUtils.sign(acp, publicClient, walletClient);
   },
 
@@ -205,13 +216,13 @@ export const ACPUtils = {
     importOptions: { name?: string } = {}
   ): Promise<RecipientACP> => {
     const acp = ACPUtils.importShared(options, importOptions);
-    // The ACL checks the recipient signature against `acp.recipient` and rejects expired ACPs, so
-    // a share for another account, or one that already expired, could never be used.
+    // The ACL checks the recipient signature against `acp.recipient` and rejects ACPs expired at the
+    // latest block, so a share for another account, or one that already expired, could never be used.
     const account = walletClient.account?.address;
     if (account != null && account.toLowerCase() !== acp.recipient.toLowerCase()) {
       throw new Error(`Cannot import a share addressed to ${acp.recipient} as ${account}`);
     }
-    if (ValidationUtils.isExpired(acp)) {
+    if (ValidationUtils.isExpired(acp, Number((await publicClient.getBlock()).timestamp))) {
       throw new Error('Cannot import an expired share');
     }
     return ACPUtils.sign(acp, publicClient, walletClient);
@@ -366,8 +377,8 @@ export const ACPUtils = {
   /**
    * Check if acp is expired
    */
-  isExpired: (acp: ACP): boolean => {
-    return ValidationUtils.isExpired(acp);
+  isExpired: (acp: ACP, nowSec?: number): boolean => {
+    return ValidationUtils.isExpired(acp, nowSec);
   },
 
   /**
@@ -380,8 +391,8 @@ export const ACPUtils = {
   /**
    * Check if acp is signed and not expired
    */
-  isSignedAndNotExpired: (acp: ACP) => {
-    return ValidationUtils.isSignedAndNotExpired(acp);
+  isSignedAndNotExpired: (acp: ACP, nowSec?: number) => {
+    return ValidationUtils.isSignedAndNotExpired(acp, nowSec);
   },
 
   /**
@@ -391,8 +402,8 @@ export const ACPUtils = {
     return ValidationUtils.assertSignedAndNotExpired(acp);
   },
 
-  isValid: (acp: ACP) => {
-    return ValidationUtils.isValid(acp);
+  isValid: (acp: ACP, nowSec?: number) => {
+    return ValidationUtils.isValid(acp, nowSec);
   },
 
   /**
