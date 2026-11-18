@@ -187,6 +187,7 @@ async function submitSealOutputRequest(
       throw new CofheError({
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
+        httpStatus: responseClassification.status,
         message: `sealOutput request failed: ${responseClassification.errorMessage}`,
         hint: responseClassification.hint ?? 'Check the threshold network URL and request parameters.',
         context: {
