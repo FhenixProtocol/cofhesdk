@@ -28,12 +28,12 @@ const noRpc = custom({
   },
 });
 const publicClient = { getChainId: async () => chainId } as unknown as PublicClient;
-const walletClient: WalletClient = createWalletClient({
+const walletClient = createWalletClient({
   chain: arbitrumSepolia,
   transport: noRpc,
   account: privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'),
 });
-const checksummed = walletClient.account!.address; // 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+const checksummed = walletClient.account.address; // 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const lowercase = checksummed.toLowerCase();
 
 describe('ACP store account keys are case-insensitive', () => {
