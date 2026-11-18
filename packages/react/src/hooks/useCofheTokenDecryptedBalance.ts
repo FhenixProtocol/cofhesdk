@@ -36,8 +36,28 @@ type UseConfidentialTokenBalanceInput = {
   meta?: CofheDecryptMeta;
 };
 
+/**
+ * Options for the on-chain ciphertext read behind the balance. The read is what changes when the
+ * balance does, so this is where a `refetchInterval` goes to poll a balance: a new handle then
+ * decrypts on its own, and an unchanged one is not decrypted again.
+ */
+type ConfidentialTokenBalanceReadQueryOptions = Pick<
+  UseQueryOptions<unknown, Error>,
+  | 'refetchInterval'
+  | 'refetchIntervalInBackground'
+  | 'refetchOnMount'
+  | 'refetchOnWindowFocus'
+  | 'refetchOnReconnect'
+  | 'staleTime'
+  | 'gcTime'
+  | 'retry'
+  | 'retryDelay'
+>;
+
 type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn' | 'select'> & {
   enabled?: boolean;
+  /** Options for the ciphertext read; the other options shape the decrypt query. */
+  readQueryOptions?: ConfidentialTokenBalanceReadQueryOptions;
 };
 
 type UseConfidentialTokenBalanceResult = {
@@ -69,7 +89,7 @@ export function useCofheTokenDecryptedBalance(
   { token, accountAddress, displayDecimals = 5, meta, acp }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
-  const { enabled: userEnabled = true, ...restOptions } = options ?? {};
+  const { enabled: userEnabled = true, readQueryOptions, ...restOptions } = options ?? {};
   // A scoped balance is the ACP issuer balance: that is the data the ACP can decrypt.
   const decryptACP = useCofheEffectiveACP({ acp });
   const account = accountAddress ?? (decryptACP.scoped ? decryptACP.issuer : undefined);
@@ -99,8 +119,10 @@ export function useCofheTokenDecryptedBalance(
       acp,
     },
     {
+      // The read's options are typed for an unknown return; cast so they don't drive its inference.
       readQueryOptions: {
         refetchOnMount: false,
+        ...(readQueryOptions as object),
         enabled: userEnabled && !!token,
       },
       // Caller options shape the decrypt query, which is the one that produces the balance. They

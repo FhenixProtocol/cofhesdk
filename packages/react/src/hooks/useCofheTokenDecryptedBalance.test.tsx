@@ -67,4 +67,29 @@ describe('useCofheTokenDecryptedBalance', () => {
 
     expect(mocks.options!.meta).toEqual({ label: 'savings' });
   });
+
+  it('keeps the decrypt query free of options meant for the read', () => {
+    renderToString(<Probe />);
+
+    expect(mocks.options!.decryptingQueryOptions).not.toHaveProperty('readQueryOptions');
+    expect(mocks.options!.readQueryOptions).toEqual({ refetchOnMount: false, enabled: true });
+  });
+
+  it('passes readQueryOptions to the ciphertext read and keeps its own gating', () => {
+    function ReadProbe() {
+      useCofheTokenDecryptedBalance(
+        { token, accountAddress: '0x0000000000000000000000000000000000000001' },
+        { enabled: false, readQueryOptions: { refetchInterval: 30_000, refetchOnMount: true, staleTime: 1_000 } }
+      );
+      return null;
+    }
+    renderToString(<ReadProbe />);
+    const read = mocks.options!.readQueryOptions!;
+
+    expect(read.refetchInterval).toBe(30_000);
+    expect(read.staleTime).toBe(1_000);
+    expect(read.refetchOnMount).toBe(true);
+    expect(read.enabled).toBe(false);
+    expect(mocks.options!.decryptingQueryOptions!.refetchInterval).toBeUndefined();
+  });
 });
