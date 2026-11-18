@@ -43,7 +43,9 @@ export enum CofheErrorCode {
   MissingCrs = 'MISSING_CRS',
   FetchKeysFailed = 'FETCH_KEYS_FAILED',
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
+  /** @deprecated No longer thrown: `connect` reads the wallet client's `account` and throws `WalletClientAccountMissing` without one. */
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
+  WalletClientAccountMissing = 'WALLET_CLIENT_ACCOUNT_MISSING',
   RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
   TaskManagerUnresolved = 'TASK_MANAGER_UNRESOLVED',
 
