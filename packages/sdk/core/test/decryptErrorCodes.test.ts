@@ -73,6 +73,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       await expect(run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any)).rejects.toMatchObject({
         code: expectedCode,
         apiErrorCode: error,
+        httpStatus: status,
         message: expect.stringContaining(`backend said ${error}`),
       });
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -110,6 +111,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       await expect(run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any)).rejects.toMatchObject({
         code: fallback,
         apiErrorCode: undefined,
+        httpStatus: 415,
         message: expect.stringContaining('Unsupported Media Type'),
       });
     });

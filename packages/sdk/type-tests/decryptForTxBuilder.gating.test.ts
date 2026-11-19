@@ -8,6 +8,7 @@ declare const ctHash: bigint | string;
 
 // NOTE: This file name matches Vitest defaults (`*.test.ts`), and some CI runs may accidentally
 // execute it as a runtime test. Keep the type assertions, but ensure nothing runs at runtime.
+// eslint-disable-next-line no-constant-condition
 if (false) {
   // @ts-expect-error Must call withACP(...) or withoutACP() before execute()
   client.decryptForTx(ctHash).execute();

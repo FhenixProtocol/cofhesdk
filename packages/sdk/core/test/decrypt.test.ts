@@ -15,6 +15,7 @@ import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { Chain, PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
+import type { WalletClientWithAccount } from '../utils';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
@@ -36,7 +37,7 @@ const VIEM_CHAINS: Record<number, Chain> = {
 
 describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
   let publicClient: PublicClient;
-  let walletClient: WalletClient;
+  let walletClient: WalletClientWithAccount;
   let config: ReturnType<typeof createCofheConfigBase>;
 
   let privateCtHash: `0x${string}`;

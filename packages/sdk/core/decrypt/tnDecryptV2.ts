@@ -189,6 +189,7 @@ async function submitDecryptRequestV2(
       throw new CofheError({
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
+        httpStatus: responseClassification.status,
         message: `decrypt request failed: ${responseClassification.errorMessage}`,
         hint: responseClassification.hint ?? 'Check the threshold network URL and request parameters.',
         context: {
