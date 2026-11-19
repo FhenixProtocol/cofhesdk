@@ -33,7 +33,7 @@ import {
   type CofheWriteInvalidates,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_A = 31337; // the connected chain (Anvil)
 const CHAIN_B = 31338; // "another chain": same Anvil, different id, never knows chain A's blocks
 // Anvil default account #6 — dedicated, so this file cannot race the other suites' nonces.

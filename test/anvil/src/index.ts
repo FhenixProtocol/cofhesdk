@@ -2,7 +2,7 @@
  * One Anvil node with the CoFHE mocks and the test contracts on it, for vitest globalSetup files.
  *
  * `@cofhe/integration-matrix` uses it for the Hardhat (Mock) chain. `@cofhe/react` uses it for the
- * hook tests that need a chain. Both use the same port, so they cannot run at the same time.
+ * hook tests that need a chain. Each passes its own port, so `turbo run test` can run both at once.
  */
 
 import { spawn, execSync } from 'node:child_process';
@@ -13,8 +13,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { deployMocks } from '@cofhe/hardhat-3-plugin';
 import { createFoundryArtifactReader } from './foundryArtifactReader.js';
 
+/** The default port. A suite that can run next to another one passes its own to `startAnvilWithMocks`. */
 export const ANVIL_PORT = 8546;
-export const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
 export const ANVIL_CHAIN_ID = 31337;
 /** Anvil's first default account. It deploys everything and is "Bob" in the tests. */
 export const ANVIL_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
@@ -52,33 +52,37 @@ export type AnvilHandle = {
   stop: () => void;
 };
 
+async function isRpcUp(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForAnvil(url: string, timeoutMs = 15_000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 }),
-      });
-      if (res.ok) return;
-    } catch {
-      // not ready yet
-    }
+    if (await isRpcUp(url)) return;
     await new Promise((r) => setTimeout(r, 200));
   }
   throw new Error(`Anvil did not start within ${timeoutMs}ms`);
 }
 
 /** `forge create` from the @cofhe/test-setup package, where the test contracts and foundry.toml are. */
-function deployTestContract(target: string): string {
+function deployTestContract(target: string, rpcUrl: string): string {
   // The package's main entry is dist/index.js. Its root is one level up.
   const require = createRequire(import.meta.url);
   const setupDir = resolve(dirname(require.resolve('@cofhe/test-setup')), '..');
 
   const result = execSync(
     `forge create ${target} ` +
-      `--rpc-url ${ANVIL_RPC} ` +
+      `--rpc-url ${rpcUrl} ` +
       `--private-key ${ANVIL_PRIVATE_KEY} ` +
       `--chain ${ANVIL_CHAIN_ID} ` +
       `--broadcast`,
@@ -90,26 +94,40 @@ function deployTestContract(target: string): string {
   return addressMatch[1];
 }
 
-/** Starts Anvil, deploys the CoFHE mocks and the test contracts, and returns the addresses. */
-export async function startAnvilWithMocks(logPrefix = '[anvil]'): Promise<AnvilHandle> {
+/**
+ * Starts Anvil on `port`, deploys the CoFHE mocks and the test contracts, and returns the addresses.
+ *
+ * Every suite deploys from the same account, so two suites on one node send the same transactions
+ * and one of them fails. That is why each suite has its own port, and why a node that already
+ * answers on the port is an error instead of being reused.
+ */
+export async function startAnvilWithMocks(logPrefix = '[anvil]', port: number = ANVIL_PORT): Promise<AnvilHandle> {
   const log = (message: string) => console.log(`${logPrefix} ${message}`);
+  const rpcUrl = `http://127.0.0.1:${port}`;
+
+  if (await isRpcUp(rpcUrl)) {
+    throw new Error(
+      `${logPrefix} A node already answers on ${rpcUrl}. It is another test run, or an Anvil left over from one. ` +
+        `Stop it (lsof -ti tcp:${port} | xargs kill) and run again.`
+    );
+  }
 
   log('Starting Anvil...');
   const anvil = spawn(
     'anvil',
-    ['--port', String(ANVIL_PORT), '--chain-id', String(ANVIL_CHAIN_ID), '--code-size-limit', '100000', '--silent'],
+    ['--port', String(port), '--chain-id', String(ANVIL_CHAIN_ID), '--code-size-limit', '100000', '--silent'],
     { stdio: 'ignore' }
   );
   anvil.on('error', (err) => {
     console.error(`${logPrefix} Anvil process error:`, err);
   });
 
-  await waitForAnvil(ANVIL_RPC);
-  log(`Anvil running on ${ANVIL_RPC}`);
+  await waitForAnvil(rpcUrl);
+  log(`Anvil running on ${rpcUrl}`);
 
   const account = privateKeyToAccount(ANVIL_PRIVATE_KEY);
-  const publicClient = createPublicClient({ transport: http(ANVIL_RPC) });
-  const walletClient = createWalletClient({ transport: http(ANVIL_RPC), account });
+  const publicClient = createPublicClient({ transport: http(rpcUrl) });
+  const walletClient = createWalletClient({ transport: http(rpcUrl), account });
   const artifacts = createFoundryArtifactReader();
 
   log('Deploying mock contracts...');
@@ -120,13 +138,13 @@ export async function startAnvilWithMocks(logPrefix = '[anvil]'): Promise<AnvilH
 
   const deploy = (name: string, target: string) => {
     log(`Deploying ${name}...`);
-    const address = deployTestContract(target);
+    const address = deployTestContract(target, rpcUrl);
     log(`${name} deployed at ${address}`);
     return address;
   };
 
   const deployment: AnvilDeployment = {
-    anvilRpc: ANVIL_RPC,
+    anvilRpc: rpcUrl,
     anvilSimpleTest: deploy('SimpleTest', 'contracts/SimpleTest.sol:SimpleTest'),
     anvilSimpleStorage: deploy('SimpleStorage', 'contracts/SimpleStorage.sol:SimpleStorage'),
     anvilSimpleKeyValueStore: deploy('SimpleKeyValueStore', 'contracts/SimpleKeyValueStore.sol:SimpleKeyValueStore'),

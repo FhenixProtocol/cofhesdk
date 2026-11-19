@@ -38,7 +38,7 @@ import {
   useCofheShareOnChain,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 // Anvil default accounts #8 (Bob, issuer) and #9 (Alice, recipient); the suites run one file at a time.
 const BOB = privateKeyToAccount('0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97');
 const ALICE = privateKeyToAccount('0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6');

@@ -63,7 +63,7 @@ import {
   type CofheWriteInvalidates,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
 // Anvil default account #3 — #0/#1 belong to the matrix suites and #2 to the singular
 // react-hooks file; a dedicated account avoids nonce races when the files run in one session.

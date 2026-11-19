@@ -52,7 +52,7 @@ import {
   type CofheWriteInvalidationTarget,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
 // Anvil default account #2 — the matrix suites use #0 (deployer/bob) and #1 (alice),
 // so a dedicated account avoids nonce races when the files run in one session.
