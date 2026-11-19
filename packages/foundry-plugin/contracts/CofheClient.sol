@@ -10,7 +10,7 @@ import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.s
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
-import { ACP, ACPUtils, SCOPE_GLOBAL } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ACP, ACPUtils, SCOPE_GLOBAL } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 import {
   ZK_VERIFIER_SIGNER_ADDRESS,
   DECRYPT_RESULT_SIGNER_ADDRESS

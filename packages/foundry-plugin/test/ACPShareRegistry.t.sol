@@ -2,8 +2,8 @@
 pragma solidity ^0.8.25;
 
 import { CofheTest } from '../contracts/CofheTest.sol';
-import { ACP } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
-import { ACPShareRegistry } from '@cofhe/mock-contracts/contracts/ACPShareRegistry.sol';
+import { ACP } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
+import { ACPShareRegistry } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/ACPShareRegistry.sol';
 
 /// @notice The share registry the mocks deploy is cofhe-contracts' own, behind a proxy and wired into the ACL.
 contract ACPShareRegistryTest is CofheTest {

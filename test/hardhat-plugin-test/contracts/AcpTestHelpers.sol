@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPermissionCustomIdValidator} from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import {IPermissionCustomIdValidator} from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 
 /// @dev Configurable validator stub — `disabled()` returns whatever it is told to.
 contract StubValidator is IPermissionCustomIdValidator {

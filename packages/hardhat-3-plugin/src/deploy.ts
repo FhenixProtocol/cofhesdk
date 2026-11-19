@@ -23,6 +23,15 @@ import {
 } from '@cofhe/sdk';
 
 /**
+ * The cofhe-contracts files deployed as-is below. Hardhat 3 only writes artifacts for root files and
+ * `deployVariable` reads them by name, so the plugin compiles these as roots next to the mocks.
+ */
+export const COFHE_CONTRACTS_NPM_PATHS = [
+  'npm:@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/ACPTimestampRevoker.sol',
+  'npm:@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/ACPShareRegistry.sol',
+];
+
+/**
  * Controls deploy-mocks console output.
  * - `''`   — silent, no output
  * - `'v'`  — single summary line (default)

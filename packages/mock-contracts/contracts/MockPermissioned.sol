@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25 <0.9.0;
 
-import { PermissionedUpgradeable } from './Permissioned.sol';
+import { PermissionedUpgradeable } from '@fhenixprotocol/cofhe-contracts/internal/host-chain/contracts/Permissioned.sol';
 
 /**
  * @notice The ACL's ACP checks, taken unchanged from cofhe-contracts (`PermissionedUpgradeable`
