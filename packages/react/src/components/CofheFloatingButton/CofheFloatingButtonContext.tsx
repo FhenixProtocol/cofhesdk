@@ -20,6 +20,10 @@ interface CofheFloatingButtonProviderProps {
   children?: ReactNode;
 }
 
+/**
+ * @internal Demo component for now, used internally; not a supported API. Undocumented and may change in any
+ * release.
+ */
 export const CofheFloatingButtonProvider: React.FC<CofheFloatingButtonProviderProps> = ({ children }) => {
   const { state } = useCofheContext();
 
