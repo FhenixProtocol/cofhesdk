@@ -13,6 +13,14 @@ const _require = createRequire(import.meta.url);
  * `@cofhe/mock-contracts/contracts/`, used to compile the contracts at startup.
  */
 export function getMockContractsNpmPaths(): string[] {
+  return getMockContractsNpmFiles().map((file) => `npm:${file}`);
+}
+
+/**
+ * Returns the npm module paths (e.g. `@cofhe/mock-contracts/contracts/MockACL.sol`) of every
+ * `.sol` file in `@cofhe/mock-contracts/contracts/`.
+ */
+export function getMockContractsNpmFiles(): string[] {
   let contractsDir: string;
   try {
     const pkgJson = _require.resolve('@cofhe/mock-contracts/package.json');
@@ -28,7 +36,7 @@ export function getMockContractsNpmPaths(): string[] {
   return fs
     .readdirSync(contractsDir)
     .filter((f) => f.endsWith('.sol'))
-    .map((f) => `npm:@cofhe/mock-contracts/contracts/${f}`);
+    .map((f) => `@cofhe/mock-contracts/contracts/${f}`);
 }
 
 // ─── Mock storage helpers ─────────────────────────────────────────────────────

@@ -25,9 +25,7 @@
   - `pnpm lint`
   - `pnpm check:types`
   - `pnpm test`
-  - `pnpm test:integration`
   - `pnpm check:circles`
-- Integration tests are discovered and filtered through `scripts/integration-tests.mjs`. Use that helper when you need to inspect or run a specific integration test case.
 - `packages/site` requires Node `>=22`. The rest of the monorepo declares Node `>=18`, so avoid site commands unless the active Node version is compatible.
 - If a `packages/site` build or dev command fails because the shell is on an older Node version, retry with an installed `nvm` Node 22 runtime before treating the task as blocked.
 - `packages/mock-contracts` may rely on Foundry tools such as `forge` for full local builds and contract artifacts.
@@ -39,6 +37,7 @@
 - Hardhat mock deployment is automatic in many local flows. Account for `COFHE_SKIP_MOCKS_DEPLOY=1` when working on tests or scripts that need manual control over mock deployment.
 - Preserve the SDK's public export surface in `packages/sdk/package.json`. Changes to subpath exports or runtime targets usually require corresponding updates across consumers.
 - When working in docs or examples, prefer linking to existing package APIs and architecture docs rather than duplicating long explanations in code comments.
+- Exports marked `@internal` (see "Internal APIs" in `README.md`) are not a supported API. Don't extend them or build on them in a PR.
 - Every PR that changes a published package adds one changeset. Write its text for a developer reading the release notes, following `.memory/changesets.md`.
 
 ## References

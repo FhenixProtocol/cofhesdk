@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quantizeAmount, scaleAmount } from './format';
+import { formatTokenAmount, quantizeAmount, scaleAmount } from './format';
 import { getConfidentialDecimals, getPublicDecimals, getPublicSymbol, normalizeToken } from '../types/token';
 
 const token = normalizeToken({
@@ -81,5 +81,22 @@ describe('quantizeAmount', () => {
   it('returns non-numeric input unchanged', () => {
     expect(quantizeAmount('', 6)).toBe('');
     expect(quantizeAmount('abc', 6)).toBe('abc');
+  });
+});
+
+describe('formatTokenAmount', () => {
+  it('rounds to an integer with displayDecimals 0', () => {
+    expect(formatTokenAmount(1_234_567n, 6, 0).formatted).toBe('1');
+    expect(formatTokenAmount(100_000_000n, 6, 0).formatted).toBe('100');
+  });
+
+  it('drops only fractional trailing zeros', () => {
+    expect(formatTokenAmount(1_234_567n, 6, 2).formatted).toBe('1.23');
+    expect(formatTokenAmount(100_000_000n, 6, 2).formatted).toBe('100');
+    expect(formatTokenAmount(10_500_000n, 6, 2).formatted).toBe('10.5');
+  });
+
+  it('keeps full precision without displayDecimals', () => {
+    expect(formatTokenAmount(1_234_567n, 6).formatted).toBe('1.234567');
   });
 });

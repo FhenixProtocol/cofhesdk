@@ -14,7 +14,7 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 
-const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
 /**
  * API
@@ -50,7 +50,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private acpHash?: string;
   private acp?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
-  private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
+  private accessDeniedRetryTimeoutMs = DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -114,23 +114,46 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     return this.account;
   }
 
+  /**
+   * Registers a callback that runs before each retry of the request: while the network answers
+   * that the result is not ready yet (204), or that access is denied inside the window set by
+   * `setAccessDeniedRetryTimeout`.
+   */
   onPoll(callback: DecryptPollCallbackFunction): DecryptForViewBuilder<U> {
     this.pollCallback = callback;
     return this;
   }
 
-  set404RetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
+  /**
+   * @deprecated Has no effect. A 404 from the network is never retried: it means the network has
+   * no ciphertext for the handle, which waiting does not fix. Will be removed in a future major
+   * release.
+   */
+  set404RetryTimeout(_timeoutMs: number): DecryptForViewBuilder<U> {
+    return this;
+  }
+
+  /**
+   * Keep asking for up to `timeoutMs` while the network answers that the ACP does not grant
+   * access to the handle. Off by default (0): that answer is normally final.
+   *
+   * Use it when you decrypt a handle right after the transaction that grants access to it. The
+   * network reads grants from the chain and can be a block behind your own RPC; until it has
+   * seen the transaction it answers "denied" for a handle you are about to be allowed to read.
+   */
+  setAccessDeniedRetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
     if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForView: set404RetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
+        message:
+          'decryptForView: setAccessDeniedRetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
         context: {
           timeoutMs,
         },
       });
     }
 
-    this.retry404TimeoutMs = timeoutMs;
+    this.accessDeniedRetryTimeoutMs = timeoutMs;
     return this;
   }
 
@@ -294,7 +317,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       chainId: this.chainId,
       acp: wireAcp,
       thresholdNetworkUrl,
-      retry404TimeoutMs: this.retry404TimeoutMs,
+      accessDeniedRetryTimeoutMs: this.accessDeniedRetryTimeoutMs,
       onPoll: this.pollCallback,
     });
     return ACPUtils.unseal(acp, sealed);

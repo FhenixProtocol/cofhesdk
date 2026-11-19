@@ -35,6 +35,7 @@ function asCtHash(value: unknown): bigint | undefined {
 }
 
 export type UseCofheTokensWithExistingBalancesInput = {
+  /** Defaults to the connected chain. The balance reads stay disabled while an explicit id differs from it. */
   chainId?: number;
   accountAddress?: Address;
 };
@@ -84,6 +85,7 @@ export function useCofheTokensWithExistingEncryptedBalances(
 
   const read = useCofheReadContracts(
     {
+      chainId: _chainId,
       contracts,
       multicallOptions: {
         allowFailure: true,

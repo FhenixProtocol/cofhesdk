@@ -96,7 +96,7 @@ The SDK supports three ACP types:
 Notes:
 
 - An ACP includes a **sealing keypair**. The public key is sent to CoFHE for re-encryption. The private key stays client-side for unsealing.
-- ACP `expiration` is a unix timestamp in **seconds**. The default is **7 days from creation**.
+- ACP `expiration` is a unix timestamp in **seconds**. The default is the client's `defaultACPExpiration` (**7 days**), counted from the latest block.
 - When an ACP is created via `client.acp.*`, it is automatically stored and set as the active ACP for the current chain and account.
 
 ## Creating a self ACP

@@ -35,7 +35,6 @@ Inherited tests verify that the SDK works correctly regardless of how it is cons
 In practice:
 - `test/hardhat-3-plugin-test/test/inherited.test.ts` — SDK encrypt/decrypt/acps running through the HH3 plugin.
 - `test/hardhat-3-plugin-test/test/deploy-mocks.test.ts` — local: plugin-specific mock deployment logic.
-- `packages/sdk/node/test/inherited.test.ts` — SDK inherited tests via `@cofhe/sdk/node`.
 - `packages/sdk/node/test/client.test.ts` — local: node-specific client behavior.
 - `test/integration-matrix/` — inherited tests at scale: same suite across all chains × both environments.
 

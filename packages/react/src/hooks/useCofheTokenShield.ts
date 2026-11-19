@@ -9,9 +9,10 @@ import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicC
 import { type ConfidentialToken, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported, getPublicDecimals } from '@/types/token';
 import { buildTokenShieldCallArgs } from '../constants/tokenTypeConfig.js';
-import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
+import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
+import { useOnceTransactionMined } from './useOnceTransactionMined.js';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
@@ -48,7 +49,10 @@ type UseTokenShieldInput = {
   onStatusChange?: (message: string) => void;
 };
 
-type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenShieldInput>, 'mutationFn'>;
+type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenShieldInput>, 'mutationFn'> & {
+  /** Fires once, when the shield transaction mines, with its final status (confirmed or failed). */
+  onceMined?: (transaction: { hash: `0x${string}`; status: TransactionStatus }) => void;
+};
 
 // ============================================================================
 // Shield Hook
@@ -57,19 +61,20 @@ type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTo
 /**
  * Hook to shield tokens (convert regular balance to confidential)
  * Wrapped tokens call `shieldWrappedNative` or `shieldNative`, depending on the paired asset.
- * @param options - Optional React Query mutation options
- * @returns Mutation result with transaction hash
+ * @param options - Optional React Query mutation options, plus `onceMined`
+ * @returns Mutation result with transaction hash, plus `isMining` (true from the hash until the
+ * receipt lands; read from the transaction store, no RPC call)
  */
 export function useCofheTokenShield(
   options?: UseTokenShieldOptions
-): UseMutationResult<`0x${string}`, Error, UseTokenShieldInput> {
+): UseMutationResult<`0x${string}`, Error, UseTokenShieldInput> & { isMining: boolean } {
   const walletClient = useCofheWalletClient();
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { onSuccess, onError, ...restOfOptions } = options || {};
+  const { onSuccess, onError, onceMined, ...restOfOptions } = options || {};
   const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
-  return useInternalMutation({
+  const mutation = useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for token shield');
@@ -140,4 +145,8 @@ export function useCofheTokenShield(
     },
     ...restOfOptions,
   });
+
+  const { isMining } = useOnceTransactionMined({ txHash: mutation.data, onceMined });
+
+  return { ...mutation, isMining };
 }
