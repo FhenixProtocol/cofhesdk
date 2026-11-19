@@ -57,6 +57,19 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(decrypted, testValue);
   });
 
+  it('two concurrent encrypts of the same value → each succeeds with its own ctHash', async () => {
+    const client = await cofhe.createClientWithBatteries(bobWalletClient);
+    const encrypt = () =>
+      client
+        .encryptInputs([Encryptable.uint32(9n)])
+        .setConsumingContract(simpleTest.address)
+        .execute();
+
+    const [[hashA], [hashB]] = await Promise.all([encrypt(), encrypt()]);
+
+    assert.notEqual(hashA, hashB);
+  });
+
   it('encrypt → store on-chain → decryptForTx → publish → verify', async () => {
     const testValue = 55n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);

@@ -81,6 +81,31 @@ describe('Encrypt Inputs Test', () => {
     expect(unsealed).to.be.equal(9n);
   });
 
+  it('Should give concurrent encrypts their own hash when the values are equal', async () => {
+    const [signer] = await hre.ethers.getSigners();
+    const client = await hre.cofhe.createClientWithBatteries(signer);
+    const consumingContract = await simpleTest.getAddress();
+
+    const encrypt = () =>
+      client
+        .encryptInputs([Encryptable.uint32(9n)])
+        .setConsumingContract(consumingContract)
+        .execute();
+    const [[hashA, signatureA], [hashB, signatureB]] = await Promise.all([encrypt(), encrypt()]);
+
+    expect(hashA).to.not.equal(hashB);
+
+    // Both inputs verify against their own signature and decrypt to their value.
+    for (const [hash, signature] of [
+      [hashA, signatureA],
+      [hashB, signatureB],
+    ]) {
+      await simpleTest.setValueBatch([hash], signature);
+      const unsealed = await client.decryptForView(await simpleTest.getValueHash(), FheTypes.Uint32).execute();
+      expect(unsealed).to.be.equal(9n);
+    }
+  });
+
   it('should encrypt inputs with configurable encryptDelay', async () => {
     const [signer] = await hre.ethers.getSigners();
 
