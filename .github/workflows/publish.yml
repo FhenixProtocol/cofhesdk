@@ -51,7 +51,7 @@ jobs:
       - name: Setup Node.js 20
         uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           package-manager-cache: false
 
       - name: Ensure valid pinned npm version (>11.5.1)
