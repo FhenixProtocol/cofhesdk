@@ -69,11 +69,9 @@ export class DecryptForTxBuilder extends BaseBuilder {
   constructor(params: DecryptForTxBuilderParams) {
     super({
       config: params.config,
-      publicClient: params.publicClient,
-      walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
-      requireConnected: params.requireConnected,
+      _mocksRequestFn: params._mocksRequestFn,
     });
 
     this.ctHash = params.ctHash;
@@ -329,7 +327,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
    * On hardhat, interact with MockThresholdNetwork contract
    */
   private async mocksDecryptForTx(acp: ACP | null): Promise<DecryptForTxResult> {
-    this.assertPublicClient();
+    this.assertMocksRequestFn();
 
     // Configurable delay before decrypting to simulate the CoFHE decrypt processing time
     // Recommended 1000ms on web
@@ -337,7 +335,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const delay = this.config.mocks.decryptDelay;
     if (delay > 0) await sleep(delay);
 
-    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, acp, this.publicClient);
+    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, acp, this._mocksRequestFn);
     return result;
   }
 
@@ -346,7 +344,6 @@ export class DecryptForTxBuilder extends BaseBuilder {
    */
   private async productionDecryptForTx(acp: ACP | null): Promise<DecryptForTxResult> {
     this.assertChainId();
-    this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
@@ -375,6 +372,8 @@ export class DecryptForTxBuilder extends BaseBuilder {
    * - `withoutACP()` (global allowance)
    */
   async execute(): Promise<DecryptForTxResult> {
+    this.assertChainId();
+
     // Resolve acp (can be ACP object or null for global allowance)
     const acp = await this.getResolvedACP();
 
@@ -383,7 +382,8 @@ export class DecryptForTxBuilder extends BaseBuilder {
       // Ensure acp validity
       ACPUtils.validate(acp);
 
-      if (this.chainId !== undefined && this.chainId !== acp._signedDomain?.chainId) {
+      // Ensure ACP signed domain matches chainId
+      if (this.chainId !== acp._signedDomain?.chainId) {
         throw new CofheError({
           code: CofheErrorCode.ChainIdMismatch,
           message: `decryptForTx: builder chainId (${this.chainId}) does not match ACP signed chainId (${acp._signedDomain?.chainId})`,
@@ -393,33 +393,12 @@ export class DecryptForTxBuilder extends BaseBuilder {
           },
         });
       }
+    }
 
-      // Extract chainId from signed acp
-      const chainId = acp._signedDomain!.chainId;
-      if (this.chainId === undefined) {
-        this.chainId = chainId;
-      }
-
-      if (chainId === hardhat.id) {
-        return await this.mocksDecryptForTx(acp);
-      } else {
-        return await this.productionDecryptForTx(acp);
-      }
+    if (this.chainId === hardhat.id) {
+      return await this.mocksDecryptForTx(acp);
     } else {
-      // Global allowance - no acp
-      // If chainId not set, try to get it from publicClient
-      if (!this.chainId) {
-        this.assertPublicClient();
-        this.chainId = await getPublicClientChainID(this.publicClient);
-      }
-
-      this.assertChainId();
-
-      if (this.chainId === hardhat.id) {
-        return await this.mocksDecryptForTx(null);
-      } else {
-        return await this.productionDecryptForTx(null);
-      }
+      return await this.productionDecryptForTx(acp);
     }
   }
 }

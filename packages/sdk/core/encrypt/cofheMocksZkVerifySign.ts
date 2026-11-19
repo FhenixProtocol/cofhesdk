@@ -9,25 +9,18 @@ import {
   MAX_UINT160,
 } from './zkPackProveVerify.js';
 import { toBigIntOrThrow, validateBigIntInRange } from '../utils.js';
-import { createWalletClient, custom, encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
+import { encodePacked, keccak256, type EIP1193RequestFn, type PublicClient, type PublicRpcSchema, type WalletClient } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
-import { privateKeyToAccount, sign } from 'viem/accounts';
+import { sign } from 'viem/accounts';
 import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS, TFHE_RS_ZK_MAX_BITS } from '../consts.js';
+import { createMocksPublicClient, createMocksWalletClient } from 'core/mockClients.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
 };
 
-// sends through the caller's node, a bare http() transport would always target 127.0.0.1:8545
-function createMockZkVerifierSigner(publicClient: PublicClient) {
-  return createWalletClient({
-    chain: hardhat,
-    transport: custom({ request: publicClient.request }),
-    account: privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY),
-  });
-}
 /**
  * The mocks don't use a tfhe builder, so we check the encryptable bits and value ranges here to
  * preserve parity with `zkPack`. Without the range check, MockCoFHE masks an out-of-range value
@@ -265,18 +258,16 @@ export async function cofheMocksZkVerifySign(
   account: string,
   securityZone: number,
   consumingContract: string,
-  publicClient: PublicClient,
-  walletClient: WalletClient,
-  zkvWalletClient: WalletClient | undefined
+  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema>
 ): Promise<VerifyBatchResult> {
-  // Use config._internal?.zkvWalletClient if provided, otherwise use a mock zk verifier signer
-  const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner(publicClient);
+  const mocksPublicClient = createMocksPublicClient(_mocksRequestFn);
+  const mocksWalletClient = createMocksWalletClient(_mocksRequestFn, MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
 
   // Call MockZkVerifier contract to calculate the ctHashes
-  const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
+  const encryptableItems = await calcCtHashes(items, account, securityZone, mocksPublicClient);
 
   // Insert the ctHashes into the MockZkVerifier contract
-  await insertCtHashes(encryptableItems, _walletClient);
+  await insertCtHashes(encryptableItems, mocksWalletClient);
 
   // Locally create the single batch signature from the known signer account
   const signature = await createBatchProofSignature(encryptableItems, securityZone, account, consumingContract);

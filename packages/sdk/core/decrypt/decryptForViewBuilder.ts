@@ -291,7 +291,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
   private async mocksSealOutput(acp: ACP): Promise<bigint> {
-    this.assertPublicClient();
+    this.assertMocksRequestFn();
 
     // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
     // Recommended 1000ms on web
@@ -299,7 +299,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const mocksDecryptDelay = this.config.mocks.decryptDelay;
     if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
 
-    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this.publicClient);
+    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this._mocksRequestFn);
   }
 
   /**
@@ -307,7 +307,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    */
   private async productionSealOutput(acp: ACP): Promise<bigint> {
     this.assertChainId();
-    this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const wireAcp = ACPUtils.getPublic(acp, true);

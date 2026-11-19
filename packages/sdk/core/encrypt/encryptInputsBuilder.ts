@@ -30,8 +30,6 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   inputs: [...T];
   securityZone?: number;
 
-  zkvWalletClient?: WalletClient | undefined;
-
   tfhePublicKeyDeserializer: FheKeyDeserializer | undefined;
   compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
@@ -71,8 +69,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
 
-  private zkvWalletClient: WalletClient | undefined;
-
   private tfhePublicKeyDeserializer: FheKeyDeserializer;
   private compactPkeCrsDeserializer: FheKeyDeserializer;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
@@ -96,18 +92,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   constructor(params: EncryptInputsBuilderParams<T>) {
     super({
       config: params.config,
-      publicClient: params.publicClient,
-      walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
-      requireConnected: params.requireConnected,
+      _mocksRequestFn: params._mocksRequestFn,
     });
 
     this.inputItems = params.inputs;
     this.securityZone = params.securityZone ?? 0;
     this.securityZoneSet = params.securityZone != null;
-
-    this.zkvWalletClient = params.zkvWalletClient;
 
     // Check that tfhePublicKeyDeserializer is provided
     if (!params.tfhePublicKeyDeserializer) {
@@ -518,9 +510,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    */
   private async mocksExecute(): Promise<VerifyBatchResult> {
     this.assertAccount();
-    this.assertPublicClient();
-    this.assertWalletClient();
     this.assertConsumingContract();
+    this.assertMocksRequestFn();
 
     const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
 
@@ -557,9 +548,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       this.account,
       this.securityZone,
       this.consumingContract,
-      this.publicClient,
-      this.walletClient,
-      this.zkvWalletClient
+      this._mocksRequestFn
     );
     this.fireStepEnd(EncryptStep.Verify, { isMocks: true, mockSleep: verifyDelay });
 

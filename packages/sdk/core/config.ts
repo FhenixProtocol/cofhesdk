@@ -1,7 +1,7 @@
 import { type CofheChain } from '@/chains';
 
 import { z } from 'zod';
-import { type WalletClient } from 'viem';
+import { type EIP1193RequestFn, type PublicRpcSchema, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { type IStorage, type TfheThreadsSetting } from './types.js';
 
@@ -101,7 +101,7 @@ export type CofheConfig = {
 };
 
 export type CofheInternalConfig = {
-  zkvWalletClient?: WalletClient;
+  mocksRequestFn?: EIP1193RequestFn<PublicRpcSchema>;
 };
 
 /**
@@ -169,7 +169,7 @@ export const CofheConfigSchema = z.object({
   /** Internal configuration */
   _internal: z
     .object({
-      zkvWalletClient: z.any().optional(),
+      mocksRequestFn: z.any().optional(),
     })
     .optional(),
 });

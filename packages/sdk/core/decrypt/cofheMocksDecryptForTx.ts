@@ -1,6 +1,6 @@
 import { type ACP, ACPUtils } from '@/acps';
 
-import { encodePacked, keccak256, type PublicClient } from 'viem';
+import { encodePacked, keccak256, type EIP1193RequestFn, type PublicRpcSchema } from 'viem';
 import { sign } from 'viem/accounts';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
@@ -8,6 +8,8 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
+import { createMocksPublicClient } from 'core/mockClients.js';
+import { hardhat } from 'viem/chains';
 
 const UINT_TYPE_MASK = 0x7fn;
 const TYPE_BYTE_OFFSET = 8n;
@@ -24,11 +26,13 @@ export async function cofheMocksDecryptForTx(
   ctHash: bigint | string,
   utype: FheTypes,
   acp: ACP | null,
-  publicClient: PublicClient
+  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema>
 ): Promise<DecryptForTxMocksResult> {
   let allowed: boolean;
   let error: string;
   let decryptedValue: bigint;
+
+  const mocksPublicClient = createMocksPublicClient(_mocksRequestFn);
 
   // With acp
   if (acp !== null) {
@@ -39,7 +43,7 @@ export async function cofheMocksDecryptForTx(
       revokerData: BigInt(wireAcp.revokerData),
     };
 
-    [allowed, error, decryptedValue] = await publicClient.readContract({
+    [allowed, error, decryptedValue] = await mocksPublicClient.readContract({
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
       functionName: 'decryptForTxWithACP',
@@ -47,7 +51,7 @@ export async function cofheMocksDecryptForTx(
     });
   } else {
     // Without acp (global allowance)
-    [allowed, error, decryptedValue] = await publicClient.readContract({
+    [allowed, error, decryptedValue] = await mocksPublicClient.readContract({
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
       functionName: 'decryptForTxWithoutACP',
@@ -67,7 +71,7 @@ export async function cofheMocksDecryptForTx(
   // decryptForTx returns plaintext directly (no sealing/unsealing needed)
   // Generate a mock threshold network signature using the same payload format
   // that TaskManager expects in production and in mocks.
-  const chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
+  const chainId = hardhat.id;
   const normalizedCtHash = BigInt(ctHash);
   const encryptionType = getEncryptionTypeFromCtHash(normalizedCtHash);
   const packed = encodePacked(
