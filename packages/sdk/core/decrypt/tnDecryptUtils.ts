@@ -21,8 +21,21 @@ export function normalizeTnSignature(signature: unknown): `0x${string}` {
   }
 
   const prefixed = trimmed.startsWith('0x') ? (trimmed as `0x${string}`) : (`0x${trimmed}` as `0x${string}`);
-  const parsed = parseSignature(prefixed);
-  return serializeSignature(parsed);
+  // viem throws its own errors on malformed signatures; callers tell a CofheError (do not retry)
+  // from a transient failure by type, so a bad signature must surface as one.
+  try {
+    const parsed = parseSignature(prefixed);
+    return serializeSignature(parsed);
+  } catch (e) {
+    throw new CofheError({
+      code: CofheErrorCode.DecryptReturnedNull,
+      message: 'decrypt response returned a malformed signature',
+      cause: e instanceof Error ? e : undefined,
+      context: {
+        signature,
+      },
+    });
+  }
 }
 
 export function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
