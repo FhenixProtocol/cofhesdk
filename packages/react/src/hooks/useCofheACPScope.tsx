@@ -166,22 +166,24 @@ export type CofheEffectiveACP = CofheACPScopeValue & {
 
 /**
  * The ACP a read or decrypt uses: the hook `acp` option, else the enclosing `<CofheACPScope>`,
- * else the active ACP on `chainId` (the connected chain by default).
+ * else the active ACP on `chainId` (the connected chain by default). The active path runs the
+ * same on-chain revocation check as a scope / `acp` option (`useChosenACPStatus`): an imported
+ * share made active with `selectActiveACP` must stop gating reads and decrypts after the issuer
+ * revokes it, and must drop its non-persisted decrypt cache — local `ACPUtils.isValid` alone
+ * cannot see a revocation.
  */
 export function useCofheEffectiveACP({ acp, chainId }: { acp?: CofheACPInput; chainId?: number }): CofheEffectiveACP {
   const scope = useCofheACPScope();
   const resolved = useResolvedACP(acp, chainId);
   const optionStatus = useChosenACPStatus(acp !== undefined ? resolved : undefined, chainId);
   const active = useCofheActiveACP(chainId);
+  // Only poll the active ACP when it is actually the one that gates: an explicit `acp` or an
+  // enclosing scope already has its own check, and a second checkAccess for the unused active
+  // ACP would be wasted.
+  const activeStatus = useChosenACPStatus(acp === undefined && !scope ? active?.acp : undefined, chainId);
   return useMemo(() => {
     if (acp !== undefined) return { ...describeACP(resolved, optionStatus), scoped: true };
     if (scope) return { ...scope, scoped: true };
-    const activeACP = active?.acp;
-    const status: CofheACPStatus = active?.isValid
-      ? 'valid'
-      : activeACP && ACPUtils.isExpired(activeACP)
-        ? 'expired'
-        : 'invalid';
-    return { ...describeACP(activeACP, status), scoped: false };
-  }, [acp, resolved, optionStatus, scope, active]);
+    return { ...describeACP(active?.acp, activeStatus), scoped: false };
+  }, [acp, resolved, optionStatus, scope, active, activeStatus]);
 }
