@@ -29,7 +29,7 @@ vi.mock('@cofhe/sdk/acps', async (importOriginal) => {
     ACPUtils: {
       ...actual.ACPUtils,
       deserialize: (serialized: any) => serialized,
-      isValid: (acp: any) => ({ valid: acp.expiration * 1000 > Date.now() }),
+      isValid: (acp: any, nowSec: number) => ({ valid: acp.expiration > nowSec }),
     },
   };
 });
@@ -69,6 +69,22 @@ describe('useCofheActiveACP', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(61_000);
     });
+
+    expect(seen.at(-1)).toBe(false);
+  });
+
+  it('checks a newly active ACP against the current time, not the time it was mounted at', async () => {
+    await act(async () => root.render(<ActiveACPProbe />));
+    expect(seen.at(-1)).toBe(true);
+
+    // 100s later, without the first ACP's timer firing, the user switches to an ACP that expired
+    // 50s ago. It must not read as valid against the mount time.
+    vi.setSystemTime(Date.now() + 100_000);
+    const expiredHash = '0xdef';
+    const expiration = Math.floor(Date.now() / 1000) - 50;
+    mocks.state.acps[CHAIN_ID][ACCOUNT][expiredHash] = { hash: expiredHash, type: 'self', expiration };
+    mocks.state.activeACPHash = { [CHAIN_ID]: { [ACCOUNT]: expiredHash } };
+    await act(async () => root.render(<ActiveACPProbe />));
 
     expect(seen.at(-1)).toBe(false);
   });

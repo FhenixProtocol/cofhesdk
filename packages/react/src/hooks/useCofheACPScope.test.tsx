@@ -19,7 +19,7 @@ vi.mock('@/providers', () => ({
 vi.mock('./useCofheACPs', () => ({
   useCofheACP: () => undefined,
   useCofheActiveACP: () => undefined,
-  useRerenderAtExpiry: () => 0,
+  useNowAtExpiry: () => 0,
 }));
 
 vi.mock('./useCofheConnection', () => ({
