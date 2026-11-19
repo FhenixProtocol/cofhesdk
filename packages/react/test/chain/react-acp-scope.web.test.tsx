@@ -27,7 +27,7 @@ import {
   type CofheACPInput,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 // Anvil default accounts #8 (Bob, the issuer) and #9 (Alice, the recipient) — dedicated, so this
 // file cannot race the other suites' nonces.
 const BOB = privateKeyToAccount('0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97');

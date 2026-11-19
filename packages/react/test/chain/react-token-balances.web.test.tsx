@@ -50,7 +50,7 @@ import {
   type ConfidentialToken,
 } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
 // Anvil default account #4 — #0/#1 (matrix), #2 (react-hooks) and #3
 // (read-contracts) are taken; a dedicated account avoids nonce races.

@@ -28,7 +28,7 @@ import { createCofheClient } from '@cofhe/sdk/web';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import { CofheProvider, createCofheConfig, useCofheReadContractAndDecrypt } from '@cofhe/react';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_A = 31337; // the connected chain (Anvil)
 const CHAIN_B = 31338; // "another chain": same Anvil under a different id
 // Anvil default account #7 — dedicated, so this file cannot race the other suites' nonces.
