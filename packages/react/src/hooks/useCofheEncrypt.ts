@@ -150,8 +150,10 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
       builder.onStep(combinedOnStepChange);
 
       if (variables.account) builder.setAccount(variables.account);
-      if (variables.chainId) builder.setChainId(variables.chainId);
-      if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
+      // 0 is a real chain id / security zone — a truthy check would skip setChainId(0) /
+      // setSecurityZone(0) and leave the builder unbound (item zones then win silently).
+      if (variables.chainId != null) builder.setChainId(variables.chainId);
+      if (variables.securityZone != null) builder.setSecurityZone(variables.securityZone);
 
       return builder.execute();
     },
