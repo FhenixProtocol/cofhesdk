@@ -76,6 +76,17 @@ describe('mocks encrypt path value range parity', () => {
     expect(writeContract).not.toHaveBeenCalled();
   });
 
+  it('production zkPack rejects an empty batch', () => {
+    expect(() => zkPack([], noopZkBuilder)).toThrow(/No items to encrypt/);
+  });
+
+  it('hardhat mocks encrypt rejects an empty batch before touching the chain', async () => {
+    const { builder, readContract, writeContract } = mocksBuilder([]);
+    await expect(builder.execute()).rejects.toThrow(/No items to encrypt/);
+    expect(readContract).not.toHaveBeenCalled();
+    expect(writeContract).not.toHaveBeenCalled();
+  });
+
   it('hardhat mocks encrypt still accepts the max value of each type', async () => {
     const { builder, writeContract } = mocksBuilder([
       Encryptable.uint8(255n),

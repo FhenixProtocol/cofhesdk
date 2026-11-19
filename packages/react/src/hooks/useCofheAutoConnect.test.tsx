@@ -26,20 +26,21 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function publicClient(chainId: number) {
+// `connect` reads the chain id from the public client; a deferred one keeps an attempt in flight.
+function publicClient(chainId: number | Promise<number>) {
   return {
-    chain: { id: chainId },
     request: vi.fn(),
     readContract: vi.fn(),
-  } as unknown as PublicClient;
+    getChainId: vi.fn(() => Promise.resolve(chainId)),
+  } as unknown as PublicClient & { getChainId: ReturnType<typeof vi.fn> };
 }
 
-function walletClient(chainId: number, addresses: Promise<`0x${string}`[]>) {
+function walletClient(chainId: number, account: `0x${string}`) {
   return {
     chain: { id: chainId },
+    account: { address: account, type: 'json-rpc' },
     request: vi.fn(),
     sendTransaction: vi.fn(),
-    getAddresses: vi.fn(() => addresses),
   } as unknown as WalletClient;
 }
 
@@ -73,7 +74,7 @@ describe('useCofheAutoConnect through CofheProvider', () => {
       connected: true,
       connecting: false,
       connectError: undefined,
-      chainId: publicClient.chain!.id,
+      chainId: walletClient.chain?.id,
       account,
     });
     expect(client.connection.publicClient).toBe(publicClient);
@@ -110,86 +111,87 @@ describe('useCofheAutoConnect through CofheProvider', () => {
   });
 
   it('keeps the newer chain connected when the older attempt finishes last', async () => {
-    const firstAddresses = deferred<`0x${string}`[]>();
-    const firstPublicClient = publicClient(sepolia.id);
-    const firstWalletClient = walletClient(sepolia.id, firstAddresses.promise);
+    const firstChainId = deferred<number>();
+    const firstPublicClient = publicClient(firstChainId.promise);
+    const firstWalletClient = walletClient(sepolia.id, ACCOUNT_A);
 
     await render(firstPublicClient, firstWalletClient);
-    expect(firstWalletClient.getAddresses).toHaveBeenCalledOnce();
+    expect(firstPublicClient.getChainId).toHaveBeenCalledOnce();
     expect(client.connecting).toBe(true);
 
     const nextPublicClient = publicClient(baseSepolia.id);
-    const nextWalletClient = walletClient(baseSepolia.id, Promise.resolve([ACCOUNT_B]));
+    const nextWalletClient = walletClient(baseSepolia.id, ACCOUNT_B);
     await render(nextPublicClient, nextWalletClient);
     expectConnection(nextPublicClient, nextWalletClient, ACCOUNT_B);
 
-    await act(async () => firstAddresses.resolve([ACCOUNT_A]));
+    await act(async () => firstChainId.resolve(sepolia.id));
     expectConnection(nextPublicClient, nextWalletClient, ACCOUNT_B);
   });
 
   it('follows an account-only switch with the same public client and chain', async () => {
-    const firstAddresses = deferred<`0x${string}`[]>();
+    const firstChainId = deferred<number>();
     const sharedPublicClient = publicClient(sepolia.id);
-    const firstWalletClient = walletClient(sepolia.id, firstAddresses.promise);
+    sharedPublicClient.getChainId.mockReturnValueOnce(firstChainId.promise);
+    const firstWalletClient = walletClient(sepolia.id, ACCOUNT_A);
 
     await render(sharedPublicClient, firstWalletClient);
-    expect(firstWalletClient.getAddresses).toHaveBeenCalledOnce();
+    expect(sharedPublicClient.getChainId).toHaveBeenCalledOnce();
     expect(client.connecting).toBe(true);
 
-    const nextWalletClient = walletClient(sepolia.id, Promise.resolve([ACCOUNT_B]));
+    const nextWalletClient = walletClient(sepolia.id, ACCOUNT_B);
     await render(sharedPublicClient, nextWalletClient);
     expectConnection(sharedPublicClient, nextWalletClient, ACCOUNT_B);
 
-    await act(async () => firstAddresses.resolve([ACCOUNT_A]));
+    await act(async () => firstChainId.resolve(sepolia.id));
     expectConnection(sharedPublicClient, nextWalletClient, ACCOUNT_B);
   });
 
   it('stays disconnected when clients disappear during an in-flight connection', async () => {
-    const addresses = deferred<`0x${string}`[]>();
-    const firstWalletClient = walletClient(sepolia.id, addresses.promise);
+    const chainId = deferred<number>();
+    const firstPublicClient = publicClient(chainId.promise);
 
-    await render(publicClient(sepolia.id), firstWalletClient);
-    expect(firstWalletClient.getAddresses).toHaveBeenCalledOnce();
+    await render(firstPublicClient, walletClient(sepolia.id, ACCOUNT_A));
+    expect(firstPublicClient.getChainId).toHaveBeenCalledOnce();
     expect(client.connecting).toBe(true);
 
     await render();
     expectDisconnected();
 
-    await act(async () => addresses.resolve([ACCOUNT_A]));
+    await act(async () => chainId.resolve(sepolia.id));
     expectDisconnected();
   });
 
   it('stays disconnected after switching to an unsupported chain while connecting', async () => {
-    const addresses = deferred<`0x${string}`[]>();
-    const firstWalletClient = walletClient(sepolia.id, addresses.promise);
+    const chainId = deferred<number>();
+    const firstPublicClient = publicClient(chainId.promise);
 
-    await render(publicClient(sepolia.id), firstWalletClient);
-    expect(firstWalletClient.getAddresses).toHaveBeenCalledOnce();
+    await render(firstPublicClient, walletClient(sepolia.id, ACCOUNT_A));
+    expect(firstPublicClient.getChainId).toHaveBeenCalledOnce();
     expect(client.connecting).toBe(true);
 
-    const unsupportedWalletClient = walletClient(999, Promise.resolve([ACCOUNT_B]));
-    await render(publicClient(999), unsupportedWalletClient);
-    expect(unsupportedWalletClient.getAddresses).not.toHaveBeenCalled();
+    const unsupportedPublicClient = publicClient(999);
+    await render(unsupportedPublicClient, walletClient(999, ACCOUNT_B));
+    expect(unsupportedPublicClient.getChainId).not.toHaveBeenCalled();
     expectDisconnected();
 
-    await act(async () => addresses.resolve([ACCOUNT_A]));
+    await act(async () => chainId.resolve(sepolia.id));
     expectDisconnected();
   });
 
   it('does not let a late failure from the older attempt clear a newer connection', async () => {
-    const firstAddresses = deferred<`0x${string}`[]>();
-    const firstWalletClient = walletClient(sepolia.id, firstAddresses.promise);
+    const firstChainId = deferred<number>();
+    const firstPublicClient = publicClient(firstChainId.promise);
 
-    await render(publicClient(sepolia.id), firstWalletClient);
-    expect(firstWalletClient.getAddresses).toHaveBeenCalledOnce();
+    await render(firstPublicClient, walletClient(sepolia.id, ACCOUNT_A));
+    expect(firstPublicClient.getChainId).toHaveBeenCalledOnce();
     expect(client.connecting).toBe(true);
 
     const nextPublicClient = publicClient(baseSepolia.id);
-    const nextWalletClient = walletClient(baseSepolia.id, Promise.resolve([ACCOUNT_B]));
+    const nextWalletClient = walletClient(baseSepolia.id, ACCOUNT_B);
     await render(nextPublicClient, nextWalletClient);
     expectConnection(nextPublicClient, nextWalletClient, ACCOUNT_B);
 
-    await act(async () => firstAddresses.reject(new Error('Old wallet disconnected')));
+    await act(async () => firstChainId.reject(new Error('Old wallet disconnected')));
     expectConnection(nextPublicClient, nextWalletClient, ACCOUNT_B);
   });
 });

@@ -83,7 +83,7 @@ Add a changeset only when a published package changes. Changes to docs, `@cofhe/
 
 ## Internal APIs
 
-Some exports are used internally and are not a supported API. They are marked `@internal` in their JSDoc, are not documented on the docs site, and may change in any release without a major version bump. Do not build on them, and do not open PRs that extend them; they are not a supported API. The SDK's debug request interceptors (`setCofheDebugInterceptors`, `getCofheDebugInterceptors`, `cofheFetch`) are the current example.
+Some exports are used internally and are not a supported API. They are marked `@internal` in their JSDoc, are not documented on the docs site, and may change in any release without a major version bump. Do not build on them, and do not open PRs that extend them; they are not a supported API. The SDK's debug request interceptors (`setCofheDebugInterceptors`, `getCofheDebugInterceptors`, `cofheFetch`) and the React `CofheEncryptInput` demo component are the current examples.
 
 ## Notes
 
