@@ -5,6 +5,10 @@ export enum CofheErrorCode {
   InitViemFailed = 'INIT_VIEM_FAILED',
   InitEthersFailed = 'INIT_ETHERS_FAILED',
   NotConnected = 'NOT_CONNECTED',
+  /** @deprecated No longer thrown: the builders do not use the connected public client. */
+  MissingPublicClient = 'MISSING_PUBLIC_CLIENT',
+  /** @deprecated No longer thrown: the builders do not use the connected wallet client. */
+  MissingWalletClient = 'MISSING_WALLET_CLIENT',
   MissingMocksRequestFn = 'MISSING_MOCKS_REQUEST_FN',
   MissingProviderParam = 'MISSING_PROVIDER_PARAM',
   EmptySecurityZonesParam = 'EMPTY_SECURITY_ZONES_PARAM',

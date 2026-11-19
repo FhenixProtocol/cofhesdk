@@ -22,13 +22,13 @@ describe('CoFHE SDK Client Integration', () => {
       supportedChains: [hardhat],
     };
 
-    // Create the cofhe config (this will inject the zkv wallet client)
+    // Create the cofhe config (this will inject the mocks request function)
     const config = await hre.cofhe.createConfig(inputConfig);
 
     expect(config).to.not.be.undefined;
     expect(config.supportedChains).to.deep.equal([hardhat]);
     expect(config.environment).to.equal('hardhat');
-    expect(config._internal?.zkvWalletClient).to.not.be.undefined;
+    expect(config._internal?.mocksRequestFn).to.not.be.undefined;
 
     // Create the cofhe client from the config
     const client = hre.cofhe.createClient(config);
@@ -55,7 +55,7 @@ describe('CoFHE SDK Client Integration', () => {
     expect(config.environment).to.equal('hardhat');
     expect(config.defaultACPExpiration).to.equal(3600);
     expect(config.mocks.decryptDelay).to.equal(100);
-    expect(config._internal?.zkvWalletClient).to.not.be.undefined;
+    expect(config._internal?.mocksRequestFn).to.not.be.undefined;
 
     // Create the cofhe client from the config
     const client = hre.cofhe.createClient(config);

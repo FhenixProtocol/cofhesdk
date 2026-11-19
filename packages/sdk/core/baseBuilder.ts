@@ -1,6 +1,6 @@
-import { type EIP1193RequestFn, type PublicClient, type PublicRpcSchema, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { CofheError, CofheErrorCode } from './error.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 /**
  * Base parameters that all builders need
@@ -11,7 +11,7 @@ export type BaseBuilderParams = {
   chainId: number | undefined;
   account: string | undefined;
 
-  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema> | undefined; // Required only for mocks
+  _mocksRequestFn: MocksRequestFn | undefined; // Required only for mocks
 };
 
 /**
@@ -24,7 +24,7 @@ export abstract class BaseBuilder {
   protected chainId: number | undefined;
   protected account: string | undefined;
 
-  protected _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema> | undefined;
+  protected _mocksRequestFn: MocksRequestFn | undefined;
 
   constructor(params: BaseBuilderParams) {
     // Check that config is provided
@@ -82,12 +82,12 @@ export abstract class BaseBuilder {
    * Asserts that this._mocksRequestFn is populated
    * @throws {CofheError} If _mocksRequestFn is not set
    */
-  protected assertMocksRequestFn(): asserts this is this & { _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema> } {
+  protected assertMocksRequestFn(): asserts this is this & { _mocksRequestFn: MocksRequestFn } {
     if (this._mocksRequestFn) return;
     throw new CofheError({
       code: CofheErrorCode.MissingMocksRequestFn,
       message: 'Mocks request function is not set',
-      hint: 'Ensure the client is initialized correctly in the hardhat environment.',
+      hint: 'Ensure client.connect() has been called and awaited before using the mocks chain.',
       context: {
         _mocksRequestFn: this._mocksRequestFn,
       },

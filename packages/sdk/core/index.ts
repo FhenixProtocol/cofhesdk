@@ -14,6 +14,7 @@ export type {
 // Configuration (base implementations)
 export { createCofheConfigBase, getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
 export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
+export type { MocksRequestFn } from './mockClients.js';
 
 // Types
 export type {

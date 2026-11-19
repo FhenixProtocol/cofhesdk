@@ -9,13 +9,13 @@ import {
   MAX_UINT160,
 } from './zkPackProveVerify.js';
 import { toBigIntOrThrow, validateBigIntInRange } from '../utils.js';
-import { encodePacked, keccak256, type EIP1193RequestFn, type PublicClient, type PublicRpcSchema, type WalletClient } from 'viem';
+import { encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { sign } from 'viem/accounts';
 import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS, TFHE_RS_ZK_MAX_BITS } from '../consts.js';
-import { createMocksPublicClient, createMocksWalletClient } from 'core/mockClients.js';
+import { createMocksPublicClient, createMocksWalletClient, type MocksRequestFn } from '../mockClients.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
@@ -258,7 +258,7 @@ export async function cofheMocksZkVerifySign(
   account: string,
   securityZone: number,
   consumingContract: string,
-  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema>
+  _mocksRequestFn: MocksRequestFn
 ): Promise<VerifyBatchResult> {
   const mocksPublicClient = createMocksPublicClient(_mocksRequestFn);
   const mocksWalletClient = createMocksWalletClient(_mocksRequestFn, MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);

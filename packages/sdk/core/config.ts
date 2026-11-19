@@ -1,9 +1,9 @@
 import { type CofheChain } from '@/chains';
 
 import { z } from 'zod';
-import { type EIP1193RequestFn, type PublicRpcSchema, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { type IStorage, type TfheThreadsSetting } from './types.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 export type CofheEnvironment = 'node' | 'hardhat' | 'web' | 'react';
 
@@ -101,7 +101,7 @@ export type CofheConfig = {
 };
 
 export type CofheInternalConfig = {
-  mocksRequestFn?: EIP1193RequestFn<PublicRpcSchema>;
+  mocksRequestFn?: MocksRequestFn;
 };
 
 /**

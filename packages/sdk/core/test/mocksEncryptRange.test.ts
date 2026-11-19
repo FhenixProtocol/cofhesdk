@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { type PublicClient, type WalletClient } from 'viem';
+import { decodeFunctionData, encodeFunctionResult } from 'viem';
 import { hardhat } from 'viem/chains';
 import { EncryptInputsBuilder } from '../encrypt/encryptInputsBuilder.js';
 import { Encryptable, FheTypes, type EncryptableItem } from '../types.js';
 import { createCofheConfigBase } from '../config.js';
 import { zkPack, type ZkCiphertextListBuilder } from '../encrypt/zkPackProveVerify.js';
+import { MockZkVerifierAbi } from '../encrypt/MockZkVerifierAbi.js';
+import { fakeMocksNode } from './fakeMocksNode.js';
 
 // The hardhat (mocks) encrypt path must reject the same out-of-range plaintexts that the
 // production path rejects in zkPack. Otherwise MockCoFHE._set masks the value with the utype
@@ -13,34 +15,35 @@ import { zkPack, type ZkCiphertextListBuilder } from '../encrypt/zkPackProveVeri
 const account = '0x1234567890123456789012345678901234567890';
 const consumingContract = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
 
-const fakeClients = () => {
-  const readContract = vi.fn(async ({ args }: any) => (args[0] as bigint[]).map((_, i) => BigInt(i + 1)));
-  const writeContract = vi.fn(async () => '0x' as `0x${string}`);
-  const publicClient = { readContract } as unknown as PublicClient;
-  const walletClient = { account: { address: account }, writeContract } as unknown as WalletClient;
-  return { publicClient, walletClient, readContract, writeContract };
-};
+// Answers zkVerifyCalcCtHashesPacked with one ctHash per value it was asked about
+const fakeNode = () =>
+  fakeMocksNode((data) => {
+    const { args } = decodeFunctionData({ abi: MockZkVerifierAbi, data });
+    const values = args![0] as bigint[];
+    return encodeFunctionResult({
+      abi: MockZkVerifierAbi,
+      functionName: 'zkVerifyCalcCtHashesPacked',
+      result: values.map((_, i) => BigInt(i + 1)),
+    });
+  });
 
 const mocksBuilder = (inputs: EncryptableItem[]) => {
-  const { publicClient, walletClient, readContract, writeContract } = fakeClients();
+  const node = fakeNode();
   const builder = new EncryptInputsBuilder({
     inputs: inputs as any,
     account,
     chainId: hardhat.id,
     config: createCofheConfigBase({ supportedChains: [], mocks: { encryptDelay: 0 } }),
-    publicClient,
-    walletClient,
-    zkvWalletClient: walletClient,
     tfhePublicKeyDeserializer: vi.fn(),
     compactPkeCrsDeserializer: vi.fn(),
     zkBuilderAndCrsGenerator: vi.fn() as any,
     initTfhe: undefined,
     zkProveWorkerFn: undefined,
     keysStorage: undefined,
-    requireConnected: vi.fn(),
+    _mocksRequestFn: node.request,
   });
   builder.setConsumingContract(consumingContract);
-  return { builder, readContract, writeContract };
+  return { builder, node };
 };
 
 const noop = () => undefined;
@@ -70,10 +73,9 @@ describe('mocks encrypt path value range parity', () => {
   });
 
   it.each(outOfRange)('hardhat mocks encrypt rejects %s before touching the chain', async (_, item) => {
-    const { builder, readContract, writeContract } = mocksBuilder([item]);
+    const { builder, node } = mocksBuilder([item]);
     await expect(builder.execute()).rejects.toThrow(/out of range/);
-    expect(readContract).not.toHaveBeenCalled();
-    expect(writeContract).not.toHaveBeenCalled();
+    expect(node.request).not.toHaveBeenCalled();
   });
 
   it('production zkPack rejects an empty batch', () => {
@@ -81,14 +83,13 @@ describe('mocks encrypt path value range parity', () => {
   });
 
   it('hardhat mocks encrypt rejects an empty batch before touching the chain', async () => {
-    const { builder, readContract, writeContract } = mocksBuilder([]);
+    const { builder, node } = mocksBuilder([]);
     await expect(builder.execute()).rejects.toThrow(/No items to encrypt/);
-    expect(readContract).not.toHaveBeenCalled();
-    expect(writeContract).not.toHaveBeenCalled();
+    expect(node.request).not.toHaveBeenCalled();
   });
 
   it('hardhat mocks encrypt still accepts the max value of each type', async () => {
-    const { builder, writeContract } = mocksBuilder([
+    const { builder, node } = mocksBuilder([
       Encryptable.uint8(255n),
       Encryptable.uint16(65535n),
       Encryptable.uint32(2n ** 32n - 1n),
@@ -96,6 +97,6 @@ describe('mocks encrypt path value range parity', () => {
       Encryptable.bool(true),
     ]);
     await expect(builder.execute()).resolves.toBeDefined();
-    expect(writeContract).toHaveBeenCalledTimes(1);
+    expect(node.sent()).toBe(1);
   });
 });

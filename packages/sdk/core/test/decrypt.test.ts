@@ -76,25 +76,21 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
   function txBuilder(ctHash: `0x${string}`) {
     return new DecryptForTxBuilder({
       config,
-      publicClient,
-      walletClient,
       chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
-      requireConnected: undefined,
+      _mocksRequestFn: undefined,
     });
   }
 
   function viewBuilder(ctHash: `0x${string}`, utype: FheTypes) {
     return new DecryptForViewBuilder({
       config,
-      publicClient,
-      walletClient,
       chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       utype,
-      requireConnected: undefined,
+      _mocksRequestFn: undefined,
     });
   }
 

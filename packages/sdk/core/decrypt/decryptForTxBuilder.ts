@@ -8,7 +8,7 @@ import { CofheError, CofheErrorCode } from '../error';
 import { acps } from '../acps';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
-import { getPublicClientChainID, sleep } from '../utils';
+import { sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 

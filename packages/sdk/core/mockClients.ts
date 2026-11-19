@@ -9,14 +9,20 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat } from 'viem/chains';
 
-export const createMocksPublicClient = (requestFn: EIP1193RequestFn<PublicRpcSchema>) => {
+/**
+ * The request function the SDK reaches the mock contracts through on a mocks chain: it reads from
+ * them, and sends the zk verifier signer's transactions.
+ */
+export type MocksRequestFn = EIP1193RequestFn<PublicRpcSchema>;
+
+export const createMocksPublicClient = (requestFn: MocksRequestFn) => {
   return createPublicClient({
     chain: hardhat,
     transport: custom({ request: requestFn }),
   });
 };
 
-export const createMocksWalletClient = (requestFn: EIP1193RequestFn<PublicRpcSchema>, privateKey: Hex) => {
+export const createMocksWalletClient = (requestFn: MocksRequestFn, privateKey: Hex) => {
   return createWalletClient({
     chain: hardhat,
     transport: custom({ request: requestFn }),

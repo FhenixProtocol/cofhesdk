@@ -1,6 +1,6 @@
 import { type ACP, ACPUtils } from '@/acps';
 
-import { encodePacked, keccak256, type EIP1193RequestFn, type PublicRpcSchema } from 'viem';
+import { encodePacked, keccak256 } from 'viem';
 import { sign } from 'viem/accounts';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
@@ -8,7 +8,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
-import { createMocksPublicClient } from 'core/mockClients.js';
+import { createMocksPublicClient, type MocksRequestFn } from '../mockClients.js';
 import { hardhat } from 'viem/chains';
 
 const UINT_TYPE_MASK = 0x7fn;
@@ -26,7 +26,7 @@ export async function cofheMocksDecryptForTx(
   ctHash: bigint | string,
   utype: FheTypes,
   acp: ACP | null,
-  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema>
+  _mocksRequestFn: MocksRequestFn
 ): Promise<DecryptForTxMocksResult> {
   let allowed: boolean;
   let error: string;

@@ -9,7 +9,6 @@ import { inject } from 'vitest';
 import { createPublicClient, createWalletClient, defineChain, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
-import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '@cofhe/sdk';
 import type { ClientFactory, TestContext, TestChainConfig } from '../types.js';
 
 const ANVIL_PORT = 8546;
@@ -53,12 +52,6 @@ async function setupHardhat(factory: ClientFactory): Promise<TestContext> {
     account: aliceAccount,
   });
 
-  const zkvAccount = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
-  const zkvWalletClient = createWalletClient({
-    account: zkvAccount,
-    transport: http(ANVIL_RPC),
-  });
-
   // ACP: created acps are revocable by default via the deployed timestamp validator
   const acpValidator = inject('anvilAcpValidator') as `0x${string}` | undefined;
   const acpShareRegistry = inject('anvilAcpShareRegistry') as `0x${string}` | undefined;
@@ -71,7 +64,7 @@ async function setupHardhat(factory: ClientFactory): Promise<TestContext> {
       ...(acpValidator ? { defaultRevoker: { 31337: acpValidator } } : {}),
       ...(acpShareRegistry ? { sharingRegistry: { 31337: acpShareRegistry } } : {}),
     },
-    _internal: { zkvWalletClient },
+    _internal: { mocksRequestFn: publicClient.request },
   });
   const cofheClient = factory.createClient(config);
   await cofheClient.connect(publicClient, bobWalletClient);

@@ -21,7 +21,7 @@ import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheM
 import { hardhat } from 'viem/chains';
 import { fetchKeys, type FheKeyDeserializer } from '../fetchKeys.js';
 import { getZkVerifierUrlOrThrow } from '../config.js';
-import { type WalletClient, isAddress } from 'viem';
+import { isAddress } from 'viem';
 import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { type KeysStorage } from '../keyStore.js';

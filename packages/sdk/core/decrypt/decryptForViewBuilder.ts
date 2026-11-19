@@ -55,11 +55,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
       config: params.config,
-      publicClient: params.publicClient,
-      walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
-      requireConnected: params.requireConnected,
+      _mocksRequestFn: params._mocksRequestFn,
     });
 
     this.ctHash = params.ctHash;

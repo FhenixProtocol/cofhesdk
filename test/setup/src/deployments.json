@@ -1,9 +1,9 @@
 {
   "SimpleTest": {
     "84532": {
-      "address": "0xAC6E575947B0334A8C5B2a599343bA5fB7Bd803e",
-      "bytecodeHash": "0x98fa186539ac826ff47bd66a687f76d344482e55a1b6aa6ab7c03d7857c028e8",
-      "deployedAt": "2026-08-21T11:09:02.927Z"
+      "address": "0x57B46cE6ca92F5285130304Fd2Ed504CA19a84CD",
+      "bytecodeHash": "0xac1889565afa2bb5bf1def2ab457fd411cff478c82108ea5a1e99477ea8247fc",
+      "deployedAt": "2026-11-19T12:17:27.066Z"
     },
     "420105": {
       "address": "0xF5c43eF3d79caf5680584d9087f95d81E75E2ddF",
@@ -11,19 +11,19 @@
       "deployedAt": "2026-07-26T19:52:54.505Z"
     },
     "421614": {
-      "address": "0x196190b1578B8473868f7B374613126f001514EC",
-      "bytecodeHash": "0x98fa186539ac826ff47bd66a687f76d344482e55a1b6aa6ab7c03d7857c028e8",
-      "deployedAt": "2026-08-21T11:09:06.426Z"
+      "address": "0x724c5836C9531A65C13AF2bd61D7C11CDa6FE125",
+      "bytecodeHash": "0xac1889565afa2bb5bf1def2ab457fd411cff478c82108ea5a1e99477ea8247fc",
+      "deployedAt": "2026-11-19T12:17:30.674Z"
     },
     "11155111": {
-      "address": "0x513112ABD5672189EA798E59201B587660B0EbE3",
-      "bytecodeHash": "0x98fa186539ac826ff47bd66a687f76d344482e55a1b6aa6ab7c03d7857c028e8",
-      "deployedAt": "2026-08-21T11:09:01.374Z"
+      "address": "0xB13d65794e45D1d144eab5AB5B8CD23398f20030",
+      "bytecodeHash": "0xac1889565afa2bb5bf1def2ab457fd411cff478c82108ea5a1e99477ea8247fc",
+      "deployedAt": "2026-11-19T12:17:25.416Z"
     },
     "420105-staging": {
-      "address": "0xDa1949a96Ad6BaC6A7705a048859bC45b6EbFe93",
-      "bytecodeHash": "0x98fa186539ac826ff47bd66a687f76d344482e55a1b6aa6ab7c03d7857c028e8",
-      "deployedAt": "2026-08-21T11:09:11.108Z"
+      "address": "0xa0209fCc0D9F38cb0707aF48E1D0Ef7f6cE67672",
+      "bytecodeHash": "0xac1889565afa2bb5bf1def2ab457fd411cff478c82108ea5a1e99477ea8247fc",
+      "deployedAt": "2026-11-19T12:17:37.236Z"
     }
   }
 }

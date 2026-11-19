@@ -1,18 +1,17 @@
 import { type ACP, ACPUtils } from '@/acps';
 
-import { type EIP1193RequestFn, type PublicRpcSchema } from 'viem';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
-import { createMocksPublicClient } from 'core/mockClients.js';
+import { createMocksPublicClient, type MocksRequestFn } from '../mockClients.js';
 
 export async function cofheMocksDecryptForView(
   ctHash: bigint | string,
   utype: FheTypes,
   acp: ACP,
-  _mocksRequestFn: EIP1193RequestFn<PublicRpcSchema>
+  _mocksRequestFn: MocksRequestFn
 ): Promise<bigint> {
   const wireAcp = ACPUtils.getPublic(acp, true);
   const permissionWithBigInts = {

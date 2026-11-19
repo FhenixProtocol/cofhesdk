@@ -20,6 +20,7 @@ import type {
 } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
 import type { CofheConfig } from './config.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 export const InitialConnectStore: CofheClientConnectionState = {
   connected: false,
@@ -76,15 +77,6 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     return registry;
   };
 
-  // Notes Nov 18
-  // Require connected is sync (the only sync function that uses is it verifyDecryptResult)
-  // Require connected being sync requires state.account & state.chainId to be cached (async walletClient.getAddresses() / async publicClient.getChainId())
-  // The caching requires connect to be async to run the async viem getters
-
-  // ALEXEY TODO
-  // Make requireConnected async + return values
-  // Remove requireConnected from builder params?
-
   /** Throws `NotConnected` unless connected; returns the connection with every field set. */
   const _requireConnected = () => {
     const state = connectStore.getState();
@@ -128,8 +120,6 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     // Check the account, then fetch chainId
     try {
-      // TODO: Trust this chainId and account to be correct and current -> cache them (already done)
-      // TODO: Don't refetch chainId and account UNLESS the user provides an alternate publicClient / walletClient to a builder
       const walletClientWithAccount = requireWalletClientAccount(walletClient);
       const account = walletClientWithAccount.account.address;
       const chainId = await getPublicClientChainID(publicClient);
@@ -165,6 +155,13 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // CLIENT OPERATIONS
 
+  /**
+   * The request function the builders reach the mock contracts through. Only used on a mocks chain.
+   * Falls back to the connected node, so a client connected to a local mocks chain needs no extra config.
+   */
+  const getMocksRequestFn = (): MocksRequestFn | undefined =>
+    opts.config._internal?.mocksRequestFn ?? connectStore.getState().publicClient?.request;
+
   function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]> {
     const state = connectStore.getState();
 
@@ -184,7 +181,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
       keysStorage,
 
-      _mocksRequestFn: opts.config._internal?.mocksRequestFn,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 
@@ -199,7 +196,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
       config: opts.config,
 
-      _mocksRequestFn: opts.config._internal?.mocksRequestFn,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 
@@ -213,7 +210,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
       config: opts.config,
 
-      _mocksRequestFn: opts.config._internal?.mocksRequestFn,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 
