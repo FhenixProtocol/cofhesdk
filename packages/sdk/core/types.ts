@@ -399,8 +399,14 @@ export type HashPlusProofResult<T extends EncryptableItem[]> = [...ExternalItemH
 
 export type DecryptEndpoint = 'decrypt' | 'sealoutput';
 
+/**
+ * Passed to `.onPoll(...)` before each retry of a decrypt request: while the network answers that
+ * the result is not ready yet, or that access is denied inside the window set by
+ * `.setAccessDeniedRetryTimeout(...)`.
+ */
 export type DecryptPollCallbackContext = {
   operation: DecryptEndpoint;
+  /** @deprecated Always an empty string. The network answers in the request's own response, so there is no request to follow. */
   requestId: string;
   attemptIndex: number;
   elapsedMs: number;

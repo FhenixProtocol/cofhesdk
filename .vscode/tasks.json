@@ -1,13 +1,5 @@
 {
   "version": "2.0.0",
-  "inputs": [
-    {
-      "id": "integrationTestSubstring",
-      "type": "promptString",
-      "description": "Substring to search in integration test titles (runs first match)",
-      "default": "decrypt"
-    }
-  ],
   "tasks": [
     {
       "label": "dev:packages/react",
@@ -80,75 +72,6 @@
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []
-    },
-    {
-      "label": "test:integration:list",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "-lc",
-        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
-        "task-shell",
-        "node scripts/integration-tests.mjs --list"
-      ],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "test:integration:pick-and-run",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "-lc",
-        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
-        "task-shell",
-        "node scripts/integration-tests.mjs --pick"
-      ],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "test:integration:run-first-match",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "-lc",
-        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
-        "task-shell",
-        "node scripts/integration-tests.mjs --substring \"${input:integrationTestSubstring}\""
-      ],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "test:integration:all",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "-lc",
-        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
-        "task-shell",
-        "pnpm test:integration"
-      ],
-      "problemMatcher": [],
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
     }
   ]
 }

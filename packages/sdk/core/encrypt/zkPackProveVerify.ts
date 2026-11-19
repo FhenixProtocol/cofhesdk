@@ -1,5 +1,5 @@
 import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
-import { CofheError, CofheErrorCode } from '../error';
+import { CofheError, CofheErrorCode, isCofheError } from '../error';
 import { type EncryptableItem, FheTypes, type TfheThreadsSetting } from '../types';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
@@ -105,6 +105,15 @@ export const MAX_UINT160: bigint = 146150163733090291820368483271628301965593254
 // ===== CORE FUNCTIONS =====
 
 export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilder): ZkCiphertextListBuilder => {
+  // The verifier rejects a batch with zero ciphertexts (400), so fail before proving it
+  if (items.length === 0) {
+    throw new CofheError({
+      code: CofheErrorCode.ZkPackFailed,
+      message: 'No items to encrypt',
+      hint: 'Pass at least one Encryptable to encryptInputs',
+    });
+  }
+
   let totalBits = 0;
   for (const item of items) {
     switch (item.utype) {
@@ -319,6 +328,7 @@ export const zkVerifyBatch = async (
       throw new CofheError({
         code: CofheErrorCode.ZkVerifyFailed,
         message: `HTTP error! ZK batch proof verification failed - ${errorBody}`,
+        httpStatus: response.status,
       });
     }
 
@@ -342,6 +352,8 @@ export const zkVerifyBatch = async (
       code: CofheErrorCode.ZkVerifyFailed,
       message: `ZK batch proof verification failed`,
       cause: e instanceof Error ? e : undefined,
+      // Kept from the HTTP error above, so the status is on the error the caller sees.
+      httpStatus: isCofheError(e) ? e.httpStatus : undefined,
     });
   }
 };
