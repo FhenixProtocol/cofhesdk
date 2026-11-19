@@ -154,6 +154,15 @@ describe('Core ACPs Tests', () => {
   });
 
   describe('checkAccess on the issuer copy of a share', () => {
+    const nowSec = () => Math.floor(Date.now() / 1000);
+    // Only the latest block is read: no revoker is configured, so nothing on chain can disable the share.
+    const chainAt = (timestamp: number) =>
+      ({ getBlock: async () => ({ timestamp: BigInt(timestamp) }) }) as unknown as PublicClient;
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('is valid while unexpired and not revoked, without needing the recipient signature', async () => {
       const sharing = await acps.createSharing(
         { name: 'To Alice', issuer: bobAddress, recipient: aliceAddress },
@@ -161,17 +170,38 @@ describe('Core ACPs Tests', () => {
         bobWalletClient
       );
       expect(sharing.recipientSignature).toBe('0x');
-      // No revoker configured here, so nothing on chain can disable it: valid without any RPC.
-      expect(await acps.checkAccess(sharing, publicClient)).toBe('valid');
+      expect(await acps.checkAccess(sharing, chainAt(nowSec()))).toBe('valid');
     });
 
-    it('reports expiry locally', async () => {
+    it('reports expiry', async () => {
       const sharing = await acps.createSharing(
         { name: 'Old', issuer: bobAddress, recipient: aliceAddress, expiration: 1 },
         publicClient,
         bobWalletClient
       );
-      expect(await acps.checkAccess(sharing, publicClient)).toBe('expired');
+      expect(await acps.checkAccess(sharing, chainAt(nowSec()))).toBe('expired');
+    });
+
+    it('reports expiry at the latest block though not by the local clock', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'To Alice', issuer: bobAddress, recipient: aliceAddress, expiration: nowSec() + 3600 },
+        publicClient,
+        bobWalletClient
+      );
+      // A chain clock 2 hours ahead of the local one, as in a Hardhat test after `time.increase`.
+      expect(await acps.checkAccess(sharing, chainAt(nowSec() + 7200))).toBe('expired');
+    });
+
+    it('stays valid at the latest block though expired by the local clock', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'To Alice', issuer: bobAddress, recipient: aliceAddress, expiration: nowSec() + 3600 },
+        publicClient,
+        bobWalletClient
+      );
+      const chainNow = nowSec();
+      // A local clock 2 hours ahead of the chain.
+      vi.useFakeTimers({ now: (chainNow + 7200) * 1000, toFake: ['Date'] });
+      expect(await acps.checkAccess(sharing, chainAt(chainNow))).toBe('valid');
     });
   });
 
