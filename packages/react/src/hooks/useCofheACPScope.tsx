@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { Address } from 'viem';
 import { ACPScope, ACPUtils, type ACP, type ACPAccessStatus } from '@cofhe/sdk/acps';
 import { useCofheContext, useInternalQuery } from '@/providers';
-import { useCofheACP, useCofheActiveACP } from './useCofheACPs';
+import { useCofheACP, useCofheActiveACP, useRerenderAtExpiry } from './useCofheACPs';
 import { useCofheConnection } from './useCofheConnection';
 
 /** An ACP, or the hash of an ACP stored for the connected account. */
@@ -49,23 +49,6 @@ const CofheACPScopeContext = createContext<CofheACPScopeValue | null>(null);
 function useResolvedACP(input: CofheACPInput | undefined, chainId?: number): ACP | undefined {
   const stored = useCofheACP(typeof input === 'string' ? input : '', chainId);
   return typeof input === 'string' ? stored : input;
-}
-
-/**
- * Re-render once `acp` has expired, so a validity computed at render catches the expiry while
- * the view stays mounted. Returns a counter to add to the memo dependencies.
- */
-function useRerenderAtExpiry(acp: ACP | undefined): number {
-  const [tick, bump] = useReducer((n: number) => n + 1, 0);
-  const expiration = acp?.expiration;
-  useEffect(() => {
-    if (expiration === undefined) return;
-    const ms = expiration * 1000 - Date.now() + 1000;
-    if (ms <= 0) return;
-    const id = setTimeout(bump, Math.min(ms, 2_147_483_647));
-    return () => clearTimeout(id);
-  }, [expiration]);
-  return tick;
 }
 
 /**
