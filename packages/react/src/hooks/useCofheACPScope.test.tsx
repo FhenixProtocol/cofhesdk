@@ -20,9 +20,7 @@ vi.mock('@/providers', () => ({
 vi.mock('./useCofheACPs', () => ({
   useCofheACP: () => undefined,
   useCofheActiveACP: () =>
-    mocks.activeACP
-      ? { acp: mocks.activeACP, isValid: true, hash: mocks.activeACP.hash }
-      : undefined,
+    mocks.activeACP ? { acp: mocks.activeACP, isValid: true, hash: mocks.activeACP.hash } : undefined,
 }));
 
 vi.mock('./useCofheConnection', () => ({
