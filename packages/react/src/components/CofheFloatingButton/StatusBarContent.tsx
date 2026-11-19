@@ -146,6 +146,10 @@ const STATUSES_ORDER = new Map<string, number>(
     .map((id, index) => [id, index])
 );
 
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export function sortCofheStatuses(
   a: Pick<CofheFloatingButtonInternalStatus, 'id'>,
   b: Pick<CofheFloatingButtonInternalStatus, 'id'>

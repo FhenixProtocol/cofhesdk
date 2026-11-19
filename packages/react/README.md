@@ -45,7 +45,7 @@ function App() {
 }
 ```
 
-If you do want the styled React UI components, import them from `@cofhe/react/ui`:
+The styled UI components in `@cofhe/react/ui` are internal: demo components for now, not a supported API. They may change in any release. To try them:
 
 ```tsx
 import { CofheProvider } from '@cofhe/react';
