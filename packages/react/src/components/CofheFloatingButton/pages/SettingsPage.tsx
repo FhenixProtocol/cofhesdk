@@ -3,6 +3,10 @@ import { useSettingsStore, ShieldPageVariant, SHIELD_PAGE_VARIANT_LABELS } from 
 import { usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer.js';
 
+/**
+ * @internal Demo component for now, used internally; not a supported API. Undocumented and may change in any
+ * release.
+ */
 export const SettingsPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
   const { shieldPageVariant, setShieldPageVariant } = useSettingsStore();

@@ -4,7 +4,10 @@ import { usePortalStatuses } from '@/stores/portalStatuses';
 import { useMemo } from 'react';
 
 /**
- * Returns the public consumer-facing status list.
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ *
+ * Returns the floating button's status list.
  *
  * Only statuses with the public intent-based action shape are exposed here.
  * Internal callback-action statuses remain widget-only and are filtered out.
