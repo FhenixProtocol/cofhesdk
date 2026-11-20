@@ -44,7 +44,6 @@ import {
   type Hex,
   type PublicClient,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import { acpStore } from '@cofhe/sdk/acps';
 import { createCofheClient } from '@cofhe/sdk/web';
@@ -62,12 +61,12 @@ import {
   useInvalidationContextStore,
   type CofheWriteInvalidates,
 } from '@cofhe/react';
+import { freshAccount, deploySimpleTest } from './fixtures';
 
 const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
-// Anvil default account #3 — #0/#1 belong to the matrix suites and #2 to the singular
-// react-hooks file; a dedicated account avoids nonce races when the files run in one session.
-const TEST_ACCOUNT = privateKeyToAccount('0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6');
+// An account of this file's own.
+const TEST_ACCOUNT = await freshAccount();
 
 const anvilChain: Chain = defineChain({
   id: CHAIN_ID,
@@ -395,7 +394,7 @@ function CrossChainWriteApp({
 // Provided only when the Hardhat (Anvil) chain is selected — on testnet-only runs
 // (e.g. the sepolia CI legs) globalSetup boots no Anvil and the suite skips itself.
 const KEY_VALUE_STORE_ADDRESS = inject('anvilSimpleKeyValueStore') as Address;
-const SIMPLE_TEST_ADDRESS = inject('anvilSimpleTest') as Address;
+const SIMPLE_TEST_ADDRESS = await deploySimpleTest(TEST_ACCOUNT);
 
 function setup() {
   const contractAddress = KEY_VALUE_STORE_ADDRESS;
