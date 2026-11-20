@@ -890,8 +890,12 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(acp.revokerContract).not.toBe('0x0000000000000000000000000000000000000000');
     expect(acp.revokerData).toBeGreaterThan(0); // creation timestamp
 
-    // 3. decrypt with it
-    const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    // 3. decrypt with it. The handle is one receipt old, and the network can still be a block
+    // behind and answer acp_denied for it, so let the SDK keep asking for up to 10 seconds.
+    const value = await ctx.cofheClient
+      .decryptForView(ctHash, FheTypes.Uint32)
+      .setAccessDeniedRetryTimeout(10_000)
+      .execute();
     expect(value).toBe(BigInt(testValue));
     await expectEventually(false, () => ctx.cofheClient.acp.isACPRevoked(acp));
 
