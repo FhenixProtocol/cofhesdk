@@ -6,6 +6,7 @@
  */
 
 import { spawn, execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { createPublicClient, createWalletClient, http } from 'viem';
@@ -24,10 +25,10 @@ export type AnvilDeployment = {
   anvilRpc: string;
   anvilSimpleTest: string;
   /**
-   * A second SimpleTest. Its value slot can be read only by the last writer, so a test that
-   * writes while other files write too needs one of its own.
+   * SimpleTest's creation bytecode. Only the last writer can read SimpleTest's value slot, so a
+   * test file that writes while other files run deploys one of its own from this.
    */
-  anvilSimpleTestPerChainDecrypt: string;
+  anvilSimpleTestBytecode: string;
   anvilSimpleStorage: string;
   anvilSimpleKeyValueStore: string;
   anvilSimpleErc20: string;
@@ -38,7 +39,7 @@ export type AnvilDeployment = {
 export const NO_ANVIL: AnvilDeployment = {
   anvilRpc: '',
   anvilSimpleTest: '',
-  anvilSimpleTestPerChainDecrypt: '',
+  anvilSimpleTestBytecode: '',
   anvilSimpleStorage: '',
   anvilSimpleKeyValueStore: '',
   anvilSimpleErc20: '',
@@ -74,11 +75,16 @@ async function waitForAnvil(url: string, timeoutMs = 15_000): Promise<void> {
   throw new Error(`Anvil did not start within ${timeoutMs}ms`);
 }
 
-/** `forge create` from the @cofhe/test-setup package, where the test contracts and foundry.toml are. */
-function deployTestContract(target: string, rpcUrl: string): string {
+/** The @cofhe/test-setup package, where the test contracts and foundry.toml are. */
+function testSetupDir(): string {
   // The package's main entry is dist/index.js. Its root is one level up.
   const require = createRequire(import.meta.url);
-  const setupDir = resolve(dirname(require.resolve('@cofhe/test-setup')), '..');
+  return resolve(dirname(require.resolve('@cofhe/test-setup')), '..');
+}
+
+/** `forge create` from the @cofhe/test-setup package. */
+function deployTestContract(target: string, rpcUrl: string): string {
+  const setupDir = testSetupDir();
 
   const result = execSync(
     `forge create ${target} ` +
@@ -92,6 +98,12 @@ function deployTestContract(target: string, rpcUrl: string): string {
   const addressMatch = result.match(/Deployed to:\s+(0x[0-9a-fA-F]+)/);
   if (!addressMatch) throw new Error(`Failed to parse deploy address for ${target}:\n${result}`);
   return addressMatch[1];
+}
+
+/** A test contract's creation bytecode, from the artifact forge wrote when it deployed the contract. */
+function readTestContractBytecode(name: string): string {
+  const artifact = JSON.parse(readFileSync(resolve(testSetupDir(), 'out', `${name}.sol`, `${name}.json`), 'utf8'));
+  return artifact.bytecode.object;
 }
 
 /**
@@ -149,7 +161,7 @@ export async function startAnvilWithMocks(logPrefix = '[anvil]', port: number = 
     anvilSimpleStorage: deploy('SimpleStorage', 'contracts/SimpleStorage.sol:SimpleStorage'),
     anvilSimpleKeyValueStore: deploy('SimpleKeyValueStore', 'contracts/SimpleKeyValueStore.sol:SimpleKeyValueStore'),
     anvilSimpleErc20: deploy('SimpleERC20', 'contracts/SimpleERC20.sol:SimpleERC20'),
-    anvilSimpleTestPerChainDecrypt: deploy('SimpleTest (second)', 'contracts/SimpleTest.sol:SimpleTest'),
+    anvilSimpleTestBytecode: readTestContractBytecode('SimpleTest'),
     anvilAcpValidator: deployedMocks.ACPTimestampRevoker,
     anvilAcpShareRegistry: deployedMocks.ACPShareRegistry,
   };

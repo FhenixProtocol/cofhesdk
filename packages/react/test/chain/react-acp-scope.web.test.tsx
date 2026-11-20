@@ -12,7 +12,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { createPublicClient, createWalletClient, custom, defineChain, type Address, type Chain } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import { acpStore } from '@cofhe/sdk/acps';
 import { createCofheClient } from '@cofhe/sdk/web';
@@ -26,12 +25,12 @@ import {
   useCofheReadContractAndDecrypt,
   type CofheACPInput,
 } from '@cofhe/react';
+import { freshAccount, deploySimpleTest } from './fixtures';
 
 const ANVIL_RPC = inject('anvilRpc');
-// Anvil default accounts #8 (Bob, the issuer) and #9 (Alice, the recipient) — dedicated, so this
-// file cannot race the other suites' nonces.
-const BOB = privateKeyToAccount('0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97');
-const ALICE = privateKeyToAccount('0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6');
+// Bob is the issuer, Alice the recipient. Both accounts and the contract belong to this file.
+const BOB = await freshAccount();
+const ALICE = await freshAccount();
 
 const chain: Chain = defineChain({
   id: 31337,
@@ -39,7 +38,7 @@ const chain: Chain = defineChain({
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: [ANVIL_RPC] } },
 });
-const SIMPLE_TEST = inject('anvilSimpleTest') as Address;
+const SIMPLE_TEST = await deploySimpleTest(BOB);
 
 /** A plain EIP-1193 transport over fetch. */
 function transport() {
