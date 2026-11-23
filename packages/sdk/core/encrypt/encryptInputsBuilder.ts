@@ -568,6 +568,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * Deserializes the FHE key and the CRS and packs the inputs, ready for a proof on this thread.
+   * Synchronous and heavy (the CRS alone is several megabytes): not to be called when a worker
+   * makes the proof, since the worker does the same from the hex strings.
+   */
+  private packOnThisThread(fheKey: string, crs: string) {
+    const { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
+    return { zkBuilder: zkPack(this.inputItems, zkBuilder), zkCrs };
+  }
+
+  /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
   private async productionExecute(): Promise<VerifyBatchResult> {
@@ -591,52 +601,52 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
 
-    // Deserializing the key and the CRS and packing the inputs is synchronous and heavy (the CRS
-    // alone is several megabytes), so it only runs on this thread when this thread also proves.
-    // A worker does all of it itself from the hex strings.
-    const packOnThisThread = () => {
-      const { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
-      return { zkBuilder: zkPack(this.inputItems, zkBuilder), zkCrs };
-    };
-    // The worker's prove function, when this encrypt is to use it.
-    const zkProveWorkerFn = this.useWorker ? this.zkProveWorkerFn : undefined;
+    // The proof is made in one of two places, and each needs a different preparation:
+    //  - In the worker (the default in a browser). The worker deserializes the key and the CRS,
+    //    packs the inputs and proves, all from the hex strings. This thread only checks the inputs.
+    //  - On this thread, when workers are off or unavailable, and as the fallback when the worker
+    //    fails. This thread then deserializes, packs and proves itself.
+    // Doing the second preparation when the worker proves would be wasted, and it is heavy enough
+    // to freeze the page, so it runs only when this thread is the one that proves.
+    const worker = this.useWorker ? this.zkProveWorkerFn : undefined;
 
     this.fireStepStart(EncryptStep.Pack);
 
-    // With a worker this step only checks the inputs: the worker packs as part of proving.
-    let packed: ReturnType<typeof packOnThisThread> | undefined;
-    if (zkProveWorkerFn) assertZkPackable(this.inputItems);
-    else packed = packOnThisThread();
+    let packedOnThisThread: ReturnType<typeof this.packOnThisThread> | undefined;
+    if (worker) {
+      // The worker packs. The checks that packing makes still run here, so a bad input fails
+      // before the worker is asked.
+      assertZkPackable(this.inputItems);
+    } else {
+      packedOnThisThread = this.packOnThisThread(fheKey, crs);
+    }
 
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: zkProveWorkerFn != null });
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: worker != null });
 
     this.fireStepStart(EncryptStep.Prove);
 
     // Construct metadata once (used by both worker and main thread paths)
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
-    let proof: Uint8Array | null = null;
+    let proof: Uint8Array | undefined;
     let usedWorker = false;
     let workerFailedError: string | undefined;
 
-    // Decision logic: try worker if enabled and available, fallback to main thread
-    if (zkProveWorkerFn) {
+    if (worker) {
       try {
-        // Call worker function directly (no packing needed, worker does it)
-        proof = await zkProveWithWorker(zkProveWorkerFn, fheKey, crs, this.inputItems, metadata);
+        proof = await zkProveWithWorker(worker, fheKey, crs, this.inputItems, metadata);
         usedWorker = true;
       } catch (error) {
-        // Worker failed - capture error for debugging
+        // Kept for the step event; the proof is then made on this thread.
         workerFailedError = error instanceof Error ? error.message : String(error);
       }
     }
 
     if (proof == null) {
-      // Use main thread directly (workers disabled, unavailable, or the worker failed)
-      packed ??= packOnThisThread();
+      // This thread proves. After a failed worker nothing has been packed here yet, so it packs now.
+      const { zkBuilder, zkCrs } = packedOnThisThread ?? this.packOnThisThread(fheKey, crs);
       await this.beforeMainThreadProve?.();
-      proof = await zkProve(packed.zkBuilder, packed.zkCrs, metadata);
-      usedWorker = false;
+      proof = await zkProve(zkBuilder, zkCrs, metadata);
     }
 
     this.fireStepEnd(EncryptStep.Prove, {
