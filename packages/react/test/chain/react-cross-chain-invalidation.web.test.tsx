@@ -22,7 +22,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, inject, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { createPublicClient, createWalletClient, custom, defineChain, type Address, type Chain, type Hash } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import {
   CofheProvider,
@@ -32,12 +31,13 @@ import {
   useInvalidationContextStore,
   type CofheWriteInvalidates,
 } from '@cofhe/react';
+import { freshAccount } from './fixtures';
 
 const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_A = 31337; // the connected chain (Anvil)
 const CHAIN_B = 31338; // "another chain": same Anvil, different id, never knows chain A's blocks
-// Anvil default account #6 — dedicated, so this file cannot race the other suites' nonces.
-const ACCOUNT = privateKeyToAccount('0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e');
+// An account of this file's own.
+const ACCOUNT = await freshAccount();
 const KEY = 78n;
 
 const chainA: Chain = defineChain({
