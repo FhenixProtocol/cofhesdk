@@ -82,9 +82,9 @@ catch (e) {
 }
 ```
 
-Related: a `404` from submit is still retried for the `set404RetryTimeout` window, but once the
-window ends it now fails with `CtNotFound` (`apiErrorCode: 'ct_not_found'`) instead of the generic
-`DecryptFailed` / `SealOutputFailed`.
+Related: a `404` from submit is not retried. It fails on the first answer with `CtNotFound`
+(`apiErrorCode: 'ct_not_found'`) instead of the generic `DecryptFailed` / `SealOutputFailed`.
+`set404RetryTimeout` is deprecated and has no effect; remove the call.
 
 ## Find them
 
