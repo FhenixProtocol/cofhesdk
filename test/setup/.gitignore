@@ -2,3 +2,5 @@ out/
 cache/
 dist/
 node_modules
+# Written by setup.mjs for this checkout: where SimpleTest is on each chain set up here.
+deployments.local.json

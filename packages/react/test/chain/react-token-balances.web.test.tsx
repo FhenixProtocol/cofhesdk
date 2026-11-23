@@ -34,7 +34,6 @@ import {
   type Hash,
   type Hex,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import {
   CofheProvider,
@@ -49,12 +48,12 @@ import {
   type CofheWriteInvalidates,
   type ConfidentialToken,
 } from '@cofhe/react';
+import { freshAccount } from './fixtures';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
-// Anvil default account #4 — #0/#1 (matrix), #2 (react-hooks) and #3
-// (read-contracts) are taken; a dedicated account avoids nonce races.
-const TEST_ACCOUNT = privateKeyToAccount('0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a');
+// An account of this file's own.
+const TEST_ACCOUNT = await freshAccount();
 const SPENDER = '0x00000000000000000000000000000000000000b2' as const;
 const ETH_SENTINEL_LOWERCASE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const;
 

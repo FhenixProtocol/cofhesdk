@@ -21,6 +21,7 @@ vi.mock('./useCofheACPs', () => ({
   useCofheACP: () => undefined,
   useCofheActiveACP: () =>
     mocks.activeACP ? { acp: mocks.activeACP, isValid: true, hash: mocks.activeACP.hash } : undefined,
+  useNowAtExpiry: () => 0,
 }));
 
 vi.mock('./useCofheConnection', () => ({

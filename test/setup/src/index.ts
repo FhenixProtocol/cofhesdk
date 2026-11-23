@@ -1,5 +1,11 @@
-export { default as deploymentRegistry } from './deployments.json';
-export { getSimpleTestAddress, getStagingSimpleTestAddress } from './contracts';
+export {
+  getSimpleTestAddress,
+  getStagingSimpleTestAddress,
+  getSimpleTestValues,
+  getStagingSimpleTestValues,
+  type SimpleTestValues,
+  type StoredValue,
+} from './contracts';
 export { simpleTestAbi } from './simpleTestAbi';
 export {
   TEST_PRIVATE_KEY,
@@ -9,10 +15,3 @@ export {
   TEST_ALICE_KEY_PROVIDED,
   STAGING_RPC_URL,
 } from './env';
-export {
-  primaryTestChainRegistry,
-  isPrimaryTestChainReady,
-  type PrimaryTestChainRegistry,
-  type StoredValue,
-} from './primaryTestChain';
-export { stagingTestChainRegistry } from './stagingTestChain';

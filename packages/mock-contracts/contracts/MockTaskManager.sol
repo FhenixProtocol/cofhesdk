@@ -540,6 +540,25 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
+  /// @dev Same as the real task manager: only trivialEncrypt and cast take plaintext inputs, so
+  ///      any other operation given extra inputs reverts with `InvalidOperationInputs`. Without this
+  ///      the mock only failed later, in its own evaluation, with a mock-only error.
+  function validateExtraInputs(
+    uint256[] memory extraInputs,
+    FunctionId funcId,
+    string memory functionName
+  ) internal view {
+    if (funcId == FunctionId.trivialEncrypt) {
+      validateTrivialEncryptInputs(extraInputs);
+    } else if (funcId == FunctionId.cast) {
+      if (!isValidType(extraInputs[0])) {
+        revert UnsupportedType(extraInputs[0]);
+      }
+    } else {
+      revert InvalidOperationInputs(functionName);
+    }
+  }
+
   function validateSelectInputs(uint256[] memory encryptedHashes) internal pure {
     if (encryptedHashes.length != 3) {
       revert InvalidInputsAmount('select', encryptedHashes.length, 3);
@@ -576,10 +595,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
 
     validateInputs(encryptedHashes, funcId, operation);
-    if (funcId == FunctionId.trivialEncrypt) {
-      validateTrivialEncryptInputs(extraInputs);
-    } else if (funcId == FunctionId.cast && extraInputs.length > 0 && !isValidType(extraInputs[0])) {
-      revert UnsupportedType(extraInputs[0]);
+    if (extraInputs.length > 0) {
+      validateExtraInputs(extraInputs, funcId, operation);
     }
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
@@ -913,8 +930,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     );
 
     // NOTE: MOCK - the real task manager leaves the value to the coprocessor; store one here.
+    // An ebool is stored as 0 or 1, but its type mask keeps 8 bits, so take one bit for it.
     (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
-    _set(ctHash, uint256(keccak256(abi.encode(ctHash))));
+    uint256 value = uint256(keccak256(abi.encode(ctHash)));
+    if (returnType == Utils.EBOOL_TFHE) value &= 1;
+    _set(ctHash, value);
     _mockGasTrackEnd(mode, startGas);
 
     return ctHash;

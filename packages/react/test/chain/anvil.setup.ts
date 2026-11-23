@@ -11,10 +11,14 @@ declare module 'vitest' {
   export interface ProvidedContext extends AnvilDeployment {}
 }
 
+// Not the default 8546: the integration matrix uses that one, and `turbo run test` runs both suites
+// at once. The test files read the URL with inject('anvilRpc').
+const REACT_ANVIL_PORT = 8547;
+
 let anvil: AnvilHandle | undefined;
 
 export async function setup(project: TestProject): Promise<void> {
-  anvil = await startAnvilWithMocks('[react][anvil]');
+  anvil = await startAnvilWithMocks('[react][anvil]', REACT_ANVIL_PORT);
   provideAnvil(project, anvil.deployment);
 }
 

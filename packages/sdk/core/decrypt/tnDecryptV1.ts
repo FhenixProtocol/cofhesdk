@@ -124,6 +124,7 @@ export async function tnDecryptV1(
       code: CofheErrorCode.DecryptFailed,
       message: `decrypt request failed: ${errorMessage}`,
       hint: 'Check the threshold network URL and request parameters.',
+      httpStatus: response.status,
       context: {
         thresholdNetworkUrl,
         status: response.status,

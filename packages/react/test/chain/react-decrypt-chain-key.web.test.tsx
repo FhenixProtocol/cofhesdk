@@ -21,18 +21,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { createPublicClient, createWalletClient, custom, defineChain, type Address, type Chain } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import { acpStore } from '@cofhe/sdk/acps';
 import { createCofheClient } from '@cofhe/sdk/web';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import { CofheProvider, createCofheConfig, useCofheReadContractAndDecrypt } from '@cofhe/react';
+import { freshAccount, deploySimpleTest } from './fixtures';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_A = 31337; // the connected chain (Anvil)
 const CHAIN_B = 31338; // "another chain": same Anvil under a different id
-// Anvil default account #7 — dedicated, so this file cannot race the other suites' nonces.
-const ACCOUNT = privateKeyToAccount('0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356');
+// The account and the contract belong to this file.
+const ACCOUNT = await freshAccount();
 
 const chainA: Chain = defineChain({
   id: CHAIN_A,
@@ -41,9 +41,7 @@ const chainA: Chain = defineChain({
   rpcUrls: { default: { http: [ANVIL_RPC] } },
 });
 const chainB: Chain = defineChain({ ...chainA, id: CHAIN_B, name: 'B' });
-// A SimpleTest just for this file. Only the last writer may read its value slot, and
-// react-read-contracts writes the shared one at the same time.
-const SIMPLE_TEST = inject('anvilSimpleTestPerChainDecrypt') as Address;
+const SIMPLE_TEST = await deploySimpleTest(ACCOUNT);
 
 /** A plain EIP-1193 transport over fetch. */
 function transport() {

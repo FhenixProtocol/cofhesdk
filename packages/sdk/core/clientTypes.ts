@@ -8,6 +8,7 @@ import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './enc
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
+import type { WalletClientWithAccount } from './utils.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
   ACPAccessStatus,
@@ -38,6 +39,10 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   // --- config & platform-specific ---
   readonly config: TConfig;
 
+  /**
+   * Connects the client to a chain and an account. The SDK signs and sends as `walletClient.account`,
+   * so the wallet client must be created with `account` set; `connect` throws `WALLET_CLIENT_ACCOUNT_MISSING` otherwise.
+   */
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<void>;
   /**
    * Clears the current connection state (account/chainId/clients) and marks the client as disconnected.
@@ -67,7 +72,8 @@ export type CofheClientConnectionState = {
   chainId: number | undefined;
   account: `0x${string}` | undefined;
   publicClient: PublicClient | undefined;
-  walletClient: WalletClient | undefined;
+  /** Always has `account` set: `connect` rejects a wallet client without one. */
+  walletClient: WalletClientWithAccount | undefined;
 };
 
 type Listener = (snapshot: CofheClientConnectionState) => void;

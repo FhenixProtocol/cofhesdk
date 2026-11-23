@@ -102,8 +102,8 @@ Note: upgrading to a version with this feature will lower existing `forge snapsh
 | `createEuint32sBatch(values, consumingContract)`                       | Creates a batch of encrypted uint32s sharing one signature                                                      |
 | `decryptForTx_withoutACP(ctHash)`                                      | Decrypts a globally-allowed ciphertext; returns `(ctHash, plaintext, signature)`                                |
 | `decryptForTx_withACP(ctHash, acp)`                                    | Decrypts with a permission; returns `(ctHash, plaintext, signature)`                                            |
-| `decryptForView(ctHash, sealingKey, acp)`                              | Seals and unseals for off-chain reading                                                                         |
-| `acp_createSelf()`                                                     | Creates a self-acp for the connected account                                                                    |
-| `acp_createShared(recipient)`                                          | Creates the issuer half of a shared acp                                                                         |
-| `acp_exportShared(acp)`                                                | Strips recipient fields for safe transmission                                                                   |
-| `acp_importShared(export)`                                             | Completes a shared acp as the recipient                                                                         |
+| `decryptForView(ctHash, acp)`                                          | Seals and unseals with the acp's sealing key for off-chain reading                                              |
+| `ACP_createSelf()`                                                     | Creates a self-acp for the connected account                                                                    |
+| `ACP_createShared(recipient)`                                          | Creates the issuer half of a shared acp                                                                         |
+| `ACP_exportShared(acp)`                                                | Strips recipient fields for safe transmission                                                                   |
+| `ACP_importShared(export)`                                             | Completes a shared acp as the recipient                                                                         |
