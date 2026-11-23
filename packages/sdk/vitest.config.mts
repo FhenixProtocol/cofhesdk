@@ -15,10 +15,28 @@ const crossOriginIsolationHeaders = {
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
 
+const encryptBench = process.env.TEST_ENCRYPT_BENCH_ENABLED === 'true';
+
+// The worker manager loads `./zkProve.worker.js`, the name the file has once built. The test
+// server serves sources, where it is `.ts`, so the real worker never starts under test and every
+// proof falls back to the main thread. The encrypt benchmark has to measure the worker path, so
+// for that run only the request is pointed at the source file.
+const serveZkProveWorkerSource = {
+  name: 'serve-zk-prove-worker-source',
+  configureServer(server: { middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void } }) {
+    server.middlewares.use((req, _res, next) => {
+      if (req.url) req.url = req.url.replace(/\/web\/zkProve\.worker\.js(\?|$)/, '/web/zkProve.worker.ts$1');
+      next();
+    });
+  },
+};
+
 export default defineConfig({
+  plugins: encryptBench ? [serveZkProveWorkerSource] : [],
   define: {
     __STAGING_TESTS__: JSON.stringify(process.env.TEST_STAGING_ENABLED === 'true'),
     __THREADPOOL_TESTS__: JSON.stringify(process.env.TEST_THREADPOOL_ENABLED === 'true'),
+    __ENCRYPT_BENCH__: JSON.stringify(encryptBench),
   },
   resolve: { alias },
   server: { headers: crossOriginIsolationHeaders },
