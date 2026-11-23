@@ -6,7 +6,7 @@
  * the main thread could not paint or answer input. Skipped by default (it makes real proofs
  * and calls the testnet verifier); run it on its own:
  *
- *   TEST_ENCRYPT_BENCH_ENABLED=true pnpm vitest run web/test/encryptMainThread.bench.web.test.ts
+ *   pnpm --filter @cofhe/sdk bench:encrypt
  */
 import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
 import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';

@@ -3,6 +3,7 @@ import {
   type ZkProveWorkerFunction,
   type VerifyBatchResult,
   zkPack,
+  assertZkPackable,
   zkProve,
   zkProveWithWorker,
   zkVerifyBatch,
@@ -602,9 +603,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepStart(EncryptStep.Pack);
 
-    let packed = zkProveWorkerFn ? undefined : packOnThisThread();
+    // With a worker this step only checks the inputs: the worker packs as part of proving.
+    let packed: ReturnType<typeof packOnThisThread> | undefined;
+    if (zkProveWorkerFn) assertZkPackable(this.inputItems);
+    else packed = packOnThisThread();
 
-    // With a worker the step is empty here: the worker packs as part of proving.
     this.fireStepEnd(EncryptStep.Pack, { packedInWorker: zkProveWorkerFn != null });
 
     this.fireStepStart(EncryptStep.Prove);
