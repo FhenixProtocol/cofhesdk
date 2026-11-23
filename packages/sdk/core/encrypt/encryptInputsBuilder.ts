@@ -588,15 +588,23 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     // if the key/crs is already in the store, it is not fetched from the CoFHE API
     const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
 
-    let { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
-
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
+
+    // Deserializing the key and the CRS and packing the inputs is synchronous and heavy (the CRS
+    // alone is several megabytes), so it only runs on this thread when this thread also proves.
+    // A worker does all of it itself from the hex strings.
+    const packOnThisThread = () => {
+      const { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
+      return { zkBuilder: zkPack(this.inputItems, zkBuilder), zkCrs };
+    };
+    const proveInWorker = this.useWorker && this.zkProveWorkerFn != null;
 
     this.fireStepStart(EncryptStep.Pack);
 
-    zkBuilder = zkPack(this.inputItems, zkBuilder);
+    let packed = proveInWorker ? undefined : packOnThisThread();
 
-    this.fireStepEnd(EncryptStep.Pack);
+    // With a worker the step is empty here: the worker packs as part of proving.
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: proveInWorker });
 
     this.fireStepStart(EncryptStep.Prove);
 
@@ -608,10 +616,10 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let workerFailedError: string | undefined;
 
     // Decision logic: try worker if enabled and available, fallback to main thread
-    if (this.useWorker && this.zkProveWorkerFn) {
+    if (proveInWorker) {
       try {
         // Call worker function directly (no packing needed, worker does it)
-        proof = await zkProveWithWorker(this.zkProveWorkerFn, fheKey, crs, this.inputItems, metadata);
+        proof = await zkProveWithWorker(this.zkProveWorkerFn!, fheKey, crs, this.inputItems, metadata);
         usedWorker = true;
       } catch (error) {
         // Worker failed - capture error for debugging
@@ -620,9 +628,10 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     if (proof == null) {
-      // Use main thread directly (workers disabled or unavailable)
+      // Use main thread directly (workers disabled, unavailable, or the worker failed)
+      packed ??= packOnThisThread();
       await this.beforeMainThreadProve?.();
-      proof = await zkProve(zkBuilder, zkCrs, metadata);
+      proof = await zkProve(packed.zkBuilder, packed.zkCrs, metadata);
       usedWorker = false;
     }
 
