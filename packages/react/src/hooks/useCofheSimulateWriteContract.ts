@@ -1,19 +1,21 @@
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type {
-  Address,
-  Abi,
-  Account,
-  Chain,
-  ContractFunctionArgs,
-  ContractFunctionName,
-  PublicClient,
-  SimulateContractParameters,
-  SimulateContractReturnType,
+import {
+  keccak256,
+  type Abi,
+  type Account,
+  type Address,
+  type Chain,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
+  type Hex,
+  type PublicClient,
+  type SimulateContractParameters,
+  type SimulateContractReturnType,
 } from 'viem';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { serializeBigintRecursively, serializeIfBigint } from '../utils/serializeBigint.js';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
 
@@ -68,6 +70,15 @@ function getAccountAddress(account: Account | Address | null | undefined): Addre
   return undefined;
 }
 
+function compactBlobs(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.map((blob) => {
+    if (blob instanceof Uint8Array) return keccak256(blob);
+    if (typeof blob === 'string' && /^0x(?:[\da-fA-F]{2})*$/.test(blob)) return keccak256(blob as Hex);
+    return blob;
+  });
+}
+
 export type CofheSimulateWriteContractParams = CofheSimulateWriteContractCallArgs;
 
 export type UseCofheSimulateWriteContractQueryOptions<TData, TSelectedData> = Omit<
@@ -81,22 +92,26 @@ export function constructCofheSimulateWriteContractQueryKey(params: {
   cofheChainId?: number;
   callArgs?: unknown;
   resolvedAccountAddress?: Address;
-  enabled?: boolean;
 }): readonly unknown[] {
-  const { cofheChainId, callArgs, resolvedAccountAddress, enabled } = params;
+  const { cofheChainId, callArgs, resolvedAccountAddress } = params;
 
-  const serialized = isRecord(callArgs)
-    ? {
-        address: typeof callArgs.address === 'string' ? callArgs.address : undefined,
-        functionName: typeof callArgs.functionName === 'string' ? callArgs.functionName : undefined,
-        args: Array.isArray(callArgs.args) ? serializeBigintRecursively(callArgs.args) : undefined,
-        value: serializeIfBigint(callArgs.value),
-        dataSuffix: typeof callArgs.dataSuffix === 'string' ? callArgs.dataSuffix : undefined,
-        account: resolvedAccountAddress,
+  let serialized: unknown;
+  if (isRecord(callArgs)) {
+    const normalizedCallArgs: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(callArgs)) {
+      if (key !== 'abi' && key !== 'account' && key !== 'chain') {
+        normalizedCallArgs[key] = key === 'blobs' ? compactBlobs(value) : value;
       }
-    : undefined;
+    }
 
-  return [QUERY_CACHE_PREFIX, cofheChainId, serialized, enabled] as const;
+    normalizedCallArgs.account = resolvedAccountAddress;
+    normalizedCallArgs.chainId =
+      isRecord(callArgs.chain) && typeof callArgs.chain.id === 'number' ? callArgs.chain.id : undefined;
+    serialized = serializeBigintRecursively(normalizedCallArgs);
+  }
+
+  return [QUERY_CACHE_PREFIX, cofheChainId, serialized] as const;
 }
 
 export function useCofheSimulateWriteContract<
@@ -136,7 +151,6 @@ export function useCofheSimulateWriteContract<
       cofheChainId,
       callArgs,
       resolvedAccountAddress,
-      enabled,
     }),
     retry: false, // no need to retry on error. The whole point of simulation is to check if there's an error
     queryFn: async () => {

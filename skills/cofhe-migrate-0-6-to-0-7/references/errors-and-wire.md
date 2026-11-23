@@ -82,8 +82,9 @@ catch (e) {
 }
 ```
 
-Related: a `404` from submit is now only retried while the backend reports `ct_not_found` (still
-indexing). Any other code fails immediately instead of being retried until timeout.
+Related: a `404` from submit is still retried for the `set404RetryTimeout` window, but once the
+window ends it now fails with `CtNotFound` (`apiErrorCode: 'ct_not_found'`) instead of the generic
+`DecryptFailed` / `SealOutputFailed`.
 
 ## Find them
 

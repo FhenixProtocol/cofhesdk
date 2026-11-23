@@ -41,21 +41,21 @@ const publicClient: PublicClient = createPublicClient({
   transport: http(),
 });
 
-const bobWalletClient: WalletClient = createWalletClient({
+const bobWalletClient = createWalletClient({
   chain: arbitrumSepolia,
   transport: http(),
   account: privateKeyToAccount(BOB_PRIVATE_KEY),
 });
 
-const aliceWalletClient: WalletClient = createWalletClient({
+const aliceWalletClient = createWalletClient({
   chain: arbitrumSepolia,
   transport: http(),
   account: privateKeyToAccount(ALICE_PRIVATE_KEY),
 });
 
 // Helper to get the wallet addresses
-const bobAddress = bobWalletClient.account!.address;
-const aliceAddress = aliceWalletClient.account!.address;
+const bobAddress = bobWalletClient.account.address;
+const aliceAddress = aliceWalletClient.account.address;
 const chainId = 421614; // Arbitrum Sepolia
 
 describe('Core ACPs Tests', () => {

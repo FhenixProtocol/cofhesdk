@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from '../workerManager.js';
 
 describe('WorkerManager', () => {
@@ -76,5 +76,57 @@ describe('WorkerManager', () => {
         await expect(requestPromise).rejects.toThrow();
       }
     });
+  });
+});
+
+// A stand-in for the browser Worker: the test decides when it fails or signals ready, and a
+// ready worker answers every proof request with `[1, 2, 3]`.
+class FakeWorker {
+  static instances: FakeWorker[] = [];
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((error: { message: string }) => void) | null = null;
+  terminated = false;
+
+  constructor() {
+    FakeWorker.instances.push(this);
+  }
+
+  fail(message: string) {
+    this.onerror?.({ message });
+  }
+
+  ready() {
+    this.onmessage?.({ data: { id: 'init', type: 'ready' } });
+  }
+
+  postMessage(message: { id: string }) {
+    queueMicrotask(() => this.onmessage?.({ data: { id: message.id, type: 'success', result: [1, 2, 3] } }));
+  }
+
+  terminate() {
+    this.terminated = true;
+  }
+}
+
+describe('WorkerManager initialization failures', () => {
+  afterEach(() => {
+    terminateWorker();
+    vi.unstubAllGlobals();
+    FakeWorker.instances = [];
+  });
+
+  it('starts a new worker on the next request after one fails to initialize', async () => {
+    vi.stubGlobal('Worker', FakeWorker);
+    const manager = getWorkerManager();
+
+    const first = manager.submitProof('key', 'crs', [], new Uint8Array());
+    FakeWorker.instances[0].fail('Failed to fetch dynamically imported module');
+    await expect(first).rejects.toThrow('Worker failed to initialize');
+
+    const second = manager.submitProof('key', 'crs', [], new Uint8Array());
+    await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(2));
+    FakeWorker.instances[1].ready();
+    await expect(second).resolves.toEqual(new Uint8Array([1, 2, 3]));
+    expect(FakeWorker.instances[0].terminated).toBe(true);
   });
 });

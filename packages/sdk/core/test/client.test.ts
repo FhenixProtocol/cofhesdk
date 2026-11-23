@@ -27,9 +27,9 @@ const createMockPublicClient = (chainId = 11155111): PublicClient =>
     getChainId: vi.fn().mockResolvedValue(chainId),
   }) as any;
 
-const createMockWalletClient = (addresses = ['0x1234567890123456789012345678901234567890']): WalletClient =>
+const createMockWalletClient = (address = '0x1234567890123456789012345678901234567890'): WalletClient =>
   ({
-    getAddresses: vi.fn().mockResolvedValue(addresses),
+    account: { address, type: 'json-rpc' },
   }) as any;
 
 const createTestClient = (): CofheClient => {
@@ -139,7 +139,7 @@ describe('createCofheClientBase', () => {
   describe('connect', () => {
     it('should successfully connect with valid clients', async () => {
       const publicClient = createMockPublicClient(11155111);
-      const walletClient = createMockWalletClient(['0xabcd']);
+      const walletClient = createMockWalletClient('0xabcd');
 
       await client.connect(publicClient, walletClient);
 
@@ -183,33 +183,23 @@ describe('createCofheClientBase', () => {
 
     it('should ensure the latest connection attempt wins when connecting twice', async () => {
       let resolveChainId1: (value: number) => void;
-      let resolveAddresses1: (value: string[]) => void;
       let resolveChainId2: (value: number) => void;
-      let resolveAddresses2: (value: string[]) => void;
 
       const chainIdPromise1 = new Promise<number>((resolve) => {
         resolveChainId1 = resolve;
-      });
-      const addressesPromise1 = new Promise<string[]>((resolve) => {
-        resolveAddresses1 = resolve;
       });
 
       const chainIdPromise2 = new Promise<number>((resolve) => {
         resolveChainId2 = resolve;
       });
-      const addressesPromise2 = new Promise<string[]>((resolve) => {
-        resolveAddresses2 = resolve;
-      });
 
       const publicClient1 = createMockPublicClient() as any;
       publicClient1.getChainId = vi.fn().mockReturnValue(chainIdPromise1);
-      const walletClient1 = createMockWalletClient() as any;
-      walletClient1.getAddresses = vi.fn().mockReturnValue(addressesPromise1);
+      const walletClient1 = createMockWalletClient('0x1111111111111111111111111111111111111111');
 
       const publicClient2 = createMockPublicClient() as any;
       publicClient2.getChainId = vi.fn().mockReturnValue(chainIdPromise2);
-      const walletClient2 = createMockWalletClient() as any;
-      walletClient2.getAddresses = vi.fn().mockReturnValue(addressesPromise2);
+      const walletClient2 = createMockWalletClient('0x2222222222222222222222222222222222222222');
 
       const promise1 = client.connect(publicClient1, walletClient1);
       expect(client.connecting).toBe(true);
@@ -218,7 +208,6 @@ describe('createCofheClientBase', () => {
 
       // Resolve the second connect first
       resolveChainId2!(222);
-      resolveAddresses2!(['0x2222222222222222222222222222222222222222']);
       await promise2;
 
       expect(client.connected).toBe(true);
@@ -230,7 +219,6 @@ describe('createCofheClientBase', () => {
 
       // Now resolve the first connect; it must not overwrite the latest state.
       resolveChainId1!(111);
-      resolveAddresses1!(['0x1111111111111111111111111111111111111111']);
       await promise1;
 
       expect(client.connection.chainId).toBe(222);
@@ -241,20 +229,15 @@ describe('createCofheClientBase', () => {
 
     it('should allow disconnect while connecting and never end up connected afterwards', async () => {
       let resolveChainId: (value: number) => void;
-      let resolveAddresses: (value: string[]) => void;
 
       const chainIdPromise = new Promise<number>((resolve) => {
         resolveChainId = resolve;
-      });
-      const addressesPromise = new Promise<string[]>((resolve) => {
-        resolveAddresses = resolve;
       });
 
       const publicClient = createMockPublicClient() as any;
       publicClient.getChainId = vi.fn().mockReturnValue(chainIdPromise);
 
-      const walletClient = createMockWalletClient() as any;
-      walletClient.getAddresses = vi.fn().mockReturnValue(addressesPromise);
+      const walletClient = createMockWalletClient();
 
       const connectPromise = client.connect(publicClient, walletClient);
       expect(client.connecting).toBe(true);
@@ -264,7 +247,6 @@ describe('createCofheClientBase', () => {
       expect(client.connecting).toBe(false);
 
       resolveChainId!(11155111);
-      resolveAddresses!(['0x1234567890123456789012345678901234567890']);
 
       await connectPromise;
 
@@ -306,39 +288,18 @@ describe('createCofheClientBase', () => {
       }
     });
 
-    it('should handle walletClient.getAddresses throwing an error', async () => {
+    it('rejects a wallet client without an account and never asks it for addresses', async () => {
       const publicClient = createMockPublicClient();
-      const getAddressesError = new Error('Network error');
-      const walletClient = createMockWalletClient();
-      walletClient.getAddresses = vi.fn().mockRejectedValue(getAddressesError);
+      const getAddresses = vi.fn().mockResolvedValue(['0x1234567890123456789012345678901234567890']);
+      const walletClient = { getAddresses } as unknown as WalletClient;
 
-      const connectPromise = client.connect(publicClient, walletClient);
+      const error = await client.connect(publicClient, walletClient).catch((e: unknown) => e);
 
-      try {
-        await connectPromise;
-      } catch (error) {
-        expect(error).toBeInstanceOf(CofheError);
-        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetAddressesFailed);
-        expect((error as CofheError).message).toBe(
-          'getting address from wallet client failed | Caused by: Network error'
-        );
-        expect((error as CofheError).cause).toBe(getAddressesError);
-      }
-    });
-
-    it('should handle walletClient.getAddresses returning an empty array', async () => {
-      const publicClient = createMockPublicClient();
-      const walletClient = createMockWalletClient([]);
-
-      const connectPromise = client.connect(publicClient, walletClient);
-
-      try {
-        await connectPromise;
-      } catch (error) {
-        expect(error).toBeInstanceOf(CofheError);
-        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetAddressesFailed);
-        expect((error as CofheError).message).toBe('address from wallet client is null');
-      }
+      expect(error).toBeInstanceOf(CofheError);
+      expect((error as CofheError).code).toBe(CofheErrorCode.WalletClientAccountMissing);
+      expect(getAddresses).not.toHaveBeenCalled();
+      expect(client.connected).toBe(false);
+      expect(client.connection.connectError).toBe(error);
     });
 
     it('should store error in state on failure', async () => {
@@ -363,7 +324,7 @@ describe('createCofheClientBase', () => {
 
     it('should disconnect and clear connection state', async () => {
       const publicClient = createMockPublicClient(11155111);
-      const walletClient = createMockWalletClient(['0xabcd']);
+      const walletClient = createMockWalletClient('0xabcd');
 
       await client.connect(publicClient, walletClient);
       expect(client.connected).toBe(true);
@@ -396,7 +357,7 @@ describe('createCofheClientBase', () => {
 
     it('should create EncryptInputsBuilder when connected', async () => {
       const publicClient = createMockPublicClient(123);
-      const walletClient = createMockWalletClient(['0xtest']);
+      const walletClient = createMockWalletClient('0xtest');
 
       await client.connect(publicClient, walletClient);
 

@@ -10,8 +10,14 @@ import { acps } from './acps.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { verifyDecryptResult as verifyDecryptResultStandalone } from './decrypt/verifyDecryptResult.js';
-import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
-import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientACPs } from './clientTypes.js';
+import { getPublicClientChainID, requireWalletClientAccount } from './utils.js';
+import type {
+  CofheClientConnectionState,
+  CofheClientParams,
+  CofheClient,
+  CofheClientACPs,
+  CofheClientACPsClients,
+} from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
 import type { CofheConfig } from './config.js';
 
@@ -70,24 +76,19 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     return registry;
   };
 
+  /** Throws `NotConnected` unless connected; returns the connection with every field set. */
   const _requireConnected = () => {
     const state = connectStore.getState();
-    const notConnected =
-      !state.connected || !state.account || !state.chainId || !state.publicClient || !state.walletClient;
-    if (notConnected) {
+    const { connected, account, chainId, publicClient, walletClient } = state;
+    if (!connected || !account || !chainId || !publicClient || !walletClient) {
       throw new CofheError({
         code: CofheErrorCode.NotConnected,
         message: 'Client must be connected, account and chainId must be initialized',
         hint: 'Ensure client.connect() has been called and awaited.',
-        context: {
-          connected: state.connected,
-          account: state.account,
-          chainId: state.chainId,
-          publicClient: state.publicClient,
-          walletClient: state.walletClient,
-        },
+        context: { connected, account, chainId, publicClient, walletClient },
       });
     }
+    return { account, chainId, publicClient, walletClient };
   };
 
   /** The sharing writes the registry and the revoker take from the issuer only; say so before building one. */
@@ -97,6 +98,15 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       throw new Error(`Only the acp issuer can ${what}`);
     }
   };
+
+  /** The clients a caller passed to override the connected ones (wallet client checked for an account), else the connected ones. */
+  const _clientsOrConnection = (
+    clients: CofheClientACPsClients | undefined,
+    connection: ReturnType<typeof _requireConnected>
+  ) =>
+    clients == null
+      ? connection
+      : { publicClient: clients.publicClient, walletClient: requireWalletClientAccount(clients.walletClient) };
 
   // LIFECYCLE
 
@@ -115,10 +125,11 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       connecting: true,
     });
 
-    // Fetch chainId and account
+    // Check the account, then fetch chainId
     try {
+      const walletClientWithAccount = requireWalletClientAccount(walletClient);
+      const account = walletClientWithAccount.account.address;
       const chainId = await getPublicClientChainID(publicClient);
-      const account = await getWalletClientAccount(walletClient);
 
       // If a disconnect (or a newer connect) happened while awaiting, ignore this completion.
       if (localAttemptId !== connectAttemptId) return;
@@ -130,7 +141,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
         chainId,
         account,
         publicClient,
-        walletClient,
+        walletClient: walletClientWithAccount,
       });
     } catch (e) {
       // Ignore stale errors too.
@@ -212,9 +223,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // VERIFY DECRYPT RESULT
   function verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean> {
-    _requireConnected();
-    const { publicClient } = connectStore.getState();
-    return verifyDecryptResultStandalone(handle, cleartext, signature, publicClient!);
+    const { publicClient } = _requireConnected();
+    return verifyDecryptResultStandalone(handle, cleartext, signature, publicClient);
   }
 
   // ACPS - Context-aware wrapper
@@ -249,13 +259,19 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       options: CreateSelfACPOptions,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
-      _requireConnected();
-      const { publicClient, walletClient } = clients ?? connectStore.getState();
-      const chainId = await publicClient!.getChainId();
+      const connection = _requireConnected();
+      const { publicClient, walletClient } = _clientsOrConnection(clients, connection);
+      const chainId = await publicClient.getChainId();
       return acps.createSelf(
-        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, chainId),
-        publicClient!,
-        walletClient!
+        await acps.applyACPDefaultsFromChain(
+          options,
+          opts.config.acp,
+          publicClient,
+          chainId,
+          opts.config.defaultACPExpiration
+        ),
+        publicClient,
+        walletClient
       );
     },
 
@@ -263,55 +279,80 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       options: CreateSharingACPOptions,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
-      _requireConnected();
-      const { publicClient, walletClient } = clients ?? connectStore.getState();
-      const chainId = await publicClient!.getChainId();
+      const connection = _requireConnected();
+      const { publicClient, walletClient } = _clientsOrConnection(clients, connection);
+      const chainId = await publicClient.getChainId();
       return acps.createSharing(
-        await acps.applyACPDefaultsFromChain({ ...withAppKey(), ...options }, opts.config.acp, publicClient!, chainId),
-        publicClient!,
-        walletClient!
+        await acps.applyACPDefaultsFromChain(
+          { ...withAppKey(), ...options },
+          opts.config.acp,
+          publicClient,
+          chainId,
+          opts.config.defaultACPExpiration
+        ),
+        publicClient,
+        walletClient
       );
     },
 
     importShared: async (options: ImportSharedACPOptions | string, importOptions = {}) => {
-      _requireConnected();
+      const connection = _requireConnected();
       const { activate, name, ...clients } = importOptions;
-      const { publicClient, walletClient } = clients.publicClient ? clients : connectStore.getState();
-      return acps.importShared(options, publicClient!, walletClient!, { activate, name });
+      const { publicClient, walletClient } = _clientsOrConnection(
+        clients.publicClient ? clients : undefined,
+        connection
+      );
+      return acps.importShared(options, publicClient, walletClient, { activate, name });
     },
 
     // Get or create methods (require connection)
     getOrCreateSelfACP: async (chainId?: number, account?: string, options?: CreateSelfACPOptions) => {
-      _requireConnected();
+      const { publicClient, walletClient } = _requireConnected();
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      const { publicClient, walletClient } = connectStore.getState();
+      const blockTimestamp = await acps.getLatestBlockTimestamp(publicClient);
       const optionsWithDefaults = await acps.applyACPDefaultsFromChain(
         options ?? { issuer: _account, name: 'Autogenerated Self ACP' },
         opts.config.acp,
-        publicClient!,
-        _chainId
+        publicClient,
+        _chainId,
+        opts.config.defaultACPExpiration,
+        blockTimestamp
       );
-      return acps.getOrCreateSelfACP(publicClient!, walletClient!, _chainId, _account, optionsWithDefaults);
+      return acps.getOrCreateSelfACP(
+        publicClient,
+        walletClient,
+        _chainId,
+        _account,
+        optionsWithDefaults,
+        blockTimestamp
+      );
     },
 
     getOrCreateSharingACP: async (options: CreateSharingACPOptions, chainId?: number, account?: string) => {
-      _requireConnected();
+      const { publicClient, walletClient } = _requireConnected();
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      const { publicClient, walletClient } = connectStore.getState();
+      const blockTimestamp = await acps.getLatestBlockTimestamp(publicClient);
       return acps.getOrCreateSharingACP(
-        publicClient!,
-        walletClient!,
-        await acps.applyACPDefaultsFromChain({ ...withAppKey(), ...options }, opts.config.acp, publicClient!, _chainId),
+        publicClient,
+        walletClient,
+        await acps.applyACPDefaultsFromChain(
+          { ...withAppKey(), ...options },
+          opts.config.acp,
+          publicClient,
+          _chainId,
+          opts.config.defaultACPExpiration,
+          blockTimestamp
+        ),
         _chainId,
-        _account
+        _account,
+        blockTimestamp
       );
     },
 
     // Revocation (require connection)
     revokeACP: async (acp) => {
-      _requireConnected();
-      const { walletClient } = connectStore.getState();
-      return acps.revokeACP(acp, walletClient!);
+      const { walletClient } = _requireConnected();
+      return acps.revokeACP(acp, walletClient);
     },
 
     prepareRevokeACP: (acp) => {
@@ -321,30 +362,26 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     },
 
     revokeAllACPs: async (revokerContract?: `0x${string}`) => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      return acps.revokeAllACPs(walletClient!, publicClient!, revokerContract);
+      const { publicClient, walletClient } = _requireConnected();
+      return acps.revokeAllACPs(walletClient, publicClient, revokerContract);
     },
 
     isACPRevoked: async (acp) => {
-      _requireConnected();
-      const { publicClient } = connectStore.getState();
-      return acps.isACPRevoked(acp, publicClient!);
+      const { publicClient } = _requireConnected();
+      return acps.isACPRevoked(acp, publicClient);
     },
 
     checkAccess: async (acp, handle) => {
-      _requireConnected();
-      const { publicClient } = connectStore.getState();
-      return acps.checkAccess(acp, publicClient!, handle);
+      const { publicClient } = _requireConnected();
+      return acps.checkAccess(acp, publicClient, handle);
     },
 
     // On-chain sharing (require connection + config.acp.sharingRegistry)
     shareOnChain: async (acp, options) => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.shareOnChain(acp, walletClient!, sharingRegistry, { ...withAppKey(), ...options });
+      const { publicClient, walletClient } = _requireConnected();
+      const chainId = await publicClient.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
+      return acps.shareOnChain(acp, walletClient, sharingRegistry, { ...withAppKey(), ...options });
     },
 
     prepareShareOnChain: async (acp, options) => {
@@ -365,55 +402,48 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     },
 
     getIncomingShares: async () => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      const account = walletClient!.account!.address;
-      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.getIncomingShares(publicClient!, sharingRegistry, account, withAppKey());
+      const { publicClient, account } = _requireConnected();
+      const chainId = await publicClient.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
+      return acps.getIncomingShares(publicClient, sharingRegistry, account, withAppKey());
     },
 
     getShareFromChain: async (shareId) => {
-      _requireConnected();
-      const { publicClient } = connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.getShareFromChain(publicClient!, sharingRegistry, shareId);
+      const { publicClient } = _requireConnected();
+      const chainId = await publicClient.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
+      return acps.getShareFromChain(publicClient, sharingRegistry, shareId);
     },
 
     verifyShareLabels: async (share, options) => {
-      _requireConnected();
-      const { publicClient } = connectStore.getState();
+      const { publicClient } = _requireConnected();
       if (share.metadata == null || share.metadata === '0x') return null;
       return verifyShareLabels({
         labels: decodeShareMetadata(share.metadata, share.handles),
         handles: share.handles,
         issuer: share.issuer,
-        publicClient: publicClient!,
+        publicClient: publicClient,
         verify: options?.verify,
       });
     },
 
     importFromChain: async (share, options) => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      return acps.importFromChain(share, publicClient!, walletClient!, options);
+      const { publicClient, walletClient } = _requireConnected();
+      return acps.importFromChain(share, publicClient, walletClient, options);
     },
 
     dismissShare: async (shareId) => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.removeShareOnChain(shareId, walletClient!, sharingRegistry);
+      const { publicClient, walletClient } = _requireConnected();
+      const chainId = await publicClient.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
+      return acps.removeShareOnChain(shareId, walletClient, sharingRegistry);
     },
 
     cancelShare: async (shareId) => {
-      _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.removeShareOnChain(shareId, walletClient!, sharingRegistry);
+      const { publicClient, walletClient } = _requireConnected();
+      const chainId = await publicClient.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
+      return acps.removeShareOnChain(shareId, walletClient, sharingRegistry);
     },
 
     // Retrieval methods (auto-fill chainId/account)

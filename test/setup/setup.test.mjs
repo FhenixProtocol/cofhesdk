@@ -59,7 +59,7 @@ function runSetup(args) {
     mkdirSync(binDir);
     mkdirSync(join(fixtureDir, 'out', 'SimpleTest.sol'), { recursive: true });
     mkdirSync(join(fixtureDir, 'src'));
-    copyFileSync(join(setupDir, 'setup.mjs'), join(fixtureDir, 'setup.mjs'));
+    for (const file of ['setup.mjs', 'create2.mjs']) copyFileSync(join(setupDir, file), join(fixtureDir, file));
     writeFileSync(
       join(fixtureDir, 'out', 'SimpleTest.sol', 'SimpleTest.json'),
       JSON.stringify({ bytecode: { object: '0x00' } })
@@ -113,4 +113,12 @@ test('normal setup still auto-funds an underfunded staging deployer', () => {
     calls.match(/^cast balance .* --ether --rpc-url https:\/\/staging-hostchain-v1\.sw-dom\.co$/gm)?.length,
     2
   );
+  // Staging has no CREATE2 deployer (the stub answers `0x` for every `cast code`), so the
+  // deploy still goes through forge create and never sends calldata to the deployer.
+  assert.match(result.stdout, /deploy — no registry entry \[forge create, no CREATE2 deployer on this chain\]/);
+  assert.match(
+    calls,
+    /^forge create contracts\/SimpleTest\.sol:SimpleTest --rpc-url https:\/\/staging-hostchain-v1\.sw-dom\.co /m
+  );
+  assert.doesNotMatch(calls, /^cast send 0x4e59b44847b379578588920cA78FbF26c0B4956C\b/m);
 });

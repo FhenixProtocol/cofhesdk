@@ -4,14 +4,14 @@ import type { TransactionReceipt } from 'viem';
 import { assert } from 'ts-essentials';
 
 import { useInternalQueries } from '@/providers';
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { cofheLogger } from '@/utils/debug';
+import { useCofheReadTarget } from './useCofheReadContract';
 
 type TxReceiptQueryKey = readonly ['tx-receipt', number | undefined, `0x${string}`];
 
 export type UseTransactionReceiptsByHashInput = {
   hashes?: Set<`0x${string}`>;
-  /** Defaults to the connected chain id. */
+  /** Defaults to the connected chain id. Queries stay disabled while an explicit id differs from it. */
   chainId?: number;
   enabled?: boolean;
   /** Additional TanStack query options applied to each receipt query. */
@@ -35,11 +35,16 @@ export function useTransactionReceiptsByHash(
     enabled: true,
   }
 ): UseTransactionReceiptsByHashResult {
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
-  const chainId = chainIdInput ?? cofheChainId;
+  const {
+    publicClient,
+    cofheChainId: chainId,
+    disabledDueToWrongChain,
+  } = useCofheReadTarget({
+    chainId: chainIdInput,
+  });
 
-  const enabled = !!publicClient && !!chainId && enabledInput && hashes !== undefined && hashes?.size > 0;
+  const enabled =
+    !disabledDueToWrongChain && !!publicClient && !!chainId && enabledInput && hashes !== undefined && hashes.size > 0;
 
   const queries = useMemo(() => {
     if (!hashes) return [];
