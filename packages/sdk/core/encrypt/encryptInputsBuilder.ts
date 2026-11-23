@@ -597,14 +597,15 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       const { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
       return { zkBuilder: zkPack(this.inputItems, zkBuilder), zkCrs };
     };
-    const proveInWorker = this.useWorker && this.zkProveWorkerFn != null;
+    // The worker's prove function, when this encrypt is to use it.
+    const zkProveWorkerFn = this.useWorker ? this.zkProveWorkerFn : undefined;
 
     this.fireStepStart(EncryptStep.Pack);
 
-    let packed = proveInWorker ? undefined : packOnThisThread();
+    let packed = zkProveWorkerFn ? undefined : packOnThisThread();
 
     // With a worker the step is empty here: the worker packs as part of proving.
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: proveInWorker });
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: zkProveWorkerFn != null });
 
     this.fireStepStart(EncryptStep.Prove);
 
@@ -616,10 +617,10 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let workerFailedError: string | undefined;
 
     // Decision logic: try worker if enabled and available, fallback to main thread
-    if (proveInWorker) {
+    if (zkProveWorkerFn) {
       try {
         // Call worker function directly (no packing needed, worker does it)
-        proof = await zkProveWithWorker(this.zkProveWorkerFn!, fheKey, crs, this.inputItems, metadata);
+        proof = await zkProveWithWorker(zkProveWorkerFn, fheKey, crs, this.inputItems, metadata);
         usedWorker = true;
       } catch (error) {
         // Worker failed - capture error for debugging
