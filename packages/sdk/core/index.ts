@@ -86,7 +86,7 @@ export type { FheKeyDeserializer } from './fetchKeys.js';
 
 // Key storage
 export { createKeysStore } from './keyStore.js';
-export type { KeysStorage, KeysStore } from './keyStore.js';
+export type { KeysStorage, KeysStore, KeysStorageStatus } from './keyStore.js';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';

@@ -22,7 +22,7 @@ import {
   type ConfidentialToken,
 } from '@/types/token';
 
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofheReadTarget } from './useCofheReadContract';
 
 type TokenInterfaceDetectionEntry = readonly [SupportedTokenConfidentialityType, Hex];
 
@@ -61,6 +61,7 @@ function pickUnderlyingPairAddress(results: readonly unknown[], tokenAddress: Ad
 }
 
 type UseResolvedCofheTokenInput = {
+  /** Defaults to the connected chain. The query stays disabled while an explicit id differs from it. */
   chainId?: number;
   address?: Address;
 };
@@ -71,9 +72,7 @@ export function useResolvedCofheToken(
   { chainId: _chainId, address }: UseResolvedCofheTokenInput,
   queryOptions?: UseResolvedCofheTokenOptions
 ) {
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
-  const chainId = _chainId ?? cofheChainId;
+  const { publicClient, cofheChainId: chainId, disabledDueToWrongChain } = useCofheReadTarget({ chainId: _chainId });
 
   return useInternalQuery({
     queryKey: ['resolvedCofheToken', chainId, address?.toLowerCase()],
@@ -227,6 +226,6 @@ export function useResolvedCofheToken(
     },
     staleTime: Infinity,
     ...queryOptions,
-    enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
+    enabled: (queryOptions?.enabled ?? true) && !disabledDueToWrongChain && !!publicClient && !!chainId && !!address,
   });
 }

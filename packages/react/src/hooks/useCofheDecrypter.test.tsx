@@ -53,7 +53,6 @@ function fakeClient(result: unknown = 5n) {
     setAccount: vi.fn(() => txBuilder),
     onPoll: vi.fn(() => txBuilder),
     setTimeout: vi.fn(() => txBuilder),
-    set404RetryTimeout: vi.fn(() => txBuilder),
     withACP: vi.fn(() => txBuilder),
     withoutACP: vi.fn(() => txBuilder),
     setSignal: vi.fn(() => txBuilder),
@@ -236,9 +235,9 @@ describe('useCofheDecrypter', () => {
       renderToString(<Probe />);
       const onPoll = () => {};
 
-      await expect(
-        hook.decryptForTx(42n, { acp: null, account: '0xabc', onPoll, timeoutMs: 20_000, retry404TimeoutMs: 15_000 })
-      ).resolves.toBe(proof);
+      await expect(hook.decryptForTx(42n, { acp: null, account: '0xabc', onPoll, timeoutMs: 20_000 })).resolves.toBe(
+        proof
+      );
 
       expect(hook.isReady).toBe(false);
       expect(txBuilder.withoutACP).toHaveBeenCalledOnce();
@@ -246,7 +245,6 @@ describe('useCofheDecrypter', () => {
       expect(txBuilder.setAccount).toHaveBeenCalledWith('0xabc');
       expect(txBuilder.onPoll).toHaveBeenCalledWith(onPoll);
       expect(txBuilder.setTimeout).toHaveBeenCalledWith(20_000);
-      expect(txBuilder.set404RetryTimeout).toHaveBeenCalledWith(15_000);
       const options = state.fetchQuery.mock.calls[0][0] as FetchQueryOptions;
       expect(options.queryKey).toEqual(['decryptForTx', 11155111, '42', null]);
       expect(options.meta).toMatchObject({ persist: true });

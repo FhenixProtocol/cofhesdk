@@ -15,6 +15,7 @@ export enum CofheErrorCode {
   CannotRemoveLastACP = 'CANNOT_REMOVE_LAST_ACP',
   AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
   ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
+  ChainIdMismatch = 'CHAIN_ID_MISMATCH',
   ConsumingContractUninitialized = 'CONSUMING_CONTRACT_UNINITIALIZED',
   ConsumingContractInvalid = 'CONSUMING_CONTRACT_INVALID',
   SealOutputFailed = 'SEAL_OUTPUT_FAILED',
@@ -42,7 +43,9 @@ export enum CofheErrorCode {
   MissingCrs = 'MISSING_CRS',
   FetchKeysFailed = 'FETCH_KEYS_FAILED',
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
+  /** @deprecated No longer thrown: `connect` reads the wallet client's `account` and throws `WalletClientAccountMissing` without one. */
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
+  WalletClientAccountMissing = 'WALLET_CLIENT_ACCOUNT_MISSING',
   RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
   TaskManagerUnresolved = 'TASK_MANAGER_UNRESOLVED',
 
@@ -77,6 +80,11 @@ export type CofheErrorParams = {
   context?: Record<string, unknown>;
   /** Raw backend `error` string, when this error originated from a threshold-network response. */
   apiErrorCode?: string;
+  /**
+   * HTTP status of the failed response, when this error came from one (verifier or threshold network).
+   * Unset when no response arrived, e.g. the network was unreachable.
+   */
+  httpStatus?: number;
 };
 
 /**
@@ -96,8 +104,9 @@ export class CofheError extends Error {
   public readonly hint?: string;
   public readonly context?: Record<string, unknown>;
   public readonly apiErrorCode?: string;
+  public readonly httpStatus?: number;
 
-  constructor({ code, message, cause, hint, context, apiErrorCode }: CofheErrorParams) {
+  constructor({ code, message, cause, hint, context, apiErrorCode, httpStatus }: CofheErrorParams) {
     // If there's a cause, append its message to provide full context
     const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
 
@@ -108,6 +117,7 @@ export class CofheError extends Error {
     this.hint = hint;
     this.context = context;
     this.apiErrorCode = apiErrorCode;
+    this.httpStatus = httpStatus;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -131,6 +141,7 @@ export class CofheError extends Error {
       hint: wrapperError?.hint,
       context: wrapperError?.context,
       apiErrorCode: wrapperError?.apiErrorCode,
+      httpStatus: wrapperError?.httpStatus,
       cause: cause,
     });
   }
@@ -146,6 +157,7 @@ export class CofheError extends Error {
       hint: this.hint,
       context: this.context,
       apiErrorCode: this.apiErrorCode,
+      httpStatus: this.httpStatus,
       cause: this.cause
         ? {
             name: this.cause.name,
@@ -161,7 +173,9 @@ export class CofheError extends Error {
    * Returns a human-readable string representation of the error
    */
   toString(): string {
-    const codeSuffix = this.apiErrorCode ? ` (api: ${this.apiErrorCode})` : '';
+    const apiSuffix = this.apiErrorCode ? ` (api: ${this.apiErrorCode})` : '';
+    const httpSuffix = this.httpStatus != null ? ` (http: ${this.httpStatus})` : '';
+    const codeSuffix = `${apiSuffix}${httpSuffix}`;
     const parts = [`${this.name} [${this.code}]${codeSuffix}: ${this.message}`];
 
     if (this.hint) {

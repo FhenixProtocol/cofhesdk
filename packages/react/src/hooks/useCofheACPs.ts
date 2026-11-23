@@ -1,6 +1,6 @@
 import type { CofheClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { ACP_STORE_DEFAULTS, ACPUtils, type ACP } from '@cofhe/sdk/acps';
 import { useCofheConnection } from './useCofheConnection';
@@ -35,6 +35,56 @@ const useCofheACPsStore = () => {
   return { state, client };
 };
 
+/** The local clock in unix seconds, the unit ACP expirations use. */
+const nowSec = () => Math.floor(Date.now() / 1000);
+
+/**
+ * The time to check `acp`'s expiry against during render, in unix seconds.
+ *
+ * Why: whether an ACP has expired depends on the clock, and React does not re-render when the
+ * clock moves. A memo like `useMemo(() => ACPUtils.isValid(acp, now), [acp, now])` only flips to
+ * invalid if `now` changes at the right moment. This hook returns such a `now` and changes it
+ * exactly when the answer can change:
+ *
+ * 1. When the expiration changes (another ACP, or none), right away in the same render. A time
+ *    kept from an earlier ACP may be long past, and checking the new ACP against it could call an
+ *    already-expired ACP valid.
+ * 2. One second after the expiration, from a timer, so a view that stays mounted sees the ACP turn
+ *    invalid. The extra second keeps the new time strictly past the expiration.
+ *
+ * Between those moments it returns the same number, so the memo above does not recompute on every
+ * render. Same local clock as `ACPUtils.isValid(acp)` with no time argument.
+ */
+export function useNowAtExpiry(acp: ACP | undefined): number {
+  const expiration = acp?.expiration;
+
+  // The time last taken, and which expiration it was taken for.
+  const [clock, setClock] = useState(() => ({ expiration, nowSec: nowSec() }));
+
+  // Case 1: the expiration changed since the time was taken, so that time is stale. Setting state
+  // during render is React's pattern for adjusting state when an input changes: React discards
+  // this render's output and renders again with the new state before showing anything. This
+  // render still returns a fresh time below, so nothing is computed from the stale one.
+  const stale = clock.expiration !== expiration;
+  if (stale) setClock({ expiration, nowSec: nowSec() });
+
+  // Case 2: take the time again one second after the expiration. Restarts whenever the expiration
+  // changes; the cleanup cancels the timer of the previous ACP.
+  useEffect(() => {
+    if (expiration === undefined) return; // no ACP: nothing to expire
+    const ms = expiration * 1000 - Date.now() + 1000;
+    if (ms <= 0) return; // already expired: the time taken in case 1 is already past it
+    // setTimeout overflows above 2^31 - 1 ms (about 24.8 days) and would fire at once; cap it.
+    // A capped timer fires early, takes a time that is still before the expiration, and since the
+    // expiration did not change, nothing re-arms it. Expirations that far out are not expected
+    // to flip while one view stays open.
+    const id = setTimeout(() => setClock({ expiration, nowSec: nowSec() }), Math.min(ms, 2_147_483_647));
+    return () => clearTimeout(id);
+  }, [expiration]);
+
+  return stale ? nowSec() : clock.nowSec;
+}
+
 /**
  * The connected account's active ACP on `chainId` — the connected chain by default. ACPs are
  * stored per chain, so a read pinned to another chain gates on THAT chain's ACP. Creating one
@@ -60,15 +110,17 @@ export const useCofheActiveACP = (
   const hash = account && acpChainId ? state.activeACPHash[acpChainId]?.[account] : undefined;
   const serialized = hash && allACPs ? allACPs[hash] : undefined;
 
+  const _acp = useMemo(() => (serialized ? ACPUtils.deserialize(serialized) : undefined), [serialized]);
+  const now = useNowAtExpiry(_acp);
+
   const acpData = useMemo(() => {
-    const _acp = serialized ? ACPUtils.deserialize(serialized) : undefined;
     if (!_acp || !hash) return undefined;
     return {
       acp: _acp,
-      isValid: _acp ? ACPUtils.isValid(_acp).valid : false,
+      isValid: ACPUtils.isValid(_acp, now).valid,
       hash,
     };
-  }, [serialized, hash]);
+  }, [_acp, hash, now]);
 
   return connected ? acpData : undefined;
 };

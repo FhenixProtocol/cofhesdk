@@ -3,22 +3,16 @@ import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
-import { computeMinuteRampPollIntervalMs } from './polling.js';
-import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import {
   DEFAULT_DECRYPT_TIMEOUT_MS,
   classifySubmitResponse,
-  normalize404RetryTimeoutMs,
-  throwIfSubmitRetryTimedOut,
-  decryptAbortedError,
+  normalizeAccessDeniedRetryTimeoutMs,
+  shouldRetryAccessDenied,
   sleepUnlessAborted,
   throwIfAborted,
+  throwIfSubmitRetryTimedOut,
 } from './submitRetry.js';
-import {} from './tnDecryptUtils.js';
 
-// Polling configuration
-const POLL_INTERVAL_MS = 1000; // 1 second
-const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 
 // V2 API response types
@@ -40,26 +34,6 @@ type SealOutputSubmitResponse = {
   message?: string;
 };
 
-type SealOutputSubmitResult =
-  | { kind: 'request_id'; requestId: string }
-  | { kind: 'completed'; sealed: EthEncryptedData };
-
-type SealOutputStatusResponse = {
-  request_id: string;
-  status: 'PROCESSING' | 'COMPLETED';
-  submitted_at: string;
-  completed_at?: string;
-  is_succeed?: boolean;
-  sealed?: {
-    data: number[];
-    public_key: number[];
-    nonce: number[];
-  };
-  signature?: string;
-  encryption_type?: number;
-  error_message?: string | null;
-};
-
 /**
  * Converts a number array to Uint8Array
  */
@@ -70,11 +44,11 @@ function numberArrayToUint8Array(arr: number[]): Uint8Array {
 /**
  * Converts the sealed data from the API response to EthEncryptedData
  */
-function convertSealedData(sealed: SealOutputStatusResponse['sealed']): EthEncryptedData {
+function convertSealedData(sealed: SealOutputSubmitResponse['sealed']): EthEncryptedData {
   if (!sealed) {
     throw new CofheError({
       code: CofheErrorCode.SealOutputReturnedNull,
-      message: 'Sealed data is missing from completed response',
+      message: 'Sealed data is missing from the response',
     });
   }
 
@@ -87,7 +61,7 @@ function convertSealedData(sealed: SealOutputStatusResponse['sealed']): EthEncry
 
 function getSealedDataFromSubmitResponse(
   value: SealOutputSubmitResponse
-): SealOutputStatusResponse['sealed'] | undefined {
+): SealOutputSubmitResponse['sealed'] | undefined {
   if (value.sealed) return value.sealed;
 
   if (Array.isArray(value.sealed_data) && Array.isArray(value.ephemeral_public_key) && Array.isArray(value.nonce)) {
@@ -102,7 +76,7 @@ function getSealedDataFromSubmitResponse(
 }
 
 function parseCompletedSealOutputResponse(params: {
-  value: Pick<SealOutputStatusResponse, 'sealed' | 'error_message' | 'is_succeed'>;
+  value: SealOutputSubmitResponse;
   thresholdNetworkUrl: string;
   requestId?: string | null;
 }): EthEncryptedData {
@@ -121,12 +95,12 @@ function parseCompletedSealOutputResponse(params: {
     });
   }
 
-  const sealed = 'sealed' in value ? value.sealed : getSealedDataFromSubmitResponse(value as SealOutputSubmitResponse);
+  const sealed = getSealedDataFromSubmitResponse(value);
 
   if (!sealed) {
     throw new CofheError({
       code: CofheErrorCode.SealOutputReturnedNull,
-      message: `sealOutput request completed but returned no sealed data`,
+      message: `sealOutput response has no sealed data`,
       context: {
         thresholdNetworkUrl,
         requestId,
@@ -139,7 +113,8 @@ function parseCompletedSealOutputResponse(params: {
 }
 
 /**
- * Submits a sealoutput request to the v2 API and returns the request_id
+ * Submits a sealoutput request to the v2 API and returns the sealed result. A 204 (result not
+ * ready) and, when the caller asked for it, an access denial are retried.
  */
 async function submitSealOutputRequest(
   thresholdNetworkUrl: string,
@@ -147,18 +122,17 @@ async function submitSealOutputRequest(
   chainId: number,
   acp: ACPPublic,
   overallStartTime: number,
-  retry404TimeoutMs: number,
+  accessDeniedRetryTimeoutMs: number,
   timeoutMs: number,
   onPoll?: DecryptPollCallbackFunction,
   signal?: AbortSignal
-): Promise<SealOutputSubmitResult> {
+): Promise<EthEncryptedData> {
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
     acp,
   };
   let attemptIndex = 0;
-  let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
     throwIfAborted(signal, 'sealOutput');
@@ -196,11 +170,34 @@ async function submitSealOutputRequest(
     });
 
     if (responseClassification.kind === 'fatal-http') {
+      const elapsedMs = Date.now() - overallStartTime;
+      if (
+        shouldRetryAccessDenied({
+          apiErrorCode: responseClassification.apiErrorCode,
+          elapsedMs,
+          // The overall budget also ends a retry of denials.
+          accessDeniedRetryTimeoutMs: Math.min(accessDeniedRetryTimeoutMs, timeoutMs),
+        })
+      ) {
+        onPoll?.({
+          operation: 'sealoutput',
+          requestId: '',
+          attemptIndex,
+          elapsedMs,
+          intervalMs: SUBMIT_RETRY_INTERVAL_MS,
+          timeoutMs,
+        });
+        await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'sealOutput');
+        attemptIndex += 1;
+        continue;
+      }
+
       throw new CofheError({
         code: responseClassification.cofheErrorCode,
         apiErrorCode: responseClassification.apiErrorCode,
+        httpStatus: responseClassification.status,
         message: `sealOutput request failed: ${responseClassification.errorMessage}`,
-        hint: 'Check the threshold network URL and request parameters.',
+        hint: responseClassification.hint ?? 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
           status: responseClassification.status,
@@ -227,35 +224,12 @@ async function submitSealOutputRequest(
         });
       }
 
-      if (getSealedDataFromSubmitResponse(submitResponse)) {
-        return {
-          kind: 'completed',
-          sealed: parseCompletedSealOutputResponse({
-            value: submitResponse,
-            thresholdNetworkUrl,
-            requestId: submitResponse.request_id,
-          }),
-        };
-      }
-
-      if (submitResponse.request_id) {
-        return { kind: 'request_id', requestId: submitResponse.request_id };
-      }
-
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput submit response missing request_id`,
-        context: {
-          thresholdNetworkUrl,
-          body,
-          submitResponse,
-          attemptIndex,
-        },
+      // The network answers a sealoutput in this one response: a 200 carries the result.
+      return parseCompletedSealOutputResponse({
+        value: submitResponse,
+        thresholdNetworkUrl,
+        requestId: submitResponse.request_id,
       });
-    }
-
-    if (responseClassification.status === 404) {
-      last404ApiErrorMessage = responseClassification.apiErrorMessage;
     }
 
     const elapsedMs = Date.now() - overallStartTime;
@@ -265,12 +239,10 @@ async function submitSealOutputRequest(
       errorCode: CofheErrorCode.SealOutputFailed,
       status: responseClassification.status,
       elapsedMs,
-      retry404TimeoutMs,
       overallTimeoutMs: timeoutMs,
       thresholdNetworkUrl,
       body,
       attemptIndex,
-      lastKnownErrorMessage: last404ApiErrorMessage,
     });
 
     onPoll?.({
@@ -287,188 +259,32 @@ async function submitSealOutputRequest(
   }
 }
 
-/**
- * Polls for the sealoutput status until completed or timeout
- */
-async function pollSealOutputStatus(
-  thresholdNetworkUrl: string,
-  requestId: string,
-  overallStartTime: number,
-  timeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction,
-  signal?: AbortSignal
-): Promise<EthEncryptedData> {
-  let attemptIndex = 0;
-  let completed = false;
-
-  while (!completed) {
-    throwIfAborted(signal, 'sealOutput');
-    const elapsedMs = Date.now() - overallStartTime;
-    const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
-      minIntervalMs: POLL_INTERVAL_MS,
-      maxIntervalMs: POLL_MAX_INTERVAL_MS,
-    });
-    onPoll?.({
-      operation: 'sealoutput',
-      requestId,
-      attemptIndex,
-      elapsedMs,
-      intervalMs,
-      timeoutMs,
-    });
-
-    // Check timeout
-    if (elapsedMs > timeoutMs) {
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput polling timed out after ${timeoutMs}ms`,
-        hint: 'The request may still be processing. Try again later.',
-        context: {
-          thresholdNetworkUrl,
-          requestId,
-          timeoutMs,
-        },
-      });
-    }
-
-    let response: Response;
-    try {
-      response = await cofheFetch(
-        `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
-        /*op:sealoutput-poll*/ {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal,
-        }
-      );
-    } catch (e) {
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput status poll failed`,
-        hint: 'Ensure the threshold network URL is valid and reachable.',
-        cause: e instanceof Error ? e : undefined,
-        context: {
-          thresholdNetworkUrl,
-          requestId,
-        },
-      });
-    }
-
-    // Handle 404 - request not found
-    if (response.status === 404) {
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput request not found: ${requestId}`,
-        hint: 'The request may have expired or been invalid.',
-        context: {
-          thresholdNetworkUrl,
-          requestId,
-        },
-      });
-    }
-
-    // Handle other non-200 status codes
-    if (!response.ok) {
-      const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
-
-      throw new CofheError({
-        code: mapApiErrorCodeToCofheErrorCode(apiErrorCode, CofheErrorCode.SealOutputFailed),
-        apiErrorCode,
-        message: `sealOutput status poll failed: ${errorMessage}`,
-        context: {
-          thresholdNetworkUrl,
-          requestId,
-          status: response.status,
-          statusText: response.statusText,
-        },
-      });
-    }
-
-    let statusResponse: SealOutputStatusResponse;
-    try {
-      statusResponse = (await response.json()) as SealOutputStatusResponse;
-    } catch (e) {
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `Failed to parse sealOutput status response`,
-        cause: e instanceof Error ? e : undefined,
-        context: {
-          thresholdNetworkUrl,
-          requestId,
-        },
-      });
-    }
-
-    // Check if completed
-    if (statusResponse.status === 'COMPLETED') {
-      return parseCompletedSealOutputResponse({
-        value: statusResponse,
-        thresholdNetworkUrl,
-        requestId,
-      });
-    }
-
-    // Still processing, wait before next poll
-    await sleepUnlessAborted(intervalMs, signal, 'sealOutput');
-    attemptIndex += 1;
-  }
-
-  // This should never be reached, but TypeScript requires it
-  throw new CofheError({
-    code: CofheErrorCode.SealOutputFailed,
-    message: 'Polling loop exited unexpectedly',
-    context: {
-      thresholdNetworkUrl,
-      requestId,
-    },
-  });
-}
-
 export async function tnSealOutputV2(params: {
   ctHash: bigint | string;
   chainId: number;
   acp: ACPPublic;
   thresholdNetworkUrl: string;
-  retry404TimeoutMs?: number;
-  /** The whole budget, submit retries and status polling together; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
+  accessDeniedRetryTimeoutMs?: number;
+  /** The whole budget of the call, every retry included; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
   timeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
   /** Stops the decrypt at its next await: the pending fetch is aborted, and `execute()` rejects with `Aborted`. */
   signal?: AbortSignal;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll, signal } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll, signal } = params;
   const timeoutMs = params.timeoutMs ?? DEFAULT_DECRYPT_TIMEOUT_MS;
-  const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
-    timeoutMs: retry404TimeoutMs,
+  const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
+    timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'sealOutput',
     errorCode: CofheErrorCode.SealOutputFailed,
   });
-  const overallStartTime = Date.now();
-
-  // Step 1: Submit the request and get request_id
-  const submitResult = await submitSealOutputRequest(
+  return await submitSealOutputRequest(
     thresholdNetworkUrl,
     ctHash,
     chainId,
     acp,
-    overallStartTime,
-    normalized404RetryTimeoutMs,
-    timeoutMs,
-    onPoll,
-    signal
-  );
-
-  if (submitResult.kind === 'completed') {
-    return submitResult.sealed;
-  }
-
-  // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(
-    thresholdNetworkUrl,
-    submitResult.requestId,
-    overallStartTime,
+    Date.now(),
+    normalizedAccessDeniedRetryTimeoutMs,
     timeoutMs,
     onPoll,
     signal

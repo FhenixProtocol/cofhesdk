@@ -12,7 +12,7 @@ import type {
   EUint8,
 } from './fhenixMap';
 import {
-  getAbiFunction,
+  isAbiFunction,
   type IsUnion,
   type UnionToTuple,
   type ContractReturnType,
@@ -206,12 +206,37 @@ function internalTypeIsEncryptedReturnType(internalType: string): internalType i
   return ENCRYPTED_RETURN_TYPE_INTERNAL_TYPES.includes(internalType as any);
 }
 
+/**
+ * The overload the read was made with. Overloads are listed in selector order, so the first entry
+ * with that name may be another overload with other outputs. Picks by argument count; overloads
+ * left with the same outputs are interchangeable here. Throws if the args still leave overloads
+ * whose outputs differ, rather than transforming the result against the wrong ones.
+ */
+function getOutputFunction(abi: readonly unknown[], functionName: string, args: readonly unknown[] | undefined) {
+  const overloads = abi.filter((item): item is AbiFunction => isAbiFunction(item) && item.name === functionName);
+  if (overloads.length <= 1 || args == null) return overloads[0];
+
+  const candidates = overloads.filter((fn) => fn.inputs.length === args.length);
+  const outputs = new Set(candidates.map((fn) => JSON.stringify(fn.outputs)));
+  if (outputs.size !== 1) {
+    throw new Error(
+      `Function ${functionName} is overloaded and ${args.length} argument(s) do not select a single overload`
+    );
+  }
+  return candidates[0];
+}
+
+/**
+ * Wraps the encrypted values in a read result as `{ ctHash, utype }`. Pass the call's `args` when
+ * the function is overloaded, so the outputs come from the overload that was called.
+ */
 export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName,
-  data: ContractReturnType<TAbi, TFunctionName>
+  data: ContractReturnType<TAbi, TFunctionName>,
+  args?: readonly unknown[]
 ): CofheReturnType<TAbi, TFunctionName> {
-  const abiFunction = getAbiFunction(abi, functionName);
+  const abiFunction = getOutputFunction(abi, functionName, args);
   const outputs = abiFunction?.outputs;
   if (abiFunction == null || outputs == null) {
     throw new Error(`Function ${functionName} not found in ABI`);

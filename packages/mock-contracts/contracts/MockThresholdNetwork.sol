@@ -14,12 +14,19 @@ import { ACP, PermissionedUpgradeable } from './Permissioned.sol';
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
+  address private owner;
 
   error NotAllowed();
   error SealingKeyMissing();
   error SealingKeyInvalid();
 
   function initialize(address _taskManager, address _acl) public {
+    if (owner == address(0)) {
+      owner = msg.sender;
+    } else if (msg.sender != owner) {
+      revert NotAllowed();
+    }
+
     mockTaskManager = MockTaskManager(_taskManager);
     mockAcl = MockACL(_acl);
   }

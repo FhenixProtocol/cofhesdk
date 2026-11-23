@@ -105,3 +105,25 @@ export function mapApiErrorCodeToCofheErrorCode(
   }
   return fallback;
 }
+
+/**
+ * The backend code the threshold network answers with for a rejection reported by the mocks'
+ * `MockThresholdNetwork`, so decrypts on the mocks fail with the same `CofheErrorCode`. `undefined`
+ * for a reason it has no dedicated code for.
+ */
+export function mockRejectionToApiErrorCode(reason: string, withACP: boolean): BackendApiErrorCode | undefined {
+  if (!withACP) return reason === 'NotAllowed' ? 'not_publicly_allowed' : undefined;
+
+  switch (reason) {
+    case 'NotAllowed':
+    case 'PermissionInvalid_Disabled':
+      return 'acp_denied';
+    case 'PermissionInvalid_Expired':
+      return 'acp_expired';
+    case 'PermissionInvalid_IssuerSignature':
+    case 'PermissionInvalid_RecipientSignature':
+      return 'acp_invalid';
+    default:
+      return undefined;
+  }
+}

@@ -1,4 +1,5 @@
 import { renderToString } from 'react-dom/server';
+import { QueryClient, type QueryKey } from '@tanstack/react-query';
 import type { TransactionReceipt } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,7 +24,10 @@ const mocks = vi.hoisted(() => {
   });
 
   return {
-    queries: [] as Array<{ queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown> }>,
+    queries: [] as Array<{
+      queryKey: QueryKey;
+      queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown>;
+    }>,
     waitForTransactionReceipt: vi.fn(),
     resolveReceiptBlockHash: vi.fn(),
     invalidateQueries: vi.fn(),
@@ -137,6 +141,37 @@ describe('useTrackPendingTransactions', () => {
     expect(mocks.onTransactionMined).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['success', 'reverted'] as const)(
+    'tracks a %s transaction while its history receipt is already being fetched',
+    async (receiptStatus) => {
+      const receipt = minedReceipt(receiptStatus);
+      mocks.waitForTransactionReceipt.mockResolvedValue(receipt);
+      mocks.resolveReceiptBlockHash.mockResolvedValue(receipt);
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+
+      try {
+        // useTransactionReceiptsByHash reads this same receipt for the history UI.
+        // Keep its request in flight when the provider's pending watcher starts.
+        const historyRequest = queryClient.fetchQuery({
+          queryKey: ['tx-receipt', CHAIN_ID, TX_HASH],
+          queryFn: async () => receipt,
+        });
+        renderToString(<Probe />);
+        const watchRequest = queryClient.fetchQuery(mocks.queries[0]!);
+        await Promise.all([historyRequest, watchRequest]);
+
+        const expectedStatus = receiptStatus === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+        expect(useTransactionStore.getState().getTransaction(CHAIN_ID, TX_HASH)?.status).toBe(expectedStatus);
+        expect(mocks.onTransactionMined).toHaveBeenCalledTimes(1);
+        expect(mocks.waitForTransactionReceipt).toHaveBeenCalledTimes(1);
+        if (receiptStatus === 'success') expect(mocks.invalidateQueries).toHaveBeenCalled();
+        else expect(mocks.invalidateQueries).not.toHaveBeenCalled();
+      } finally {
+        queryClient.clear();
+      }
+    }
+  );
+
   it('keeps the tx pending when the query is cancelled while resolving the blockHash', async () => {
     mocks.waitForTransactionReceipt.mockResolvedValue(minedReceipt('success'));
     const controller = new AbortController();
@@ -149,10 +184,27 @@ describe('useTrackPendingTransactions', () => {
     expect(mocks.onTransactionMined).not.toHaveBeenCalled();
   });
 
-  it('marks the tx failed when the receipt cannot be fetched', async () => {
+  it('keeps the tx pending when the receipt cannot be fetched, and keeps retrying', async () => {
     mocks.waitForTransactionReceipt.mockRejectedValue(new Error('rpc down'));
 
-    expect(await runReceiptQuery()).toBe(TransactionStatus.Failed);
+    expect(await runReceiptQuery()).toBe(TransactionStatus.Pending);
     expect(mocks.onWatchReceiptFailure).toHaveBeenCalledTimes(1);
+    expect(mocks.onTransactionMined).not.toHaveBeenCalled();
+    const query = mocks.queries[0] as unknown as { retry: boolean; retryDelay: (attempt: number) => number };
+    expect(query.retry).toBe(true);
+    expect(query.retryDelay(0)).toBe(1000);
+    expect(query.retryDelay(10)).toBe(30_000);
+  });
+
+  it('reports a fetch failure once per tx', async () => {
+    mocks.waitForTransactionReceipt.mockRejectedValue(new Error('rpc down'));
+
+    renderToString(<Probe />);
+    const { queryFn } = mocks.queries[0]!;
+    // Two attempts of the same query, as react-query's retry makes them: one toast.
+    await queryFn({ signal: new AbortController().signal }).catch(() => undefined);
+    await queryFn({ signal: new AbortController().signal }).catch(() => undefined);
+    expect(mocks.onWatchReceiptFailure).toHaveBeenCalledTimes(1);
+    expect(useTransactionStore.getState().getTransaction(CHAIN_ID, TX_HASH)?.status).toBe(TransactionStatus.Pending);
   });
 });

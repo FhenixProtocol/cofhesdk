@@ -54,7 +54,6 @@ function fakeClient() {
     setAccount: vi.fn(() => builder),
     onPoll: vi.fn(() => builder),
     setTimeout: vi.fn(() => builder),
-    set404RetryTimeout: vi.fn(() => builder),
     withACP: vi.fn(() => builder),
     withoutACP: vi.fn(() => builder),
     execute: vi.fn(async () => result),
@@ -134,7 +133,6 @@ describe('useCofheDecryptForTx', () => {
           account: '0xabc',
           onPoll,
           timeoutMs: 20_000,
-          retry404TimeoutMs: 15_000,
         }}
       />
     );
@@ -145,7 +143,6 @@ describe('useCofheDecryptForTx', () => {
     expect(fake.builder.setAccount).toHaveBeenCalledWith('0xabc');
     expect(fake.builder.onPoll).toHaveBeenCalledWith(onPoll);
     expect(fake.builder.setTimeout).toHaveBeenCalledWith(20_000);
-    expect(fake.builder.set404RetryTimeout).toHaveBeenCalledWith(15_000);
   });
 
   it('is disabled without a handle, for the zero handle, without a client, or without a valid ACP', () => {

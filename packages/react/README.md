@@ -1,6 +1,6 @@
 # @cofhe/react
 
-React component and hook for the CoFHE SDK - featuring the advanced CofheEncryptInput component.
+React hooks and components for the CoFHE SDK.
 
 ## Installation
 
@@ -45,7 +45,7 @@ function App() {
 }
 ```
 
-If you do want the styled React UI components, import them from `@cofhe/react/ui`:
+The styled UI components in `@cofhe/react/ui` are internal: demo components for now, not a supported API. They may change in any release. To try them:
 
 ```tsx
 import { CofheProvider } from '@cofhe/react';
@@ -131,6 +131,8 @@ the user choose. The signer then follows the wallet they connected. See
 working connect menu.
 
 ## CofheEncryptInput Component
+
+> Internal: a demo component for now, not a supported API. It may change in any release. Encrypt inputs in your app with `useCofheEncrypt`.
 
 Advanced input component with integrated features:
 

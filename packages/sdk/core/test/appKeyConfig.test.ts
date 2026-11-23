@@ -48,6 +48,7 @@ const sharingOptions = { issuer: ACCOUNT, recipient: '0x000000000000000000000000
 describe('the app key from config.acp.app', () => {
   const spies = {
     defaults: vi.spyOn(acps, 'applyACPDefaultsFromChain').mockImplementation(async (options) => options),
+    blockTimestamp: vi.spyOn(acps, 'getLatestBlockTimestamp').mockResolvedValue(0),
     createSharing: vi.spyOn(acps, 'createSharing').mockResolvedValue({} as any),
     getOrCreate: vi.spyOn(acps, 'getOrCreateSharingACP').mockResolvedValue({} as any),
     shareOnChain: vi.spyOn(acps, 'shareOnChain').mockResolvedValue({ txHash: '0x', shareId: '0x' }),

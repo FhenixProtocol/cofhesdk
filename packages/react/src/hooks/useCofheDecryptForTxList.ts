@@ -23,8 +23,6 @@ export type UseCofheDecryptForTxListInput = {
   onPoll?: DecryptPollCallbackFunction;
   /** The decrypt's whole budget in milliseconds, submit retries and polling together (5 minutes by default). */
   timeoutMs?: number;
-  /** How long a submit-time `404 ct_not_found` (handle not indexed yet) is retried; 10 seconds by default. */
-  retry404TimeoutMs?: number;
   /** Consumer-supplied metadata for debug/activity views, one for all or one per entry. */
   meta?: CofheDecryptMeta | ((ctHash: bigint | string, index: number) => CofheDecryptMeta);
   /** Structural context from the originating read (address/method), for recognition. */
@@ -39,7 +37,7 @@ export type UseCofheDecryptForTxListInput = {
  * at once.
  */
 export function useCofheDecryptForTxList<TSelectedData = DecryptForTxResult>(
-  { inputs, acp, chainId, account, onPoll, timeoutMs, retry404TimeoutMs, meta, context }: UseCofheDecryptForTxListInput,
+  { inputs, acp, chainId, account, onPoll, timeoutMs, meta, context }: UseCofheDecryptForTxListInput,
   queryOptions?: Omit<UseQueryOptions<DecryptForTxResult, Error, TSelectedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSelectedData, Error>[] {
   const { client } = useCofheContext();
@@ -78,7 +76,6 @@ export function useCofheDecryptForTxList<TSelectedData = DecryptForTxResult>(
         scoped: effectiveACP.scoped,
         onPoll,
         timeoutMs,
-        retry404TimeoutMs,
         meta: typeof meta === 'function' ? (ctHash !== undefined ? meta(ctHash, index) : undefined) : meta,
         context,
       });

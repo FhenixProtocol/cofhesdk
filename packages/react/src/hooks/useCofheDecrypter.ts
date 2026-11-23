@@ -66,8 +66,6 @@ export type CofheDecryptForTxFnOptions = CofheDecryptForViewFnOptions & {
   acp?: null;
   /** The account whose stored ACPs resolve the active ACP; the connected account by default. */
   account?: string;
-  /** How long a submit-time `404 ct_not_found` (handle not indexed yet) is retried; 10 seconds by default. */
-  retry404TimeoutMs?: number;
 };
 
 /** Decrypts one handle into a plaintext with the network's signature; see `useCofheDecrypter`. */
@@ -264,7 +262,6 @@ export function useCofheDecrypter({
         scoped,
         onPoll: options?.onPoll,
         timeoutMs: options?.timeoutMs,
-        retry404TimeoutMs: options?.retry404TimeoutMs,
         signal: options?.signal,
         meta: options?.meta,
         context: options?.context,

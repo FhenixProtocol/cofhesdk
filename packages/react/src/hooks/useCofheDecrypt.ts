@@ -139,7 +139,7 @@ export function useDropDecryptsOfInvalidACP(effectiveACP: CofheEffectiveACP): vo
 /**
  * Hook to decrypt a ciphertext using the Cofhe client.
  * @param input - Ciphertext and FHE type
- * @param onPoll - Optional callback fired once per decryption poll attempt
+ * @param onPoll - Optional callback fired before each retry of the decrypt request
  * @param chainId - Chain the ciphertext lives on (default: the connected chain)
  * @param acp - ACP to decrypt with (default: the enclosing `<CofheACPScope>`, else the active ACP)
  * @param timeoutMs - The decrypt's whole budget, submit retries and polling together (default: 5 minutes)

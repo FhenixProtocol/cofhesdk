@@ -47,7 +47,7 @@ const config = createCofheConfig({
   supportedChains: [chains.sepolia],
 
   // Optional knobs
-  // defaultACPExpiration: 60 * 60 * 24 * 30,
+  // defaultACPExpiration: 60 * 60 * 24 * 7,
   // decryptConcurrency: 8, // decrypts in flight to the threshold network at a time; Infinity disables
   // useWorkers: true,
   // tfheThreads: 'auto',
@@ -97,12 +97,15 @@ If you're using another wallet/provider stack, see below for `@cofhe/sdk/adapter
 
 Connecting initializes the SDK's in-memory connection state (`account`, `chainId`, and the viem clients).
 
+The wallet client must have its `account` set: the SDK signs ACPs and sends transactions as that account. `connect` throws `WALLET_CLIENT_ACCOUNT_MISSING` for a wallet client without one. Wagmi's wallet client and the adapters below already set it.
+
 ```ts twoslash
 // @noErrorValidation
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import type { PublicClient, WalletClient } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
@@ -114,6 +117,7 @@ const publicClient: PublicClient = createPublicClient({
 });
 
 const walletClient: WalletClient = createWalletClient({
+  account: privateKeyToAccount('0x…'), // or the address of the user's browser wallet
   chain: sepolia,
   transport: http(),
 });
@@ -197,6 +201,7 @@ const wagmiPublicClient = createPublicClient({
   transport: http(),
 });
 const wagmiWalletClient = createWalletClient({
+  account: '0x…', // wagmi's wallet client carries the connected account
   chain: sepolia,
   transport: http(),
 });

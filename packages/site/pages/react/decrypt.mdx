@@ -124,7 +124,7 @@ Calls run at most `concurrency` at a time (4 by default), so `Promise.all` over 
 
 `isReady` is `false` without a client or a valid ACP; `decryptForView` then rejects with a `CofheError` (`ACPRequired` / `ACPExpired`) and sends nothing. The returned `acp` says why. A SNAPSHOT share that does not list the handle rejects with `ACPDenied`. A zero handle — a value never set on chain — resolves to the type's zero without a request.
 
-It also returns `decryptForTx(ctHash, options)`: the same for a proof (see below), through the cache of `useCofheDecryptForTx`. It takes the options above plus `account`, `retry404TimeoutMs` and `acp: null` for a publicly allowed handle, which then needs only the client, not `isReady`. The zero handle rejects: there is nothing to prove.
+It also returns `decryptForTx(ctHash, options)`: the same for a proof (see below), through the cache of `useCofheDecryptForTx`. It takes the options above plus `account` and `acp: null` for a publicly allowed handle, which then needs only the client, not `isReady`. The zero handle rejects: there is nothing to prove.
 
 ## `useCofheDecryptForTx` — a plaintext with proof
 
@@ -146,4 +146,4 @@ function ClaimButton({ handle }: { handle: `0x${string}` }) {
 
 In a click handler that first discovers the handle, fetch the proof through the same cache with `useCofheDecrypter().decryptForTx(ctHash, { acp: null })`.
 
-`acp` chooses the mode: `null` for a publicly allowed handle (`withoutACP()`, which then needs no ACP at all), omitted for the enclosing scope or the active ACP, or an ACP / stored hash. `chainId`, `account`, `onPoll`, `timeoutMs` and `retry404TimeoutMs` map onto the builder; `meta` and `context` and any React Query option work as on `useCofheDecrypt`. A proof decrypted with the user own ACP, or with none, persists across reloads; one decrypted with a shared ACP stays in memory and goes with the share.
+`acp` chooses the mode: `null` for a publicly allowed handle (`withoutACP()`, which then needs no ACP at all), omitted for the enclosing scope or the active ACP, or an ACP / stored hash. `chainId`, `account`, `onPoll` and `timeoutMs` map onto the builder; `meta` and `context` and any React Query option work as on `useCofheDecrypt`. A proof decrypted with the user own ACP, or with none, persists across reloads; one decrypted with a shared ACP stays in memory and goes with the share.

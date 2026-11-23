@@ -55,6 +55,7 @@ abstract contract CofheTest is Test {
     deployCodeTo('MockTaskManager.sol:MockTaskManager', MOCKS_TASK_MANAGER_ADDRESS);
     mockTaskManager = MockTaskManager(MOCKS_TASK_MANAGER_ADDRESS);
     mockAddressBook.setTm(TASK_MANAGER_ID, MOCKS_TASK_MANAGER_ADDRESS);
+    vm.prank(TM_ADMIN);
     mockTaskManager.initialize(TM_ADMIN);
     mockTaskManager.setLogOps(false);
     // Exclude mock-only plaintext replication from gas metering so reported gas is closer

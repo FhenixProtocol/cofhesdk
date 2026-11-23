@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import { createHardhatRuntimeEnvironment } from 'hardhat/hre';
@@ -80,5 +80,52 @@ describe('cofhe.logMocks config', () => {
       functionName: 'logOps',
     });
     assert.equal(logOps, true);
+  });
+
+  it('logMocks: true turns logging back on when cofhe.mocks.deployMocks() re-deploys', async () => {
+    const hre = await createHardhatRuntimeEnvironment(
+      {
+        solidity: { version: '0.8.28' },
+        plugins: [cofhePlugin, hardhatViem],
+        cofhe: { logMocks: true, mocksDeployVerbosity: '' },
+      },
+      {},
+      process.cwd()
+    );
+    const { viem, cofhe } = await hre.network.connect();
+    const publicClient = await viem.getPublicClient();
+
+    await cofhe.mocks.disableLogs();
+    await cofhe.mocks.deployMocks();
+
+    const logOps = await publicClient.readContract({
+      address: MOCKS_TASK_MANAGER_ADDRESS,
+      abi: [{ name: 'logOps', type: 'function', inputs: [], outputs: [{ type: 'bool' }], stateMutability: 'view' }],
+      functionName: 'logOps',
+    });
+    assert.equal(logOps, true);
+  });
+});
+
+describe('cofhe.mocks.deployMocks() output', () => {
+  it('follows gasWarning and mocksDeployVerbosity from the config', async () => {
+    const hre = await createHardhatRuntimeEnvironment(
+      {
+        solidity: { version: '0.8.28' },
+        plugins: [cofhePlugin, hardhatViem],
+        cofhe: { gasWarning: false, mocksDeployVerbosity: '' },
+      },
+      {},
+      process.cwd()
+    );
+    const { cofhe } = await hre.network.connect();
+
+    const consoleLog = mock.method(console, 'log', () => {});
+    try {
+      await cofhe.mocks.deployMocks();
+      assert.equal(consoleLog.mock.callCount(), 0);
+    } finally {
+      consoleLog.mock.restore();
+    }
   });
 });

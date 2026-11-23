@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { Address } from 'viem';
 import { ACPScope, ACPUtils, type ACP, type ACPAccessStatus } from '@cofhe/sdk/acps';
 import { useCofheContext, useInternalQuery } from '@/providers';
-import { useCofheACP, useCofheActiveACP } from './useCofheACPs';
+import { useCofheACP, useCofheActiveACP, useNowAtExpiry } from './useCofheACPs';
 import { useCofheConnection } from './useCofheConnection';
 
 /** An ACP, or the hash of an ACP stored for the connected account. */
@@ -52,23 +52,6 @@ function useResolvedACP(input: CofheACPInput | undefined, chainId?: number): ACP
 }
 
 /**
- * Re-render once `acp` has expired, so a validity computed at render catches the expiry while
- * the view stays mounted. Returns a counter to add to the memo dependencies.
- */
-function useRerenderAtExpiry(acp: ACP | undefined): number {
-  const [tick, bump] = useReducer((n: number) => n + 1, 0);
-  const expiration = acp?.expiration;
-  useEffect(() => {
-    if (expiration === undefined) return;
-    const ms = expiration * 1000 - Date.now() + 1000;
-    if (ms <= 0) return;
-    const id = setTimeout(bump, Math.min(ms, 2_147_483_647));
-    return () => clearTimeout(id);
-  }, [expiration]);
-  return tick;
-}
-
-/**
  * A chosen ACP status: local checks first (present, signed, unexpired), then the ACL on chain,
  * re-checked every minute and on window focus so a revocation shows up while the view is open.
  * On a chain other than the connected one the on-chain check is skipped (the client reads the
@@ -77,9 +60,8 @@ function useRerenderAtExpiry(acp: ACP | undefined): number {
 function useChosenACPStatus(acp: ACP | undefined, chainId?: number): CofheACPStatus {
   const { client } = useCofheContext();
   const connection = useCofheConnection();
-  const expiryTick = useRerenderAtExpiry(acp);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const locallyValid = useMemo(() => !!acp && ACPUtils.isValid(acp).valid, [acp, expiryTick]);
+  const now = useNowAtExpiry(acp);
+  const locallyValid = useMemo(() => !!acp && ACPUtils.isValid(acp, now).valid, [acp, now]);
   const onConnectedChain = chainId === undefined || chainId === connection.chainId;
   const effectiveChainId = chainId ?? connection.chainId;
 

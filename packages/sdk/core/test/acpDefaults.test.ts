@@ -3,6 +3,7 @@ import { acps } from '../acps.js';
 import { clearTaskManagerAddressCache } from '../taskManager.js';
 
 type ScopeOpts = {
+  expiration?: number;
   revokerData?: number;
   revokerContract?: string;
   scope?: number;
@@ -110,8 +111,45 @@ describe('applyACPDefaults', () => {
     } as any;
 
     await expect(acps.applyACPDefaultsFromChain(opts({}), undefined, publicClient, CHAIN)).rejects.toThrow(
-      /ACP revokerData cannot represent the chain block timestamp .* as a safe integer/
+      /ACP defaults cannot represent the chain block timestamp .* as a safe integer/
     );
+  });
+
+  it('sets the expiration that many seconds after the block it reads for the revoker', async () => {
+    const latestBlockTimestamp = 1_700_000_002;
+    const publicClient = {
+      readContract: vi.fn(),
+      getBlock: vi.fn().mockResolvedValue({ timestamp: BigInt(latestBlockTimestamp) }),
+    } as any;
+
+    const result = await acps.applyACPDefaultsFromChain(opts({}), acpConfig, publicClient, CHAIN, 3600);
+
+    expect(publicClient.getBlock).toHaveBeenCalledTimes(1);
+    expect(result.expiration).toBe(latestBlockTimestamp + 3600);
+    expect(result.revokerData).toBe(latestBlockTimestamp);
+  });
+
+  it('reads the block for the expiration when no revoker is injected', async () => {
+    const result = await acps.applyACPDefaultsFromChain(opts({}), undefined, noAclClient(), CHAIN, 3600);
+    expect(result).toEqual({ expiration: 1_700_000_000 + 3600 });
+  });
+
+  it('keeps an explicit expiration and avoids getBlock when nothing else needs it', async () => {
+    const publicClient = {
+      readContract: vi.fn(),
+      getBlock: vi.fn(),
+    } as any;
+
+    const result = await acps.applyACPDefaultsFromChain(
+      opts({ expiration: 42, revokerData: 42, revokerContract: CONTRACT_A }),
+      acpConfig,
+      publicClient,
+      CHAIN,
+      3600
+    );
+
+    expect(publicClient.getBlock).not.toHaveBeenCalled();
+    expect(result.expiration).toBe(42);
   });
 
   it('injects default contract scopes when no scope options given', async () => {

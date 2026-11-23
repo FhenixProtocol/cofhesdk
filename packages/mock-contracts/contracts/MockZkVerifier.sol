@@ -55,11 +55,12 @@ contract MockZkVerifier {
     address user,
     uint8 utype,
     uint8 securityZone,
-    uint256 input
-  ) internal view returns (uint256) {
+    uint256 input,
+    uint256 _salt
+  ) internal pure returns (uint256) {
     bytes memory combined = bytes.concat(uint256ToBytes32(input));
     combined = bytes.concat(combined, uint256ToBytes32(uint256(uint160(user))));
-    combined = bytes.concat(combined, keccak256(abi.encodePacked(salt)));
+    combined = bytes.concat(combined, keccak256(abi.encodePacked(_salt)));
 
     // Calculate Keccak256 hash
     bytes32 ctHash = keccak256(combined);
@@ -82,9 +83,23 @@ contract MockZkVerifier {
 
     ctHashes = new uint256[](utypes.length);
 
+    // `insertPackedCtHashes` advances the salt once per item, so item `i` is calculated with the
+    // salt it is inserted at. Using the current salt for every item would give equal values in
+    // one batch the same ctHash.
     for (uint256 i = 0; i < utypes.length; i++) {
-      ctHashes[i] = zkVerifyCalcCtHash(values[i], utypes[i], user, securityZone, chainId);
+      ctHashes[i] = _zkVerifyCalcCtHash(values[i], utypes[i], user, securityZone, chainId, salt + i);
     }
+  }
+
+  function _zkVerifyCalcCtHash(
+    uint256 value,
+    uint8 utype,
+    address user,
+    uint8 securityZone,
+    uint256,
+    uint256 _salt
+  ) private pure returns (uint256 ctHash) {
+    ctHash = _calcPlaceholderKey(user, utype, securityZone, value, _salt);
   }
 
   function zkVerifyCalcCtHash(
@@ -94,7 +109,7 @@ contract MockZkVerifier {
     uint8 securityZone,
     uint256
   ) public view returns (uint256 ctHash) {
-    ctHash = _calcPlaceholderKey(user, utype, securityZone, value);
+    ctHash = _calcPlaceholderKey(user, utype, securityZone, value, salt);
   }
 
   function insertPackedCtHashes(uint256[] memory ctHashes, uint256[] memory values) public {
@@ -133,7 +148,7 @@ contract MockZkVerifier {
     uint8 securityZone,
     uint256
   ) public returns (EncryptedInput memory) {
-    uint256 ctHash = _calcPlaceholderKey(user, utype, securityZone, value);
+    uint256 ctHash = _calcPlaceholderKey(user, utype, securityZone, value, salt);
     insertCtHash(ctHash, value);
     return EncryptedInput({ ctHash: ctHash, securityZone: securityZone, utype: utype, signature: hex'' });
   }

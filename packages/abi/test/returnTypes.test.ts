@@ -210,3 +210,74 @@ describe('transformEncryptedReturnTypes: struct arrays', () => {
     ).toThrow(/size mismatch/i);
   });
 });
+
+// Overloaded view functions: the ABI lists them in selector order, so the overload that was
+// called is not necessarily the first entry with that name.
+const OverloadedReadABI = [
+  {
+    type: 'function',
+    name: 'amountOf',
+    inputs: [
+      { name: 'id', type: 'uint256', internalType: 'uint256' },
+      { name: 'account', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint64' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'amountOf',
+    inputs: [{ name: 'id', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'ownerOf',
+    inputs: [{ name: 'id', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'ownerOf',
+    inputs: [{ name: 'key', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'valueOf',
+    inputs: [{ name: 'id', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'valueOf',
+    inputs: [{ name: 'key', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
+    stateMutability: 'view',
+  },
+] as const;
+
+describe('transformEncryptedReturnTypes: overloaded functions', () => {
+  it('transforms the outputs of the overload the args select, not the first one', () => {
+    expect(transformEncryptedReturnTypes(OverloadedReadABI, 'amountOf', 5n, [1n])).toEqual(5n);
+    expect(
+      transformEncryptedReturnTypes(OverloadedReadABI, 'amountOf', '0x1', [
+        1n,
+        '0xaaaa000000000000000000000000000000000001',
+      ])
+    ).toEqual({ ctHash: '0x1', utype: FheTypes.Uint64 });
+  });
+
+  it('accepts same-arity overloads when their outputs agree', () => {
+    const owner = '0xaaaa000000000000000000000000000000000001';
+    expect(transformEncryptedReturnTypes(OverloadedReadABI, 'ownerOf', owner, [1n])).toEqual(owner);
+  });
+
+  it('rejects args that leave overloads with different outputs', () => {
+    expect(() => transformEncryptedReturnTypes(OverloadedReadABI, 'valueOf', '0x1', [1n])).toThrow(/overloaded/);
+  });
+});

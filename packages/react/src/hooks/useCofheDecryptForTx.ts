@@ -46,7 +46,6 @@ export function cofheDecryptForTxQuery(params: {
   scoped: boolean;
   onPoll?: DecryptPollCallbackFunction;
   timeoutMs?: number;
-  retry404TimeoutMs?: number;
   /** The caller's abort signal; React Query's own (query cancelled) is joined to it in `queryFn`. */
   signal?: AbortSignal;
   meta?: CofheDecryptMeta;
@@ -57,8 +56,7 @@ export function cofheDecryptForTxQuery(params: {
   // Also a plain record: that is what `fetchQuery` and `useQuery` type `meta` as.
   meta: Record<string, unknown> & CofheQueryMeta & { persist: boolean };
 } {
-  const { client, ctHash, decryptChainId, chainId, account, acp, scoped, onPoll, timeoutMs, retry404TimeoutMs } =
-    params;
+  const { client, ctHash, decryptChainId, chainId, account, acp, scoped, onPoll, timeoutMs } = params;
   const { signal, meta, context } = params;
   const scopedACP = scoped && acp ? acp : undefined;
   return {
@@ -74,7 +72,6 @@ export function cofheDecryptForTxQuery(params: {
       if (account !== undefined) builder.setAccount(account);
       if (onPoll) builder.onPoll(onPoll);
       if (timeoutMs !== undefined) builder.setTimeout(timeoutMs);
-      if (retry404TimeoutMs !== undefined) builder.set404RetryTimeout(retry404TimeoutMs);
       const abort = anySignal([signal, queryContext?.signal]);
       if (abort) builder.setSignal(abort);
       const selected = acp === null ? builder.withoutACP() : scopedACP ? builder.withACP(scopedACP) : builder.withACP();
@@ -114,8 +111,6 @@ export type UseCofheDecryptForTxInput = {
   onPoll?: DecryptPollCallbackFunction;
   /** The decrypt's whole budget in milliseconds, submit retries and polling together (5 minutes by default). */
   timeoutMs?: number;
-  /** How long a submit-time `404 ct_not_found` (handle not indexed yet) is retried; 10 seconds by default. */
-  retry404TimeoutMs?: number;
   /** Consumer-supplied metadata for debug/activity views. */
   meta?: CofheDecryptMeta;
   /** Structural context from the originating read (address/method), for recognition. */
@@ -133,7 +128,7 @@ export type UseCofheDecryptForTxInput = {
  * rather than prompting for one — unless `acp` is `null`, when no ACP is involved at all.
  */
 export function useCofheDecryptForTx<TSelectedData = DecryptForTxResult>(
-  { ctHash, acp, chainId, account, onPoll, timeoutMs, retry404TimeoutMs, meta, context }: UseCofheDecryptForTxInput,
+  { ctHash, acp, chainId, account, onPoll, timeoutMs, meta, context }: UseCofheDecryptForTxInput,
   queryOptions?: Omit<UseQueryOptions<DecryptForTxResult, Error, TSelectedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSelectedData, Error> {
   const { client } = useCofheContext();
@@ -172,7 +167,6 @@ export function useCofheDecryptForTx<TSelectedData = DecryptForTxResult>(
     scoped: effectiveACP.scoped,
     onPoll,
     timeoutMs,
-    retry404TimeoutMs,
     meta,
     context,
   });
