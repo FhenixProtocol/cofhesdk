@@ -15,7 +15,7 @@ export type CofheConfig = {
   environment: 'node' | 'hardhat' | 'web' | 'react';
   /** List of supported chains */
   supportedChains: CofheChain[];
-  /** Default acp expiration in seconds, default is 30 days */
+  /** How long the acps the client creates last, in seconds after the latest block. Default is 7 days */
   defaultACPExpiration: number;
   /**
    * Storage scheme for the fetched fhe keys
@@ -112,24 +112,28 @@ export const CofheConfigSchema = z.object({
   environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** Default acp expiration in seconds, default is 30 days */
+  /** How long the acps the client creates last, in seconds after the latest block. Default is 7 days */
   defaultACPExpiration: z
     .number()
+    .int()
+    .positive()
     .optional()
-    .default(60 * 60 * 24 * 30),
-  /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
+    .default(60 * 60 * 24 * 7),
+  /**
+   * Storage method for fhe keys (defaults to indexedDB on web, filesystem on node).
+   * Validated in place rather than with z.object, which would copy the methods onto a new
+   * object and detach them from a class instance.
+   */
   fheKeyStorage: z
-    .object({
-      getItem: z.custom<IStorage['getItem']>((val) => typeof val === 'function', {
-        message: 'getItem must be a function',
-      }),
-      setItem: z.custom<IStorage['setItem']>((val) => typeof val === 'function', {
-        message: 'setItem must be a function',
-      }),
-      removeItem: z.custom<IStorage['removeItem']>((val) => typeof val === 'function', {
-        message: 'removeItem must be a function',
-      }),
-    })
+    .custom<IStorage>(
+      (val) =>
+        typeof val === 'object' &&
+        val !== null &&
+        typeof (val as IStorage).getItem === 'function' &&
+        typeof (val as IStorage).setItem === 'function' &&
+        typeof (val as IStorage).removeItem === 'function',
+      { message: 'fheKeyStorage must have getItem, setItem and removeItem functions' }
+    )
     .or(z.null())
     .default(null),
   /** Whether to use Web Workers for ZK proof generation (web platform only) */
@@ -147,6 +151,7 @@ export const CofheConfigSchema = z.object({
       sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
       app: z.string().min(1).optional(),
     })
+    .strict()
     .optional()
     .default({}),
   /** Mocks configs */
@@ -158,6 +163,7 @@ export const CofheConfigSchema = z.object({
         .optional()
         .default([100, 100, 100, 500, 500]),
     })
+    .strict()
     .optional()
     .default({ decryptDelay: 0, encryptDelay: [100, 100, 100, 500, 500] }),
   /** Internal configuration */
@@ -204,8 +210,9 @@ export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<st
 export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
   assertNoRenamedConfigKeys(config, RENAMED_COFHE_CONFIG_KEYS, 'cofhe configuration');
 
-  // .strict(): reject unknown keys instead of stripping them - a stale or typo'd key is an error,
-  // not a silent no-op that leaves the caller on a default they didn't ask for.
+  // .strict(): reject unknown keys instead of stripping them (`acp` and `mocks` are strict in the
+  // schema too) - a stale or typo'd key is an error, not a silent no-op that leaves the caller on a
+  // default they didn't ask for.
   const result = CofheConfigSchema.strict().safeParse(config);
 
   if (!result.success) {

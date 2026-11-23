@@ -248,6 +248,17 @@ describe('ACPUtils Tests', () => {
       expect(acp.recipientSignature).toBe('0x');
       expect(acp._signedDomain).toBeDefined();
     });
+
+    it('should reject an issuer that is not the signing account', async () => {
+      const options: CreateSelfACPOptions = {
+        issuer: aliceAddress,
+        name: 'Test ACP',
+      };
+
+      await expect(ACPUtils.createSelfAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /Cannot sign an ACP for issuer/
+      );
+    });
   });
 
   describe('createSharingAndSign', () => {
@@ -265,6 +276,18 @@ describe('ACPUtils Tests', () => {
       expect(acp.issuerSignature).not.toBe('0x');
       expect(acp.recipientSignature).toBe('0x');
       expect(acp._signedDomain).toBeDefined();
+    });
+
+    it('should reject an issuer that is not the signing account', async () => {
+      const options: CreateSharingACPOptions = {
+        issuer: aliceAddress,
+        recipient: bobAddress,
+        name: 'Test Sharing ACP',
+      };
+
+      await expect(ACPUtils.createSharingAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /Cannot sign an ACP for issuer/
+      );
     });
   });
 
@@ -319,6 +342,48 @@ describe('ACPUtils Tests', () => {
       expect(acp.recipientSignature).toBeDefined();
       expect(acp.recipientSignature).not.toBe('0x');
       expect(acp._signedDomain).toBeDefined();
+    });
+
+    it('should reject a share addressed to another account', async () => {
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600,
+        issuerSignature: '0x1234567890abcdef',
+      };
+
+      await expect(ACPUtils.importSharedAndSign(options, publicClient, bobWalletClient)).rejects.toThrow(
+        /addressed to/
+      );
+    });
+
+    it('should reject an expired share', async () => {
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) - 60,
+        issuerSignature: '0x1234567890abcdef',
+      };
+
+      await expect(ACPUtils.importSharedAndSign(options, publicClient, aliceWalletClient)).rejects.toThrow(
+        'Cannot import an expired share'
+      );
+    });
+
+    it('should reject a share expired at the latest block though not by the local clock', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const options: ImportSharedACPOptions = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        expiration: now + 3600,
+        issuerSignature: '0x1234567890abcdef',
+      };
+      // A chain clock 2 hours ahead of the local one, as in a Hardhat test after `time.increase`.
+      const chainAhead = { getBlock: async () => ({ timestamp: BigInt(now + 7200) }) } as unknown as PublicClient;
+
+      await expect(ACPUtils.importSharedAndSign(options, chainAhead, aliceWalletClient)).rejects.toThrow(
+        'Cannot import an expired share'
+      );
     });
   });
 

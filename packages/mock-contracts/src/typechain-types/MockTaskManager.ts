@@ -132,12 +132,17 @@ export interface MockTaskManagerInterface extends Interface {
 
   getEvent(
     nameOrSignatureOrTopic:
+      | 'ACLContractChanged'
       | 'AccessGranted'
       | 'AccessRevoked'
+      | 'DecryptResultSignerChanged'
       | 'DecryptionResult'
+      | 'InputVerified'
       | 'MockGasConsumed'
       | 'ProtocolNotification'
+      | 'SecurityZonesChanged'
       | 'TaskCreated'
+      | 'VerifierSignerChanged'
   ): EventFragment;
 
   encodeFunctionData(
@@ -267,6 +272,19 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'verifyDecryptResultSafe', data: BytesLike): Result;
 }
 
+export namespace ACLContractChangedEvent {
+  export type InputTuple = [oldACL: AddressLike, newACL: AddressLike];
+  export type OutputTuple = [oldACL: string, newACL: string];
+  export interface OutputObject {
+    oldACL: string;
+    newACL: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace AccessGrantedEvent {
   export type InputTuple = [account: AddressLike];
   export type OutputTuple = [account: string];
@@ -291,6 +309,19 @@ export namespace AccessRevokedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace DecryptResultSignerChangedEvent {
+  export type InputTuple = [oldSigner: AddressLike, newSigner: AddressLike];
+  export type OutputTuple = [oldSigner: string, newSigner: string];
+  export interface OutputObject {
+    oldSigner: string;
+    newSigner: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace DecryptionResultEvent {
   export type InputTuple = [ctHash: BigNumberish, result: BigNumberish, requestor: AddressLike];
   export type OutputTuple = [ctHash: bigint, result: bigint, requestor: string];
@@ -298,6 +329,19 @@ export namespace DecryptionResultEvent {
     ctHash: bigint;
     result: bigint;
     requestor: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace InputVerifiedEvent {
+  export type InputTuple = [ctHash: BigNumberish, commitment: BytesLike];
+  export type OutputTuple = [ctHash: bigint, commitment: string];
+  export interface OutputObject {
+    ctHash: bigint;
+    commitment: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -331,6 +375,21 @@ export namespace ProtocolNotificationEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace SecurityZonesChangedEvent {
+  export type InputTuple = [oldMin: BigNumberish, oldMax: BigNumberish, newMin: BigNumberish, newMax: BigNumberish];
+  export type OutputTuple = [oldMin: bigint, oldMax: bigint, newMin: bigint, newMax: bigint];
+  export interface OutputObject {
+    oldMin: bigint;
+    oldMax: bigint;
+    newMin: bigint;
+    newMax: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace TaskCreatedEvent {
   export type InputTuple = [
     ctHash: BigNumberish,
@@ -346,6 +405,19 @@ export namespace TaskCreatedEvent {
     input1: bigint;
     input2: bigint;
     input3: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VerifierSignerChangedEvent {
+  export type InputTuple = [oldSigner: AddressLike, newSigner: AddressLike];
+  export type OutputTuple = [oldSigner: string, newSigner: string];
+  export interface OutputObject {
+    oldSigner: string;
+    newSigner: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -680,11 +752,25 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractMethod<[ctHash: BigNumberish, result: BigNumberish, signature: BytesLike], [boolean], 'view'>;
 
   getEvent(
+    key: 'ACLContractChanged'
+  ): TypedContractEvent<
+    ACLContractChangedEvent.InputTuple,
+    ACLContractChangedEvent.OutputTuple,
+    ACLContractChangedEvent.OutputObject
+  >;
+  getEvent(
     key: 'AccessGranted'
   ): TypedContractEvent<AccessGrantedEvent.InputTuple, AccessGrantedEvent.OutputTuple, AccessGrantedEvent.OutputObject>;
   getEvent(
     key: 'AccessRevoked'
   ): TypedContractEvent<AccessRevokedEvent.InputTuple, AccessRevokedEvent.OutputTuple, AccessRevokedEvent.OutputObject>;
+  getEvent(
+    key: 'DecryptResultSignerChanged'
+  ): TypedContractEvent<
+    DecryptResultSignerChangedEvent.InputTuple,
+    DecryptResultSignerChangedEvent.OutputTuple,
+    DecryptResultSignerChangedEvent.OutputObject
+  >;
   getEvent(
     key: 'DecryptionResult'
   ): TypedContractEvent<
@@ -692,6 +778,9 @@ export interface MockTaskManager extends BaseContract {
     DecryptionResultEvent.OutputTuple,
     DecryptionResultEvent.OutputObject
   >;
+  getEvent(
+    key: 'InputVerified'
+  ): TypedContractEvent<InputVerifiedEvent.InputTuple, InputVerifiedEvent.OutputTuple, InputVerifiedEvent.OutputObject>;
   getEvent(
     key: 'MockGasConsumed'
   ): TypedContractEvent<
@@ -707,10 +796,35 @@ export interface MockTaskManager extends BaseContract {
     ProtocolNotificationEvent.OutputObject
   >;
   getEvent(
+    key: 'SecurityZonesChanged'
+  ): TypedContractEvent<
+    SecurityZonesChangedEvent.InputTuple,
+    SecurityZonesChangedEvent.OutputTuple,
+    SecurityZonesChangedEvent.OutputObject
+  >;
+  getEvent(
     key: 'TaskCreated'
   ): TypedContractEvent<TaskCreatedEvent.InputTuple, TaskCreatedEvent.OutputTuple, TaskCreatedEvent.OutputObject>;
+  getEvent(
+    key: 'VerifierSignerChanged'
+  ): TypedContractEvent<
+    VerifierSignerChangedEvent.InputTuple,
+    VerifierSignerChangedEvent.OutputTuple,
+    VerifierSignerChangedEvent.OutputObject
+  >;
 
   filters: {
+    'ACLContractChanged(address,address)': TypedContractEvent<
+      ACLContractChangedEvent.InputTuple,
+      ACLContractChangedEvent.OutputTuple,
+      ACLContractChangedEvent.OutputObject
+    >;
+    ACLContractChanged: TypedContractEvent<
+      ACLContractChangedEvent.InputTuple,
+      ACLContractChangedEvent.OutputTuple,
+      ACLContractChangedEvent.OutputObject
+    >;
+
     'AccessGranted(address)': TypedContractEvent<
       AccessGrantedEvent.InputTuple,
       AccessGrantedEvent.OutputTuple,
@@ -733,6 +847,17 @@ export interface MockTaskManager extends BaseContract {
       AccessRevokedEvent.OutputObject
     >;
 
+    'DecryptResultSignerChanged(address,address)': TypedContractEvent<
+      DecryptResultSignerChangedEvent.InputTuple,
+      DecryptResultSignerChangedEvent.OutputTuple,
+      DecryptResultSignerChangedEvent.OutputObject
+    >;
+    DecryptResultSignerChanged: TypedContractEvent<
+      DecryptResultSignerChangedEvent.InputTuple,
+      DecryptResultSignerChangedEvent.OutputTuple,
+      DecryptResultSignerChangedEvent.OutputObject
+    >;
+
     'DecryptionResult(uint256,uint256,address)': TypedContractEvent<
       DecryptionResultEvent.InputTuple,
       DecryptionResultEvent.OutputTuple,
@@ -742,6 +867,17 @@ export interface MockTaskManager extends BaseContract {
       DecryptionResultEvent.InputTuple,
       DecryptionResultEvent.OutputTuple,
       DecryptionResultEvent.OutputObject
+    >;
+
+    'InputVerified(uint256,bytes32)': TypedContractEvent<
+      InputVerifiedEvent.InputTuple,
+      InputVerifiedEvent.OutputTuple,
+      InputVerifiedEvent.OutputObject
+    >;
+    InputVerified: TypedContractEvent<
+      InputVerifiedEvent.InputTuple,
+      InputVerifiedEvent.OutputTuple,
+      InputVerifiedEvent.OutputObject
     >;
 
     'MockGasConsumed(uint256)': TypedContractEvent<
@@ -766,6 +902,17 @@ export interface MockTaskManager extends BaseContract {
       ProtocolNotificationEvent.OutputObject
     >;
 
+    'SecurityZonesChanged(int32,int32,int32,int32)': TypedContractEvent<
+      SecurityZonesChangedEvent.InputTuple,
+      SecurityZonesChangedEvent.OutputTuple,
+      SecurityZonesChangedEvent.OutputObject
+    >;
+    SecurityZonesChanged: TypedContractEvent<
+      SecurityZonesChangedEvent.InputTuple,
+      SecurityZonesChangedEvent.OutputTuple,
+      SecurityZonesChangedEvent.OutputObject
+    >;
+
     'TaskCreated(uint256,string,uint256,uint256,uint256)': TypedContractEvent<
       TaskCreatedEvent.InputTuple,
       TaskCreatedEvent.OutputTuple,
@@ -775,6 +922,17 @@ export interface MockTaskManager extends BaseContract {
       TaskCreatedEvent.InputTuple,
       TaskCreatedEvent.OutputTuple,
       TaskCreatedEvent.OutputObject
+    >;
+
+    'VerifierSignerChanged(address,address)': TypedContractEvent<
+      VerifierSignerChangedEvent.InputTuple,
+      VerifierSignerChangedEvent.OutputTuple,
+      VerifierSignerChangedEvent.OutputObject
+    >;
+    VerifierSignerChanged: TypedContractEvent<
+      VerifierSignerChangedEvent.InputTuple,
+      VerifierSignerChangedEvent.OutputTuple,
+      VerifierSignerChangedEvent.OutputObject
     >;
   };
 }

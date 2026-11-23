@@ -1,9 +1,17 @@
 import type { ReactNode } from 'react';
 import type { BaseProps } from '../../types/component-types';
 import type { PageState } from './pagesConfig/types';
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonPositionType = 'fixed' | 'absolute';
 
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export interface CofheFloatingButtonProps extends BaseProps {
   children?: React.ReactNode;
   /** Position of the floating button */
@@ -57,14 +65,25 @@ export type CofheToastImperativeParams = {
 
 export type CofheToastVariant = 'info' | 'success' | 'error' | 'warning';
 
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export const CofheStatusActionIntents = {
   openACPs: 'open-acps',
   openClaimableTokens: 'open-claimable-tokens',
 } as const;
 
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export type CofheStatusActionIntent = (typeof CofheStatusActionIntents)[keyof typeof CofheStatusActionIntents];
 
 /**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ *
  * Status ids emitted by the SDK's built-in status watchers.
  *
  * `useCofheStatuses()` may still include additional custom statuses added by
@@ -78,6 +97,10 @@ export const COFHE_STATUS_IDS = {
   acpShared: 'acp-shared',
 } as const;
 
+/**
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ */
 export type CofheStatusId = (typeof COFHE_STATUS_IDS)[keyof typeof COFHE_STATUS_IDS];
 
 export type CofheStatusAction = {
@@ -86,7 +109,10 @@ export type CofheStatusAction = {
 };
 
 /**
- * Public status shape exposed to consumers.
+ * @internal Part of the floating button demo, used internally; not a supported API. Undocumented and may change
+ * in any release.
+ *
+ * Status shape shown by the floating button.
  *
  * Consumer-facing status actions must declare an intent so the widget can map
  * them to the correct internal handler.

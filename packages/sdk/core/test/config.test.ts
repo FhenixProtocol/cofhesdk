@@ -83,9 +83,13 @@ describe('createCofheConfigBase', () => {
   it('defaultACPExpiration', () => {
     expectInvalidConfigItem('defaultACPExpiration', 'not-a-number');
     expectInvalidConfigItem('defaultACPExpiration', null);
+    // ACP expirations are whole seconds, and 0 or less would create an acp that is already expired
+    expectInvalidConfigItem('defaultACPExpiration', 3600.5);
+    expectInvalidConfigItem('defaultACPExpiration', 0);
+    expectInvalidConfigItem('defaultACPExpiration', -60);
 
     expectValidConfigItem('defaultACPExpiration', 5, 5);
-    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 30);
+    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 7);
   });
 
   it('fheKeyStorage', async () => {
@@ -132,6 +136,30 @@ describe('createCofheConfigBase', () => {
     };
 
     expectInvalidConfigItem('fheKeyStorage', invalidStorageNotAFunction);
+  });
+
+  it('fheKeyStorage keeps a class instance intact', async () => {
+    class MapStorage {
+      private data = new Map<string, string>();
+      async getItem(name: string) {
+        return this.data.get(name) ?? null;
+      }
+      async setItem(name: string, value: string) {
+        this.data.set(name, value);
+      }
+      async removeItem(name: string) {
+        this.data.delete(name);
+      }
+    }
+
+    const storage = new MapStorage();
+    const result = createCofheConfigBase({ ...validBaseConfig, fheKeyStorage: storage });
+
+    expect(result.fheKeyStorage).toBe(storage);
+    await result.fheKeyStorage!.setItem('test', 'value');
+    expect(await result.fheKeyStorage!.getItem('test')).toBe('value');
+    await result.fheKeyStorage!.removeItem('test');
+    expect(await result.fheKeyStorage!.getItem('test')).toBeNull();
   });
 
   it('mocks', () => {
@@ -280,7 +308,22 @@ describe('createCofheConfigBase - stale key rejection', () => {
     ).toThrow(/Invalid cofhe configuration/);
   });
 
+  it('rejects unknown keys in mocks, such as the pre-0.3 sealOutputDelay', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, mocks: { sealOutputDelay: 1000 } } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
+  it('rejects unknown keys in acp', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, acp: { defaultRevokers: {} } } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
   it('still accepts a valid config', () => {
     expect(() => createCofheConfigBase({ ...validBaseConfig, defaultACPExpiration: 60 })).not.toThrow();
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, mocks: { decryptDelay: 10 }, acp: { app: 'my-app' } })
+    ).not.toThrow();
   });
 });

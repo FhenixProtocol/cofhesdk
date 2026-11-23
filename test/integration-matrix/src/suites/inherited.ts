@@ -8,9 +8,26 @@
  */
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
-import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { ACPUtils, type ACPPublic } from '@cofhe/sdk/acps';
-import { simpleTestAbi } from '@cofhe/test-setup';
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ResourceNotFoundRpcError,
+  concat,
+  keccak256,
+  pad,
+  toFunctionSelector,
+  toHex,
+  type Hex,
+} from 'viem';
+import { CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
+import {
+  ACPUtils,
+  describeShareMetadata,
+  encodeShareMetadata,
+  viewFunctionLabel,
+  type ACPPublic,
+} from '@cofhe/sdk/acps';
+import { simpleTestAbi, TEST_ALICE_KEY_PROVIDED } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
 function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
@@ -21,6 +38,8 @@ function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint |
   };
 }
 
+// Every read of a value a test just wrote is pinned to the receipt's block. A load-balanced RPC can
+// answer "latest" from a node that has not seen the transaction yet.
 export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
   let ctx: TestContext;
 
@@ -31,6 +50,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   afterAll(async () => {
     await chainConfig.teardown?.();
   });
+
+  // A read pinned to a block throws "block not found" on a node of a load-balanced RPC that has
+  // not seen that block yet. Ask again until a node that has it answers, for up to 30 seconds.
+  async function readAtBlock<T>(read: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await read();
+      } catch (error) {
+        const blockNotFound =
+          error instanceof BaseError && error.walk((e) => e instanceof ResourceNotFoundRpcError) !== null;
+        if (!blockNotFound || attempt >= 10) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
+  }
 
   it('Clients should be created with expected surface', () => {
     expect(ctx.cofheClient).toBeDefined();
@@ -159,18 +193,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: txBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: txHash,
         retryCount: 30,
         pollingInterval: 4_000,
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: txBlock,
+        })
+      );
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
@@ -195,18 +232,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: txBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: txHash,
         retryCount: 30,
         pollingInterval: 4_000,
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: txBlock,
+        })
+      );
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
@@ -215,14 +255,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForView right after the receipt', async () => {
       const [addendHash, addendSignature] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(valueToAdd)])
         .setConsumingContract(ctx.contractAddress)
         .execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
-      // The SDK should retry transparently if the backend still responds with 404 or no content.
+      // If the network answers "not found" or "not ready" the SDK asks again, but the network is
+      // usually done before the first ask, so this does not exercise that retry. The retry is covered
+      // against scripted answers in packages/sdk/core/test/pollCallbacks.test.ts.
       const addTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -231,24 +273,27 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: addTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
+      const ctHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: addBlock,
+        })
+      );
 
       const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
       expect(unsealedResult).toBe(expectedViewValue);
     }, 180_000);
 
-    it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
+    it('decrypts a freshly produced on-chain ctHash with decryptForTx right after the receipt, then publishes the result', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
       const [secondAddendHash, secondAddendSignature] = await ctx.cofheClient
@@ -257,7 +302,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
-      // The SDK should keep retrying until the backend has both discovered and computed it.
+      // As above: a check that the fresh handle decrypts, not of the SDK's retry.
       const secondAddTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -266,18 +311,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: secondAddBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: secondAddTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const updatedCtHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
+      const updatedCtHash = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: secondAddBlock,
+        })
+      );
 
       const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withACP().execute();
       // now that it was fetched - next time it should fetch from cache
@@ -295,19 +343,22 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const { blockNumber: publishBlock } = await ctx.publicClient.waitForTransactionReceipt({
         hash: publishTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
         confirmations: chainConfig.txConfirmationsRequired,
       });
 
-      const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getDecryptResultSafe',
-        args: [updatedCtHash],
-      });
+      const [publishedValue, isDecrypted] = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getDecryptResultSafe',
+          args: [updatedCtHash],
+          blockNumber: publishBlock,
+        })
+      );
 
       expect(isDecrypted).toBe(true);
       expect(BigInt(publishedValue)).toBe(expectedTxValue);
@@ -350,6 +401,144 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       },
       180_000
     );
+
+    // The task manager derives an op's handle from its operands alone, so the handle of an add is
+    // known before the add is sent. Its layout: the last two bytes carry the type and the security
+    // zone. A verified input gets them written over its hash, and an op result is keccak256(lhs ||
+    // rhs || op) with them written over it. op 8 is add; type 4 is euint32; inputs use zone 0.
+    const withMetadata = (hash: bigint, securityZone: bigint) =>
+      toHex((hash & ~0xffffn) | (4n << 8n) | securityZone, { size: 32 });
+    function predictAddHandle(stored: Hex, input: Hex): Hex {
+      const verifiedInput = withMetadata(BigInt(input), 0n);
+      const hash = BigInt(keccak256(concat([pad(stored, { size: 32 }), verifiedInput, '0x08'])));
+      return withMetadata(hash, BigInt(stored) & 0xffn);
+    }
+
+    // Before the transaction that creates a handle is mined, the network has no grant for it and
+    // answers acp_denied, not "not found". That answer is final: the SDK does not retry it, however
+    // long the not-found retry window is. Once the transaction is mined, the same handle decrypts.
+    it('refuses a handle whose transaction is not mined yet with ACP_DENIED, without retrying, then decrypts it once mined', async () => {
+      const stored = toHex(BigInt(alreadyFetchedCtHash), { size: 32 });
+      const storedValue = await ctx.cofheClient.decryptForView(stored, FheTypes.Uint32).execute();
+      const addend = 1n;
+      const [addendHash, addendSignature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(addend)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
+      const predicted = predictAddHandle(stored, addendHash as Hex);
+
+      let polls = 0;
+      const onPoll = () => polls++;
+      await expect(
+        ctx.cofheClient.decryptForView(predicted, FheTypes.Uint32).onPoll(onPoll).execute()
+      ).rejects.toMatchObject({ code: CofheErrorCode.ACPDenied });
+      await expect(ctx.cofheClient.decryptForTx(predicted).withACP().onPoll(onPoll).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ACPDenied,
+      });
+      expect(polls, 'acp_denied is not retried').toBe(0);
+
+      const addTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'addValueBatch',
+        args: [[addendHash], addendSignature],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+        hash: addTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+      const handle = await readAtBlock(() =>
+        ctx.publicClient.readContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'getValueHash',
+          blockNumber: addBlock,
+        })
+      );
+      expect(handle, 'the add produced the predicted handle').toBe(predicted);
+      alreadyFetchedCtHash = handle;
+
+      // Right after a receipt the network can still be a block behind and answer acp_denied for
+      // a handle it is about to see, so let the SDK keep asking for up to 30 seconds.
+      const result = await ctx.cofheClient
+        .decryptForView(handle, FheTypes.Uint32)
+        .setAccessDeniedRetryTimeout(30_000)
+        .execute();
+      expect(result).toBe(storedValue + addend);
+    }, 180_000);
+
+    // With an access-denied retry window, a decrypt asked for too early no longer fails: the SDK
+    // keeps asking until the network has seen the transaction. The decrypt starts first and the
+    // add is only sent after the first denial, so at least one retry is certain. Skipped on the
+    // mocks, which have no network that could be behind.
+    it.skipIf(chainConfig.id === 31337)(
+      'decrypts a handle requested before its transaction is sent, when setAccessDeniedRetryTimeout is set',
+      async () => {
+        const stored = toHex(BigInt(alreadyFetchedCtHash), { size: 32 });
+        const storedValue = await ctx.cofheClient.decryptForView(stored, FheTypes.Uint32).execute();
+        const addend = 1n;
+        const [addendHash, addendSignature] = await ctx.cofheClient
+          .encryptInputs([Encryptable.uint32(addend)])
+          .setConsumingContract(ctx.contractAddress)
+          .execute();
+        const predicted = predictAddHandle(stored, addendHash as Hex);
+
+        let retries = 0;
+        let sawFirstDenial!: () => void;
+        const firstDenial = new Promise<void>((resolve) => (sawFirstDenial = resolve));
+        const early = ctx.cofheClient
+          .decryptForView(predicted, FheTypes.Uint32)
+          .setAccessDeniedRetryTimeout(120_000)
+          .onPoll(() => {
+            retries++;
+            sawFirstDenial();
+          })
+          .execute();
+        early.catch(() => {}); // awaited below; this only keeps an earlier failure from going unhandled
+        await Promise.race([firstDenial, early]);
+
+        const addTxHash = await ctx.bobWalletClient.writeContract({
+          address: ctx.contractAddress,
+          abi: simpleTestAbi,
+          functionName: 'addValueBatch',
+          args: [[addendHash], addendSignature],
+          chain: chainConfig.viemChain,
+          account: ctx.bobAccount,
+        });
+        const { blockNumber: addBlock } = await ctx.publicClient.waitForTransactionReceipt({
+          hash: addTxHash,
+          retryCount: 30,
+          pollingInterval: 4_000,
+          confirmations: chainConfig.txConfirmationsRequired,
+        });
+        const handle = await readAtBlock(() =>
+          ctx.publicClient.readContract({
+            address: ctx.contractAddress,
+            abi: simpleTestAbi,
+            functionName: 'getValueHash',
+            blockNumber: addBlock,
+          })
+        );
+        expect(handle, 'the add produced the predicted handle').toBe(predicted);
+        alreadyFetchedCtHash = handle;
+
+        expect(await early).toBe(storedValue + addend);
+        expect(retries, 'the early request was denied and retried before it succeeded').toBeGreaterThan(0);
+      },
+      180_000
+    );
+
+    // No test here for the 204 answer ("result not ready yet"), on purpose.
+    // The network gives it between the 401 above and the 200: on Ethereum Sepolia it was seen as
+    // 401 acp_denied -> 204 -> 200, and the SDK retried the 204 by itself. But the window is
+    // under half a second and falls about when the block arrives, before the receipt reaches the
+    // client. A test would have to hit that window by timing its requests, and would be flaky.
+    // The SDK's reaction to a 204 is pinned in packages/sdk/core/test/pollCallbacks.test.ts.
+    // A test of the real sequence belongs here once a network can hold a handle in that state.
   });
 
   it('Decrypt for Tx (without acp) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
@@ -367,18 +556,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({
+    const { blockNumber: storeBlock } = await ctx.publicClient.waitForTransactionReceipt({
       hash: storeTxHash,
       retryCount: 30,
       pollingInterval: 4_000,
       confirmations: chainConfig.txConfirmationsRequired,
     });
 
-    const ctHash = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'publicValueHash',
-    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publicValueHash',
+        blockNumber: storeBlock,
+      })
+    );
 
     const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutACP().execute();
 
@@ -386,11 +578,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(decryptResult.decryptedValue).toBe(testValue);
     expect(decryptResult.signature).toBeDefined();
 
-    const storedHandle = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'publicValue',
-    });
+    const storedHandle = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publicValue',
+        blockNumber: storeBlock,
+      })
+    );
 
     const publishTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -400,21 +595,333 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
-    await ctx.publicClient.waitForTransactionReceipt({
+    const { blockNumber: publishBlock } = await ctx.publicClient.waitForTransactionReceipt({
       hash: publishTxHash,
       retryCount: 30,
       pollingInterval: 4_000,
       confirmations: chainConfig.txConfirmationsRequired,
     });
 
-    const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getDecryptResultSafe',
-      args: [storedHandle],
-    });
+    const [publishedValue, isDecrypted] = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getDecryptResultSafe',
+        args: [storedHandle],
+        blockNumber: publishBlock,
+      })
+    );
 
     expect(BigInt(publishedValue)).toBe(testValue);
     expect(isDecrypted).toBe(true);
+  }, 180_000);
+
+  // Bob stores a plain value and returns its handle.
+  async function storeValue(value: bigint): Promise<`0x${string}`> {
+    const hash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [value],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
+      hash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    // Read at the receipt's block. A load-balanced RPC can answer "latest" from a node behind it.
+    return (await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    )) as `0x${string}`;
+  }
+
+  // An ACP's id is its creation time in seconds. Two ACPs by the same issuer in the same second
+  // share an id, and revoking one revokes both. Call this before creating an ACP that will be
+  // revoked, so the revoke cannot hit an ACP from the previous test.
+  const waitForNextSecond = () => new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Reads of ACP state go to whichever node of the RPC takes the call. On a load-balanced RPC that
+  // node can be behind the head. Then a fresh ACP reads as revoked, because the SDK takes its id
+  // from the head block's timestamp and the timestamp revoker treats an id later than the node's
+  // head as disabled; a just-revoked ACP still reads as valid; a just-removed share is still
+  // listed. This asks again until the answer is the expected one, for up to 30 seconds. A wrong
+  // expectation still fails, later.
+  async function expectEventually<T>(expected: T, read: () => Promise<T>) {
+    let value = await read();
+    for (let attempt = 0; value !== expected && attempt < 6; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      value = await read();
+    }
+    expect(value).toBe(expected);
+  }
+
+  // Removing a share sends removeShare, and viem estimates it at "latest" before sending anything.
+  // On a load-balanced RPC that estimate can run on a node that has not seen the share yet, and
+  // the registry reverts with UnknownShare(), so no transaction goes out. Send again until a node
+  // that has the share takes the estimate, for up to 30 seconds. Any other error still fails.
+  const UNKNOWN_SHARE = toFunctionSelector('UnknownShare()');
+  async function removeOnceShareIsSeen(remove: () => Promise<Hex>): Promise<Hex> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await remove();
+      } catch (error) {
+        const unknownShare =
+          error instanceof BaseError &&
+          error.walk((e) => e instanceof ContractFunctionRevertedError && e.raw === UNKNOWN_SHARE) !== null;
+        if (!unknownShare || attempt >= 6) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
+  // The registry flow, end to end. Bob stores a value and posts a share of it for Alice on-chain,
+  // labelled as the value getValueHash() returned at that block. Alice discovers the share, checks
+  // the label against the chain, imports it, decrypts with it, and removes it. Dismissing is
+  // Alice's transaction. On a testnet she has gas only when TEST_ALICE_PRIVATE_KEY is a funded
+  // key, so otherwise Bob cancels the share instead.
+  it('ACPs - on-chain share flow: share → discover → import → decrypt → dismiss', async () => {
+    const testValue = 77n;
+
+    // A chain without a sharing registry cannot run this. The client says so with MISSING_CONFIG.
+    let incomingProbe: unknown;
+    try {
+      incomingProbe = await ctx.cofheClient.acp.getIncomingShares();
+    } catch (e: any) {
+      if (e?.code === 'MISSING_CONFIG') {
+        console.warn(`[ACP SHARE] no sharingRegistry configured for ${chainConfig.label} — skipping`);
+        return;
+      }
+      throw e;
+    }
+    expect(Array.isArray(incomingProbe)).toBe(true);
+
+    // 1. Bob encrypts and stores a value
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
+    const txHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encryptedHash, encryptedSignature],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    );
+
+    // 2. Bob shares that one value with Alice on-chain, labelled as where it came from
+    const label = viewFunctionLabel({
+      contract: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+      block: blockNumber,
+    });
+    const sharingACP = await ctx.cofheClient.acp.createSharing({
+      issuer: ctx.bobAccount.address,
+      recipient: ctx.aliceAccount.address,
+      name: 'On-chain share to Alice',
+      handles: [ctHash],
+      labels: [label],
+    });
+    const { txHash: shareTx, shareId } = await ctx.cofheClient.acp.shareOnChain(sharingACP);
+    expect(shareId).toMatch(/^0x[0-9a-f]{64}$/);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: shareTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+
+    // 3. Alice discovers the share, reads its label back, and imports it. The registry is read at
+    //    "latest", so on a load-balanced RPC a node behind the head may not list the share yet.
+    //    Ask again for a while. Everything Alice does is in try/finally: a failure must leave the
+    //    client connected as Bob for the tests that follow.
+    await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+    try {
+      let share = (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId);
+      for (let attempt = 0; share === undefined && attempt < 6; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        share = (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId);
+      }
+      expect(share).toBeDefined();
+      expect(share!.issuer).toBe(ctx.bobAccount.address);
+      expect(share!.handles).toEqual([ctHash]);
+      expect(share!.metadata).toBe(encodeShareMetadata([label]));
+
+      // The chain confirms the label: getValueHash() at that block returned the shared ctHash.
+      expect(await ctx.cofheClient.acp.verifyShareLabels(share!)).toEqual(['verified']);
+      const [described] = describeShareMetadata(share!, { [ctx.contractAddress]: simpleTestAbi })!;
+      expect(described.kind === 'stored' && described.function?.name).toBe('getValueHash');
+
+      const imported = await ctx.cofheClient.acp.importFromChain(share!);
+      expect(imported.type).toBe('recipient');
+
+      // 4. Alice decrypts Bob's value with the imported acp
+      const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+      expect(value).toBe(BigInt(testValue));
+
+      // 5. The share is removed. Anvil's Alice has gas. A generated testnet Alice has none.
+      const aliceIsFunded = chainConfig.id === 31337 || TEST_ALICE_KEY_PROVIDED;
+      if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+      const removeTx = await removeOnceShareIsSeen(() =>
+        aliceIsFunded ? ctx.cofheClient.acp.dismissShare(shareId) : ctx.cofheClient.acp.cancelShare(shareId)
+      );
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: removeTx,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+      if (!aliceIsFunded) await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+      await expectEventually(undefined, async () =>
+        (await ctx.cofheClient.acp.getIncomingShares()).find((s) => s.shareId === shareId)
+      );
+    } finally {
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    }
+  }, 180_000);
+
+  // `client.acp.checkAccess` returns an ACP's on-chain status as a value, where the ACL reverts.
+  // Without a handle: 'valid', or why not. With a handle: 'allowed', 'out-of-scope' when the ACP
+  // does not cover it, or 'issuer-not-allowed' when the issuer cannot read it either.
+  it('ACPs - checkAccess reports the ACP and per-handle status instead of reverting', async () => {
+    const acp = ctx.cofheClient.acp;
+    const bob = ctx.bobAccount.address;
+    const alice = ctx.aliceAccount.address;
+
+    // Bob owns two values. A is shared below, B is not.
+    const handleA = await storeValue(11n);
+    const handleB = await storeValue(12n);
+
+    await waitForNextSecond();
+    const bobSelf = await acp.createSelf({ issuer: bob, name: 'Bob own' });
+    await expectEventually('valid', () => acp.checkAccess(bobSelf));
+    await expectEventually('allowed', () => acp.checkAccess(bobSelf, handleA));
+    await expectEventually('allowed', () => acp.checkAccess(bobSelf, BigInt(handleA)));
+
+    // A SNAPSHOT share covering A only. The issuer copy has no recipient signature. Its status
+    // still answers: expiry and revocation.
+    const sharing = await acp.createSharing({ issuer: bob, recipient: alice, name: 'A only', handles: [handleA] });
+    await expectEventually('valid', () => acp.checkAccess(sharing));
+
+    await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+    try {
+      const imported = await acp.importShared(acp.export(sharing), { activate: false });
+      await expectEventually('valid', () => acp.checkAccess(imported));
+      await expectEventually('allowed', () => acp.checkAccess(imported, handleA));
+      await expectEventually('out-of-scope', () => acp.checkAccess(imported, handleB));
+
+      // Alice's own ACP. She was never allowed on Bob's values.
+      const aliceSelf = await acp.createSelf({ issuer: alice, name: 'Alice own' });
+      await expectEventually('issuer-not-allowed', () => acp.checkAccess(aliceSelf, handleA));
+
+      // Bob revokes the share. Every check on it now says so, with or without a handle.
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+      const revokeTx = await acp.revokeACP(sharing);
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: revokeTx,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      await expectEventually('revoked', () => acp.checkAccess(sharing));
+
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
+      await expectEventually('revoked', () => acp.checkAccess(imported));
+      await expectEventually('revoked', () => acp.checkAccess(imported, handleA));
+    } finally {
+      await ctx.cofheClient.connect(ctx.publicClient, ctx.bobWalletClient);
+    }
+  }, 180_000);
+
+  // The minimal user flow with a revocable ACP. Bob stores a value, creates a contract-scoped ACP
+  // (revocable through config.acp.defaultRevoker, no explicit options), decrypts with it, revokes
+  // it on-chain, sees the decrypt fail, and gets access back with a fresh ACP.
+  it('ACPs - a contract-scoped acp decrypts, stops after revoke, and a fresh one works again', async () => {
+    const testValue = 42n;
+
+    // 1. encrypt and store
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
+    const txHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encryptedHash, encryptedSignature],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    const { blockNumber } = await ctx.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    const ctHash = await readAtBlock(() =>
+      ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+        blockNumber,
+      })
+    );
+
+    // 2. a contract-scoped acp, revocable by default
+    await waitForNextSecond();
+    const acp = await ctx.cofheClient.acp.createSelf({
+      issuer: ctx.bobAccount.address,
+      name: 'Scoped revocable ACP',
+      contracts: [ctx.contractAddress],
+    });
+    expect(acp.scope).toBe(1); // contract scope, derived from `contracts`
+    expect(acp.revokerContract).not.toBe('0x0000000000000000000000000000000000000000');
+    expect(acp.revokerData).toBeGreaterThan(0); // creation timestamp
+
+    // 3. decrypt with it. The handle is one receipt old, and the network can still be a block
+    // behind and answer acp_denied for it, so let the SDK keep asking for up to 10 seconds.
+    const value = await ctx.cofheClient
+      .decryptForView(ctHash, FheTypes.Uint32)
+      .setAccessDeniedRetryTimeout(10_000)
+      .execute();
+    expect(value).toBe(BigInt(testValue));
+    await expectEventually(false, () => ctx.cofheClient.acp.isACPRevoked(acp));
+
+    // 4. revoke on-chain
+    const revokeTx = await ctx.cofheClient.acp.revokeACP(acp);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: revokeTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    await expectEventually(true, () => ctx.cofheClient.acp.isACPRevoked(acp));
+
+    // 5. the revoked acp no longer decrypts. Each backend says so in its own way. The mocks pass
+    //    the on-chain revert reason through. The testnet threshold network answers HTTP 401.
+    //    Staging answers acp_denied.
+    await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
+      /PermissionInvalid_Disabled|acp_denied|HTTP 401/
+    );
+
+    // 6. a fresh acp restores access. It must not share the revoked one's id, so wait a second.
+    await waitForNextSecond();
+    await ctx.cofheClient.acp.createSelf({
+      issuer: ctx.bobAccount.address,
+      name: 'Scoped revocable ACP (fresh)',
+      contracts: [ctx.contractAddress],
+    });
+    const valueAgain = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(valueAgain).toBe(BigInt(testValue));
   }, 180_000);
 }

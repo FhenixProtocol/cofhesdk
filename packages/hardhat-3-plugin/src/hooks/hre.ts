@@ -5,6 +5,7 @@ import { createPublicClient, createWalletClient, custom, type PublicClient, type
 import { privateKeyToAccount } from 'viem/accounts';
 
 import type { ArtifactManager } from 'hardhat/types/artifacts';
+import type { HardhatConfig } from 'hardhat/types/config';
 
 import {
   MockCoFHEAddressBookArtifact,
@@ -31,8 +32,41 @@ function createCofheConnection(
   /** Reusable transport factory derived from the walletClient's request method */
   transport: ReturnType<typeof custom>,
   artifacts: ArtifactManager,
-  deployedMockContracts: DeployedMockContracts
+  deployedMockContracts: DeployedMockContracts,
+  /** The resolved `cofhe` config, which `mocks.deployMocks` falls back to */
+  pluginConfig: HardhatConfig['cofhe']
 ): CofheConnection {
+  const mockContracts = {
+    MockCoFHEAddressBook: {
+      address: deployedMockContracts.MockCoFHEAddressBook,
+      abi: MockCoFHEAddressBookArtifact.abi,
+    },
+    MockTaskManager: { address: deployedMockContracts.MockTaskManager, abi: MockTaskManagerArtifact.abi },
+    MockACL: { address: deployedMockContracts.MockACL, abi: MockACLArtifact.abi },
+    MockZkVerifier: { address: deployedMockContracts.MockZkVerifier, abi: MockZkVerifierArtifact.abi },
+    MockThresholdNetwork: {
+      address: deployedMockContracts.MockThresholdNetwork,
+      abi: MockThresholdNetworkArtifact.abi,
+    },
+  };
+
+  function updateMockContractAddresses(deployed: DeployedMockContracts): void {
+    if (
+      deployed.MockCoFHEAddressBook === undefined ||
+      deployed.MockTaskManager === undefined ||
+      deployed.MockACL === undefined ||
+      deployed.MockZkVerifier === undefined ||
+      deployed.MockThresholdNetwork === undefined
+    ) {
+      return;
+    }
+    mockContracts.MockCoFHEAddressBook.address = deployed.MockCoFHEAddressBook;
+    mockContracts.MockTaskManager.address = deployed.MockTaskManager;
+    mockContracts.MockACL.address = deployed.MockACL;
+    mockContracts.MockZkVerifier.address = deployed.MockZkVerifier;
+    mockContracts.MockThresholdNetwork.address = deployed.MockThresholdNetwork;
+  }
+
   return {
     async createConfig(config: Partial<CofheInputConfig> = {}) {
       const zkvAccount = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
@@ -85,7 +119,16 @@ function createCofheConnection(
 
     mocks: {
       async deployMocks(options?: DeployMocksArgs) {
-        await deployMocks({ publicClient, walletClient, artifacts }, options);
+        const deployed = await deployMocks(
+          { publicClient, walletClient, artifacts },
+          {
+            gasWarning: pluginConfig.gasWarning,
+            mocksDeployVerbosity: pluginConfig.mocksDeployVerbosity,
+            logMocks: pluginConfig.logMocks,
+            ...options,
+          }
+        );
+        updateMockContractAddresses(deployed);
       },
 
       async withLogs(closureName: string, closure: () => Promise<void>) {
@@ -110,17 +153,7 @@ function createCofheConnection(
         await mock_expectPlaintext(publicClient, ctHash, expectedValue);
       },
 
-      MockCoFHEAddressBook: {
-        address: deployedMockContracts.MockCoFHEAddressBook,
-        abi: MockCoFHEAddressBookArtifact.abi,
-      },
-      MockTaskManager: { address: deployedMockContracts.MockTaskManager, abi: MockTaskManagerArtifact.abi },
-      MockACL: { address: deployedMockContracts.MockACL, abi: MockACLArtifact.abi },
-      MockZkVerifier: { address: deployedMockContracts.MockZkVerifier, abi: MockZkVerifierArtifact.abi },
-      MockThresholdNetwork: {
-        address: deployedMockContracts.MockThresholdNetwork,
-        abi: MockThresholdNetworkArtifact.abi,
-      },
+      ...mockContracts,
     },
   };
 }
@@ -168,8 +201,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
       }
     }
 
-    // Register a permanent newConnection handler so that every network.connect()
-    // call automatically deploys mocks and attaches conn.cofhe.
+    // Register a permanent newConnection handler so that in-process networks
+    // automatically deploy mocks and every connection gets conn.cofhe.
     const networkHandlers: Partial<NetworkHooks> = {
       async newConnection(context, next) {
         const conn = await next(context);
@@ -180,14 +213,19 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         // request method — lets us create account-bound clients later.
         const connTransport = custom({ request: (args: any) => (walletClient as any).request(args) });
 
-        const deployedMockContracts = await deployMocks(
-          { publicClient, walletClient, artifacts: hre.artifacts },
-          {
-            gasWarning: hre.config.cofhe.gasWarning,
-            mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
-            logMocks: hre.config.cofhe.logMocks,
-          }
-        );
+        // An HTTP provider's self-reported RPC capabilities are not a trust signal.
+        // HTTP connections can still opt in explicitly with cofhe.mocks.deployMocks().
+        const deployedMockContracts =
+          conn.networkConfig.type === 'edr-simulated'
+            ? await deployMocks(
+                { publicClient, walletClient, artifacts: hre.artifacts },
+                {
+                  gasWarning: hre.config.cofhe.gasWarning,
+                  mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
+                  logMocks: hre.config.cofhe.logMocks,
+                }
+              )
+            : ({} as DeployedMockContracts);
 
         // With gasSummary enabled, track this connection so its adjusted-gas rows are
         // dumped at process exit for the `test` task to merge and print. Connections
@@ -208,7 +246,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
           walletClient,
           connTransport,
           hre.artifacts,
-          deployedMockContracts
+          deployedMockContracts,
+          hre.config.cofhe
         );
         return conn;
       },

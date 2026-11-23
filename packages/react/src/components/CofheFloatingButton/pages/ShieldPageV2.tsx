@@ -373,11 +373,9 @@ function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshi
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const tokenUnshield = useCofheTokenUnshield({
-    onUserSignatureRequest: (hash) => {
-      () => {
-        setError(null);
-        setStatus({ message: 'Preparing unshielding transaction...', type: 'info' });
-      };
+    onUserSignatureRequest: () => {
+      setError(null);
+      setStatus({ message: 'Preparing unshielding transaction...', type: 'info' });
     },
     onTransactionSubmitSuccess: (hash) => {
       setStatus({
