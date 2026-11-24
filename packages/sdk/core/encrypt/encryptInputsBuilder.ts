@@ -592,38 +592,38 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     // path is whole in itself (see provingPaths.ts); this method only picks one, reports the
     // steps, and falls back to this thread when the worker fails.
     const inputs = { fheKey, crs, items: this.inputItems };
-    const onMainThread = () =>
+    const createMainThreadPath = () =>
       mainThreadProvingPath(inputs, {
         zkBuilderAndCrsGenerator: this.zkBuilderAndCrsGenerator,
         beforeProve: this.beforeMainThreadProve,
       });
-    const inWorker =
+    const workerPath =
       this.useWorker && this.zkProveWorkerFn ? workerProvingPath(inputs, this.zkProveWorkerFn) : undefined;
-    const path = inWorker ?? onMainThread();
+    const firstChoicePath = workerPath ?? createMainThreadPath();
 
     this.fireStepStart(EncryptStep.Pack);
 
-    path.pack();
+    firstChoicePath.pack();
 
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: inWorker != null });
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: workerPath != null });
 
     this.fireStepStart(EncryptStep.Prove);
 
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
     let proof: Uint8Array;
-    let usedWorker = inWorker != null;
+    let usedWorker = workerPath != null;
     let workerFailedError: string | undefined;
     try {
-      proof = await path.prove(metadata);
+      proof = await firstChoicePath.prove(metadata);
     } catch (error) {
       // Only a failed worker has somewhere to fall back to.
-      if (!inWorker) throw error;
+      if (!workerPath) throw error;
       workerFailedError = error instanceof Error ? error.message : String(error);
       usedWorker = false;
-      const fallback = onMainThread();
-      fallback.pack();
-      proof = await fallback.prove(metadata);
+      const fallbackPath = createMainThreadPath();
+      fallbackPath.pack();
+      proof = await fallbackPath.prove(metadata);
     }
 
     this.fireStepEnd(EncryptStep.Prove, {
