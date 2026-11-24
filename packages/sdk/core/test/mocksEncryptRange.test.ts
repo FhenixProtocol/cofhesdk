@@ -31,11 +31,13 @@ const mocksBuilder = (inputs: EncryptableItem[]) => {
     publicClient,
     walletClient,
     zkvWalletClient: walletClient,
-    tfhePublicKeyDeserializer: vi.fn(),
-    compactPkeCrsDeserializer: vi.fn(),
-    zkBuilderAndCrsGenerator: vi.fn() as any,
-    initTfhe: undefined,
-    provingWorker: undefined,
+    proving: {
+      mainThread: {
+        tfhePublicKeyDeserializer: vi.fn(),
+        compactPkeCrsDeserializer: vi.fn(),
+        zkBuilderAndCrsGenerator: vi.fn() as any,
+      },
+    },
     keysStorage: undefined,
     requireConnected: vi.fn(),
   });

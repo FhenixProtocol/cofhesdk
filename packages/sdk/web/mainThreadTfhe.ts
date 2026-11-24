@@ -4,7 +4,6 @@
  * nothing here runs.
  */
 import {
-  type CofheConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
   type TfheInitializer,
@@ -12,6 +11,7 @@ import {
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 import { fromHexString } from '../core/utils.js';
+import type { MainThreadProving } from '../core/encrypt/provingPaths.js';
 
 // Type-only import for tfhe — the runtime is loaded lazily via `await import('tfhe')`
 // inside `initTfhe()` so that simply importing `@cofhe/sdk/web` (e.g. transitively
@@ -148,15 +148,13 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
 };
 
 /**
- * Everything a web client is built from except the worker: the main-thread proving path's parts.
- * Shared by `createCofheClient` and by `./testing.ts`, which builds a client around a substitute
- * worker.
+ * The main-thread proving path's parts for a web client. Shared by `createCofheClient` and by
+ * `./testing.ts`, which builds a client around a substitute worker.
  */
-export const webClientParams = <TConfig extends CofheConfig>(config: TConfig) => ({
-  config,
-  zkBuilderAndCrsGenerator,
+export const mainThreadProving = (tfheThreads: TfheThreadsSetting): MainThreadProving => ({
+  initTfhe,
   tfhePublicKeyDeserializer,
   compactPkeCrsDeserializer,
-  initTfhe,
-  beforeMainThreadProve: createStartMainThreadPool(config.tfheThreads),
+  zkBuilderAndCrsGenerator,
+  beforeProve: createStartMainThreadPool(tfheThreads),
 });

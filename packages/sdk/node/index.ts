@@ -89,9 +89,8 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
 export function createCofheClient(config: CofheConfig): CofheClient {
   return createCofheClientBase({
     config,
-    zkBuilderAndCrsGenerator,
-    tfhePublicKeyDeserializer,
-    compactPkeCrsDeserializer,
-    initTfhe,
+    proving: {
+      mainThread: { initTfhe, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, zkBuilderAndCrsGenerator },
+    },
   });
 }

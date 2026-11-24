@@ -36,10 +36,14 @@ const createTestClient = (): CofheClient => {
   const config = createCofheConfigBase({ supportedChains: [] });
   return createCofheClientBase({
     config,
-    zkBuilderAndCrsGenerator: {} as any,
-    tfhePublicKeyDeserializer: {} as any,
-    compactPkeCrsDeserializer: {} as any,
-    initTfhe: () => Promise.resolve(false),
+    proving: {
+      mainThread: {
+        zkBuilderAndCrsGenerator: {} as any,
+        tfhePublicKeyDeserializer: {} as any,
+        compactPkeCrsDeserializer: {} as any,
+        initTfhe: () => Promise.resolve(false),
+      },
+    },
   });
 };
 
@@ -84,10 +88,14 @@ describe('createCofheClientBase', () => {
         const config = createCofheConfigBase({ environment, supportedChains: [] });
         const client = createCofheClientBase({
           config,
-          zkBuilderAndCrsGenerator: {} as any,
-          tfhePublicKeyDeserializer: {} as any,
-          compactPkeCrsDeserializer: {} as any,
-          initTfhe: () => Promise.resolve(false),
+          proving: {
+            mainThread: {
+              zkBuilderAndCrsGenerator: {} as any,
+              tfhePublicKeyDeserializer: {} as any,
+              compactPkeCrsDeserializer: {} as any,
+              initTfhe: () => Promise.resolve(false),
+            },
+          },
         });
 
         expect(client.config.environment).toBe(environment);

@@ -6,16 +6,11 @@ import {
   type CofheClient,
   type CofheConfig,
   type CofheInputConfig,
-  type ZkBuilderAndCrsGenerator,
-  type FheKeyDeserializer,
-  type TfheInitializer,
   type TfheThreadsSetting,
   type ProvingWorker,
   createKeysStore,
   fheTypeToString,
-  TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
-import { fromHexString } from '../core/utils.js';
 
 // Import web-specific storage (internal use only)
 import { createIndexedDbStorage, createSsrStorage, createWebStorage } from './storage.js';
@@ -23,9 +18,9 @@ import { createIndexedDbStorage, createSsrStorage, createWebStorage } from './st
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
 import { WORKER_KEYS_DB_NAME } from './workerProtocol.js';
-import type { WorkerStoredKeysReader } from '../core/encrypt/encryptInputsBuilder.js';
+import type { WorkerStoredKeysReader } from '../core/encrypt/provingPaths.js';
 
-import { getTfheThreadPoolStatus, webClientParams } from './mainThreadTfhe.js';
+import { getTfheThreadPoolStatus, mainThreadProving } from './mainThreadTfhe.js';
 import { hasDOM } from './const';
 
 export { getTfheThreadPoolStatus };
@@ -87,10 +82,14 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
  */
 export function createCofheClient<TConfig extends CofheConfig>(config: TConfig): CofheClient<TConfig> {
   return createCofheClientBase({
-    ...webClientParams(config),
-    // Always provided when the Worker API exists (not in Node.js); `config.useWorkers` decides its use.
-    provingWorker: areWorkersAvailable() ? createProvingWorker(config.tfheThreads) : undefined,
-    readWorkerStoredKeys: areWorkersAvailable() ? readWorkerStoredKeys : undefined,
+    config,
+    proving: {
+      mainThread: mainThreadProving(config.tfheThreads),
+      // Always provided when the Worker API exists (not in Node.js); `config.useWorkers` decides its use.
+      worker: areWorkersAvailable()
+        ? { instance: createProvingWorker(config.tfheThreads), readStoredKeys: readWorkerStoredKeys }
+        : undefined,
+    },
   });
 }
 

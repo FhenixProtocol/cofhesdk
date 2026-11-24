@@ -243,6 +243,13 @@ describe('EncryptInputsBuilder', () => {
   const defaultSender = '0x1234567890123456789012345678901234567890';
   const defaultChainId = 1;
   const defaultConsumingContract = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
+  /** The main-thread path's parts, as plain mocks. */
+  const defaultMainThread = () => ({
+    tfhePublicKeyDeserializer: mockTfhePublicKeyDeserializer,
+    compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
+    zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
+    initTfhe: mockInitTfhe,
+  });
   const createDefaultParams = () => {
     return {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
@@ -253,11 +260,7 @@ describe('EncryptInputsBuilder', () => {
       publicClient: publicClient,
       walletClient: bobWalletClient,
 
-      tfhePublicKeyDeserializer: mockTfhePublicKeyDeserializer,
-      compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
-      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
-      initTfhe: mockInitTfhe,
-      provingWorker: undefined,
+      proving: { mainThread: defaultMainThread() },
       keysStorage: keysStorage,
       requireConnected: vi.fn(),
     };
@@ -306,7 +309,12 @@ describe('EncryptInputsBuilder', () => {
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
-          tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
+          proving: {
+            mainThread: {
+              ...defaultMainThread(),
+              tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
+            },
+          },
         });
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
@@ -319,7 +327,12 @@ describe('EncryptInputsBuilder', () => {
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
-          compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
+          proving: {
+            mainThread: {
+              ...defaultMainThread(),
+              compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
+            },
+          },
         });
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
@@ -331,7 +344,12 @@ describe('EncryptInputsBuilder', () => {
       try {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
-          initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
+          proving: {
+            mainThread: {
+              ...defaultMainThread(),
+              initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
+            },
+          },
         })
           .setConsumingContract(defaultConsumingContract)
           .execute();
@@ -344,7 +362,6 @@ describe('EncryptInputsBuilder', () => {
     it('should not throw an error if initTfhe is set', async () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
-        initTfhe: mockInitTfhe,
       })
         .setConsumingContract(defaultConsumingContract)
         .execute();
@@ -933,7 +950,10 @@ describe('EncryptInputsBuilder', () => {
         const mainThread = mainThreadParts();
         const onStep = vi.fn<StepCallback>();
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread, worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .onStep(onStep)
           .execute();
@@ -952,7 +972,10 @@ describe('EncryptInputsBuilder', () => {
         const provingWorker = mockProvingWorker();
         const target = { coFheUrl: MockZkVerifierUrl, chainId: defaultChainId, securityZone: 0 };
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .execute();
 
@@ -967,7 +990,10 @@ describe('EncryptInputsBuilder', () => {
         });
         const onStep = vi.fn<StepCallback>();
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .onStep(onStep)
           .execute();
@@ -988,7 +1014,7 @@ describe('EncryptInputsBuilder', () => {
         const outOfRange = new EncryptInputsBuilder({
           ...createDefaultParams(),
           inputs: [{ ...Encryptable.uint8(1n), data: 256n }] as unknown as [EncryptableUint128],
-          provingWorker,
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
         }).setConsumingContract(defaultConsumingContract);
 
         await expect(outOfRange.execute()).rejects.toThrow();
@@ -1002,7 +1028,7 @@ describe('EncryptInputsBuilder', () => {
           ...createDefaultParams(),
           // 17 x 128 bits = 2176 bits, over the 2048-bit limit.
           inputs: Array.from({ length: 17 }, () => Encryptable.uint128(1n)) as unknown as [EncryptableUint128],
-          provingWorker,
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
         }).setConsumingContract(defaultConsumingContract);
 
         await expect(tooManyBits.execute()).rejects.toMatchObject({ code: CofheErrorCode.ZkPackFailed });
@@ -1016,7 +1042,10 @@ describe('EncryptInputsBuilder', () => {
         const mainThread = mainThreadParts();
         const onStep = vi.fn<StepCallback>();
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread, worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .setUseWorker(false)
           .onStep(onStep)
@@ -1049,7 +1078,10 @@ describe('EncryptInputsBuilder', () => {
         const mainThread = mainThreadParts();
         const onStep = vi.fn<StepCallback>();
 
-        const result = await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+        const result = await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread, worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .onStep(onStep)
           .execute();
@@ -1067,7 +1099,10 @@ describe('EncryptInputsBuilder', () => {
         const provingWorker = mockProvingWorker({ fetchKeys: failing('worker is gone') });
         const onStep = vi.fn<StepCallback>();
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .onStep(onStep)
           .execute();
@@ -1085,7 +1120,10 @@ describe('EncryptInputsBuilder', () => {
       it('does not go back to the worker once it has failed', async () => {
         const provingWorker = mockProvingWorker({ initTfhe: failing('worker is gone') });
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
+        })
           .setConsumingContract(defaultConsumingContract)
           .execute();
 
@@ -1100,7 +1138,13 @@ describe('EncryptInputsBuilder', () => {
         const provingWorker = mockProvingWorker({ prove: failing('worker is gone') });
         const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
-        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker, readWorkerStoredKeys })
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: {
+            mainThread: defaultMainThread(),
+            worker: { instance: provingWorker, readStoredKeys: readWorkerStoredKeys },
+          },
+        })
           .setConsumingContract(defaultConsumingContract)
           .execute();
 

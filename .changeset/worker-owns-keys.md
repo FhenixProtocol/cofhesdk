@@ -7,3 +7,4 @@ Changes `encryptInputs` in the browser so that the Web Worker does all the heavy
 - On the worker path the keys are kept in the worker's own IndexedDB store, per origin. `fheKeyStorage` now only applies when the page's thread proves (Web Workers off, or after a worker failure).
 - A worker failure in any step, not only in proving, falls back to the page's thread, which reuses the keys the worker stored.
 - Removes the internal test helper `createCofheClientWithCustomWorker` and the worker message types `ZkProveWorkerFunction`, `ZkProveWorkerRequest` and `ZkProveWorkerResponse`. An app that supplied its own worker through that helper should use `createCofheClient`, whose built-in worker now covers it.
+- Changes the parameters of the internal `createCofheClientBase`: the platform's proving parts are now passed grouped, as `proving: { mainThread, worker }`, instead of as a flat list. Apps use `createCofheClient` and are not affected.

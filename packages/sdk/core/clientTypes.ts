@@ -3,7 +3,8 @@ import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
-import { type EncryptInputsBuilderUnset, type WorkerStoredKeysReader } from './encrypt/encryptInputsBuilder.js';
+import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
+import { type ProvingParams } from './encrypt/provingPaths.js';
 import { type ZkBuilderAndCrsGenerator, type ProvingWorker } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
@@ -163,21 +164,12 @@ export type CofheClientACPs = {
   deserialize: typeof ACPUtils.deserialize;
 };
 
+/**
+ * What a platform (web, node) builds a client from. Internal: apps use the platform's
+ * `createCofheClient`, which fills this in.
+ */
 export type CofheClientParams<TConfig extends CofheConfig> = {
   config: TConfig;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeyDeserializer: FheKeyDeserializer;
-  compactPkeCrsDeserializer: FheKeyDeserializer;
-  initTfhe: TfheInitializer;
-  /** A worker that proves by itself. Used when `config.useWorkers` is on. */
-  provingWorker?: ProvingWorker;
-  /** Reads the keys that worker stored, for when the calling thread has to prove after all. */
-  readWorkerStoredKeys?: WorkerStoredKeysReader;
-  /**
-   * Runs right before a ZK proof is generated on the calling thread, i.e. only
-   * when the worker path is disabled, unavailable or has failed. Platforms use
-   * it for setup that only pays off when that thread does the proving (web
-   * starts tfhe's rayon thread pool here).
-   */
-  beforeMainThreadProve?: () => Promise<void>;
+  /** The platform's ways to make a ZK proof. See {@link ProvingParams}. */
+  proving: ProvingParams;
 };
