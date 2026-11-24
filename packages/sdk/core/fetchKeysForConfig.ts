@@ -2,6 +2,11 @@ import { type CofheConfig, getCoFheUrlOrThrow } from './config.js';
 import { fetchKeysFromUrl, type FheKeyDeserializer } from './fetchKeys.js';
 import { type KeysStorage } from './keyStore.js';
 
+// Why this small wrapper has a file of its own, and is not next to `fetchKeysFromUrl` in
+// `fetchKeys.ts`: the proving worker imports `fetchKeys.ts`, and this wrapper needs `config.ts`,
+// which imports `zod`. In one file, the built worker would load the config code and `zod` just to
+// fetch keys from a URL it is handed. Keep `fetchKeys.ts` free of any import of `config.ts`.
+
 /**
  * Retrieves the FHE public key and the CRS from the provider.
  * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
