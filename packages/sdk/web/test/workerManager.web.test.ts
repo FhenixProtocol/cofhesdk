@@ -110,5 +110,15 @@ describe('WorkerManager (Browser)', () => {
       // Request should be rejected
       await expect(proofPromise).rejects.toThrow();
     }, 5000);
+
+    it('rejects a request that is still waiting for the worker to start', async () => {
+      const manager = getWorkerManager();
+
+      // Terminated in the same tick: the worker cannot have signalled ready yet.
+      const proofPromise = manager.submitProof('test', 'test', [], new Uint8Array());
+      terminateWorker();
+
+      await expect(proofPromise).rejects.toThrow('Worker terminated');
+    }, 2000);
   });
 });
