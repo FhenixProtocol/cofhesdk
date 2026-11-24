@@ -4,7 +4,7 @@
 import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchKeys } from '../fetchKeys.js';
+import { fetchKeys } from '../fetchKeysForConfig.js';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { createKeysStore, type KeysStorage } from '../keyStore.js';
 

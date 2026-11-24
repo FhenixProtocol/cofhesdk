@@ -10,7 +10,7 @@
 
 import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { KeysTarget } from '../core/encrypt/zkPackProveVerify.js';
-import { fetchKeysFromUrl } from '../core/fetchKeysFromUrl.js';
+import { fetchKeysFromUrl } from '../core/fetchKeys.js';
 import { createKeysStore } from '../core/keyStore.js';
 import { createIndexedDbStorage } from './indexedDbStorage.js';
 import { WORKER_KEYS_DB_NAME, type WorkerItem, type WorkerRequest, type WorkerResponse } from './workerProtocol.js';

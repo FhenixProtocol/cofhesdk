@@ -81,7 +81,7 @@ export { CofheError, CofheErrorCode, isCofheError } from './error.js';
 export type { CofheErrorParams } from './error.js';
 
 // Key fetching
-export { fetchKeys } from './fetchKeys.js';
+export { fetchKeys } from './fetchKeysForConfig.js';
 export type { FheKeyDeserializer } from './fetchKeys.js';
 
 // Key storage
