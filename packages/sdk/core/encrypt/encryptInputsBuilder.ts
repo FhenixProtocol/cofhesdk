@@ -2,13 +2,10 @@ import {
   type ZkBuilderAndCrsGenerator,
   type ZkProveWorkerFunction,
   type VerifyBatchResult,
-  zkPack,
-  assertZkPackable,
-  zkProve,
-  zkProveWithWorker,
   zkVerifyBatch,
   constructZkPoKMetadata,
 } from './zkPackProveVerify.js';
+import { mainThreadProvingPath, proveFromTheStart, workerProvingPath } from './provingPaths.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import {
   type EncryptStepCallbackFunction,
@@ -568,16 +565,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * Deserializes the FHE key and the CRS and packs the inputs, ready for a proof on this thread.
-   * Synchronous and heavy (the CRS alone is several megabytes): not to be called when a worker
-   * makes the proof, since the worker does the same from the hex strings.
-   */
-  private packOnThisThread(fheKey: string, crs: string) {
-    const { zkBuilder, zkCrs } = this.zkBuilderAndCrsGenerator(fheKey, crs);
-    return { zkBuilder: zkPack(this.inputItems, zkBuilder), zkCrs };
-  }
-
-  /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
   private async productionExecute(): Promise<VerifyBatchResult> {
@@ -585,68 +572,61 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertChainId();
     this.assertConsumingContract();
 
+    // The proof is made in a worker when one is to be used, and on this thread otherwise. Each
+    // path is whole in itself (see provingPaths.ts); this method only picks one, reports the
+    // steps, and runs the main-thread path when the worker fails.
+    const items = this.inputItems;
+    const setup = {
+      // TFHE and the keys are only needed once an encrypt runs, so both are prepared here, not earlier.
+      initTfhe: () => this.initTfheOrThrow(),
+      fetchKeys: () => this.fetchFheKeyAndCrs(),
+    };
+    const createMainThreadPath = () =>
+      mainThreadProvingPath({
+        items,
+        setup,
+        zkBuilderAndCrsGenerator: this.zkBuilderAndCrsGenerator,
+        beforeProve: this.beforeMainThreadProve,
+      });
+    const workerPath =
+      this.useWorker && this.zkProveWorkerFn
+        ? workerProvingPath({ items, setup, zkProveWorkerFn: this.zkProveWorkerFn })
+        : undefined;
+    const firstChoicePath = workerPath ?? createMainThreadPath();
+
     this.fireStepStart(EncryptStep.InitTfhe);
 
-    // Deferred initialization of tfhe wasm until encrypt is called
-    // Returns true if tfhe was initialized, false if already initialized
-    const tfheInitializationExecuted = await this.initTfheOrThrow();
+    const tfheInit = await firstChoicePath.initTfhe();
 
-    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
+    this.fireStepEnd(EncryptStep.InitTfhe, tfheInit);
 
     this.fireStepStart(EncryptStep.FetchKeys);
 
-    // Deferred fetching of fheKey and crs until encrypt is called
-    // if the key/crs is already in the store, it is not fetched from the CoFHE API
-    const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
+    const keysFetched = await firstChoicePath.fetchKeys();
 
-    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
-
-    // The proof is made in one of two places, and each needs a different preparation:
-    //  - In the worker (the default in a browser). The worker deserializes the key and the CRS,
-    //    packs the inputs and proves, all from the hex strings. This thread only checks the inputs.
-    //  - On this thread, when workers are off or unavailable, and as the fallback when the worker
-    //    fails. This thread then deserializes, packs and proves itself.
-    // Doing the second preparation when the worker proves would be wasted, and it is heavy enough
-    // to freeze the page, so it runs only when this thread is the one that proves.
-    const worker = this.useWorker ? this.zkProveWorkerFn : undefined;
+    this.fireStepEnd(EncryptStep.FetchKeys, keysFetched);
 
     this.fireStepStart(EncryptStep.Pack);
 
-    let packedOnThisThread: ReturnType<typeof this.packOnThisThread> | undefined;
-    if (worker) {
-      // The worker packs. The checks that packing makes still run here, so a bad input fails
-      // before the worker is asked.
-      assertZkPackable(this.inputItems);
-    } else {
-      packedOnThisThread = this.packOnThisThread(fheKey, crs);
-    }
+    firstChoicePath.pack();
 
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: worker != null });
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: workerPath != null });
 
     this.fireStepStart(EncryptStep.Prove);
 
-    // Construct metadata once (used by both worker and main thread paths)
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
-    let proof: Uint8Array | undefined;
-    let usedWorker = false;
+    let proof: Uint8Array;
+    let usedWorker = workerPath != null;
     let workerFailedError: string | undefined;
-
-    if (worker) {
-      try {
-        proof = await zkProveWithWorker(worker, fheKey, crs, this.inputItems, metadata);
-        usedWorker = true;
-      } catch (error) {
-        // Kept for the step event; the proof is then made on this thread.
-        workerFailedError = error instanceof Error ? error.message : String(error);
-      }
-    }
-
-    if (proof == null) {
-      // This thread proves. After a failed worker nothing has been packed here yet, so it packs now.
-      const { zkBuilder, zkCrs } = packedOnThisThread ?? this.packOnThisThread(fheKey, crs);
-      await this.beforeMainThreadProve?.();
-      proof = await zkProve(zkBuilder, zkCrs, metadata);
+    try {
+      proof = await firstChoicePath.prove(metadata);
+    } catch (error) {
+      // Only a failed worker has somewhere to fall back to.
+      if (!workerPath) throw error;
+      workerFailedError = error instanceof Error ? error.message : String(error);
+      usedWorker = false;
+      proof = await proveFromTheStart(createMainThreadPath(), metadata);
     }
 
     this.fireStepEnd(EncryptStep.Prove, {
