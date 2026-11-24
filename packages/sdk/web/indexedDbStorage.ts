@@ -1,6 +1,11 @@
 /* global indexedDB, IDBDatabase, IDBTransactionMode, IDBObjectStore, IDBRequest */
 import type { IStorage } from '../core/types.js';
 
+// Why this storage has a file of its own, and is not next to the shared hub storage in
+// `storage.ts`: the proving worker imports this file, and `storage.ts` imports
+// `iframe-shared-storage` for the hub. In one file, the built worker would load that library,
+// which it cannot use (a worker has no iframe). Keep this file free of that import.
+
 const LOCAL_DB_NAME = 'cofhesdk';
 const LOCAL_STORE_NAME = 'keyval';
 
