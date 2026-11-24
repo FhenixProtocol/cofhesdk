@@ -60,21 +60,11 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
       expect(result).toBeDefined();
 
-      // Check that worker was attempted
+      // The real worker made the proof: no fallback to the main thread.
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(true);
-      // Note: Workers may fail to initialize in Playwright test environment
-      // due to WASM module loading issues. Verify fallback works correctly.
-      expect(proveContext.usedWorker).toBeDefined();
-      // The test cannot load tfhe module, so the worker fallback occurs.
-      // The real test is to check that usedWorker is true
-      // TBD: Find a way to test this in the test environment.
-
-      // Log if fallback occurred for debugging
-      if (!proveContext.usedWorker) {
-        console.log('Worker fallback occurred (expected in test env):', proveContext.workerFailedError);
-        expect(proveContext.workerFailedError).toBeDefined();
-      }
+      expect(proveContext.workerFailedError).toBeUndefined();
+      expect(proveContext.usedWorker).toBe(true);
     }, 120000);
 
     it('should disable workers when useWorkers: false', async () => {
