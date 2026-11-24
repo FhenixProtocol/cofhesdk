@@ -3,8 +3,8 @@ import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
-import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
-import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
+import { type EncryptInputsBuilderUnset, type WorkerStoredKeysReader } from './encrypt/encryptInputsBuilder.js';
+import { type ZkBuilderAndCrsGenerator, type ProvingWorker } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
@@ -169,7 +169,10 @@ export type CofheClientParams<TConfig extends CofheConfig> = {
   tfhePublicKeyDeserializer: FheKeyDeserializer;
   compactPkeCrsDeserializer: FheKeyDeserializer;
   initTfhe: TfheInitializer;
-  zkProveWorkerFn?: ZkProveWorkerFunction;
+  /** A worker that proves by itself. Used when `config.useWorkers` is on. */
+  provingWorker?: ProvingWorker;
+  /** Reads the keys that worker stored, for when the calling thread has to prove after all. */
+  readWorkerStoredKeys?: WorkerStoredKeysReader;
   /**
    * Runs right before a ZK proof is generated on the calling thread, i.e. only
    * when the worker path is disabled, unavailable or has failed. Platforms use

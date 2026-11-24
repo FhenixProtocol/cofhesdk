@@ -1,11 +1,18 @@
 import {
   type ZkBuilderAndCrsGenerator,
-  type ZkProveWorkerFunction,
+  type ProvingWorker,
+  type KeysTarget,
   type VerifyBatchResult,
   zkVerifyBatch,
   constructZkPoKMetadata,
 } from './zkPackProveVerify.js';
-import { mainThreadProvingPath, proveFromTheStart, workerProvingPath } from './provingPaths.js';
+import {
+  catchUpTo,
+  mainThreadProvingPath,
+  workerProvingPath,
+  type ProvingPath,
+  type ProvingStep,
+} from './provingPaths.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import {
   type EncryptStepCallbackFunction,
@@ -18,11 +25,17 @@ import {
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign.js';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, type FheKeyDeserializer } from '../fetchKeys.js';
-import { getZkVerifierUrlOrThrow } from '../config.js';
+import { getCoFheUrlOrThrow, getZkVerifierUrlOrThrow } from '../config.js';
 import { type WalletClient, isAddress } from 'viem';
 import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { type KeysStorage } from '../keyStore.js';
+
+/** Reads the keys a proving worker stored, as hex: what it holds for that chain and zone. */
+export type WorkerStoredKeysReader = (
+  chainId: number,
+  securityZone: number
+) => Promise<{ fheKey?: string; crs?: string }>;
 
 type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams & {
   inputs: [...T];
@@ -34,7 +47,8 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
-  zkProveWorkerFn: ZkProveWorkerFunction | undefined;
+  provingWorker: ProvingWorker | undefined;
+  readWorkerStoredKeys?: WorkerStoredKeysReader | undefined;
   beforeMainThreadProve?: (() => Promise<void>) | undefined;
 
   keysStorage: KeysStorage | undefined;
@@ -75,7 +89,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private compactPkeCrsDeserializer: FheKeyDeserializer;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   private initTfhe: TfheInitializer | undefined;
-  private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
+  private provingWorker: ProvingWorker | undefined;
+  private readWorkerStoredKeys: WorkerStoredKeysReader | undefined;
   private beforeMainThreadProve: (() => Promise<void>) | undefined;
 
   private keysStorage: KeysStorage | undefined;
@@ -149,8 +164,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     // Optional tfhe initialization function, will be run if provided
     this.initTfhe = params.initTfhe;
 
-    // Optional zkProve worker function, will be used on web if useWorkers is true and worker function is provided
-    this.zkProveWorkerFn = params.zkProveWorkerFn;
+    // Optional worker that proves by itself; used on web when useWorkers is true
+    this.provingWorker = params.provingWorker;
+    this.readWorkerStoredKeys = params.readWorkerStoredKeys;
 
     // Optional platform setup that only matters when this thread generates the proof
     this.beforeMainThreadProve = params.beforeMainThreadProve;
@@ -414,6 +430,26 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * A worker that proves by itself keeps the keys in a store of its own. When this thread has to
+   * prove after all and has no keys, it takes them from there, so a fallback does not download
+   * megabytes the browser already holds. They are validated like any stored key afterwards.
+   */
+  private async adoptKeysStoredByWorker(securityZone: number): Promise<void> {
+    const { keysStorage, readWorkerStoredKeys, chainId } = this;
+    if (!keysStorage || !readWorkerStoredKeys || chainId == null) return;
+    if (keysStorage.getFheKey(chainId, securityZone) && keysStorage.getCrs(chainId, securityZone)) return;
+
+    // Best effort: without them the keys are simply downloaded.
+    const stored = await readWorkerStoredKeys(chainId, securityZone).catch(() => undefined);
+    if (stored?.fheKey && !keysStorage.getFheKey(chainId, securityZone)) {
+      keysStorage.setFheKey(chainId, securityZone, stored.fheKey);
+    }
+    if (stored?.crs && !keysStorage.getCrs(chainId, securityZone)) {
+      keysStorage.setCrs(chainId, securityZone, stored.crs);
+    }
+  }
+
+  /**
    * Fetches the FHE key and CRS from the CoFHE API
    * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
    */
@@ -442,6 +478,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         },
       });
     }
+
+    await this.adoptKeysStoredByWorker(securityZone);
 
     let fheKey: string | undefined;
     let fheKeyFetchedFromCoFHE: boolean = false;
@@ -564,6 +602,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return result;
   }
 
+  /** Which keys this encrypt is made with: what a worker needs to get them by itself. */
+  private keysTarget(): KeysTarget {
+    this.assertChainId();
+    return {
+      coFheUrl: getCoFheUrlOrThrow(this.config, this.chainId),
+      chainId: this.chainId,
+      securityZone: this.getSecurityZone(),
+    };
+  }
+
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
@@ -574,64 +622,68 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // The proof is made in a worker when one is to be used, and on this thread otherwise. Each
     // path is whole in itself (see provingPaths.ts); this method only picks one, reports the
-    // steps, and runs the main-thread path when the worker fails.
+    // steps, and switches to the main-thread path when the worker fails.
     const items = this.inputItems;
-    const setup = {
-      // TFHE and the keys are only needed once an encrypt runs, so both are prepared here, not earlier.
-      initTfhe: () => this.initTfheOrThrow(),
-      fetchKeys: () => this.fetchFheKeyAndCrs(),
-    };
     const createMainThreadPath = () =>
       mainThreadProvingPath({
         items,
-        setup,
+        // TFHE and the keys are only needed once an encrypt runs, so both are prepared now, not earlier.
+        initTfhe: () => this.initTfheOrThrow(),
+        fetchKeys: () => this.fetchFheKeyAndCrs(),
         zkBuilderAndCrsGenerator: this.zkBuilderAndCrsGenerator,
         beforeProve: this.beforeMainThreadProve,
       });
     const workerPath =
-      this.useWorker && this.zkProveWorkerFn
-        ? workerProvingPath({ items, setup, zkProveWorkerFn: this.zkProveWorkerFn })
+      this.useWorker && this.provingWorker
+        ? workerProvingPath({ items, target: () => this.keysTarget(), worker: this.provingWorker })
         : undefined;
-    const firstChoicePath = workerPath ?? createMainThreadPath();
+
+    let path: ProvingPath = workerPath ?? createMainThreadPath();
+    let workerFailedError: string | undefined;
+
+    // Runs one step on the current path. Should the worker path fail in it, the main-thread path
+    // takes over for the rest of the encrypt: it first does the earlier steps itself, with
+    // nothing reported, then this one.
+    const run = async <T>(step: ProvingStep, stepOf: (path: ProvingPath) => T | Promise<T>): Promise<T> => {
+      try {
+        return await stepOf(path);
+      } catch (error) {
+        // Only a failed worker has somewhere to fall back to.
+        if (path !== workerPath) throw error;
+        workerFailedError = error instanceof Error ? error.message : String(error);
+        path = createMainThreadPath();
+        await catchUpTo(path, step);
+        return await stepOf(path);
+      }
+    };
 
     this.fireStepStart(EncryptStep.InitTfhe);
 
-    const tfheInit = await firstChoicePath.initTfhe();
+    const tfheInit = await run('initTfhe', (path) => path.initTfhe());
 
     this.fireStepEnd(EncryptStep.InitTfhe, tfheInit);
 
     this.fireStepStart(EncryptStep.FetchKeys);
 
-    const keysFetched = await firstChoicePath.fetchKeys();
+    const keysFetched = await run('fetchKeys', (path) => path.fetchKeys());
 
     this.fireStepEnd(EncryptStep.FetchKeys, keysFetched);
 
     this.fireStepStart(EncryptStep.Pack);
 
-    firstChoicePath.pack();
+    await run('pack', (path) => path.pack());
 
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: workerPath != null });
+    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: path === workerPath });
 
     this.fireStepStart(EncryptStep.Prove);
 
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
-    let proof: Uint8Array;
-    let usedWorker = workerPath != null;
-    let workerFailedError: string | undefined;
-    try {
-      proof = await firstChoicePath.prove(metadata);
-    } catch (error) {
-      // Only a failed worker has somewhere to fall back to.
-      if (!workerPath) throw error;
-      workerFailedError = error instanceof Error ? error.message : String(error);
-      usedWorker = false;
-      proof = await proveFromTheStart(createMainThreadPath(), metadata);
-    }
+    const proof = await run('prove', (path) => path.prove(metadata));
 
     this.fireStepEnd(EncryptStep.Prove, {
       useWorker: this.useWorker,
-      usedWorker,
+      usedWorker: path === workerPath,
       workerFailedError,
     });
 

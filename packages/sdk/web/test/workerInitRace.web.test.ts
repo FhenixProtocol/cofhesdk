@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { THREADPOOL_TESTS, fetchNetworkKeys } from './threadPoolBenchHelper';
+import { THREADPOOL_TESTS, COFHE_URL, COFHE_CHAIN_ID } from './threadPoolBenchHelper';
 
 // What happens when the zkProve worker receives two proof requests before it
 // has finished initializing tfhe — e.g. an app doing
@@ -20,7 +20,6 @@ type WorkerReply = { id: string; type: string; error?: string; count?: number };
 
 describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - zkProve worker init race', () => {
   let worker: Worker;
-  let keys: { fheKey: string; crs: string };
   let replies: WorkerReply[];
   let rayonWorkersStarted: number;
 
@@ -38,16 +37,13 @@ describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - zkProve worker init race', 
     request({
       id,
       type: 'zkProve',
-      fheKeyHex: keys.fheKey,
-      crsHex: keys.crs,
+      target: { coFheUrl: COFHE_URL, chainId: COFHE_CHAIN_ID, securityZone: 0 },
       items: [{ utype: 'uint32', data: String(value) }],
-      metadata: Array.from(new Uint8Array(32).fill(7)),
+      metadata: new Uint8Array(32).fill(7),
       tfheThreads: THREADS,
     });
 
   beforeAll(async () => {
-    keys = await fetchNetworkKeys();
-
     worker = new Worker(new URL('./countingZkProveWorker.ts', import.meta.url), { type: 'module' });
     await new Promise<void>((resolve, reject) => {
       worker.addEventListener('message', function onReady(event: MessageEvent) {

@@ -96,13 +96,7 @@ export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';
 
 // ZK utilities
-export type {
-  ZkBuilderAndCrsGenerator,
-  ZkProveWorkerFunction,
-  ZkProveWorkerRequest,
-  ZkProveWorkerResponse,
-} from './encrypt/zkPackProveVerify.js';
-export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
+export type { ZkBuilderAndCrsGenerator, KeysTarget, ProvingWorker } from './encrypt/zkPackProveVerify.js';
 
 // Consts (contract addresses, serialized size limits)
 export {

@@ -15,7 +15,7 @@ import { type PublicClient, createPublicClient, http, type WalletClient, createW
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
-import { type ZkBuilderAndCrsGenerator } from '../encrypt/zkPackProveVerify.js';
+import { type ProvingWorker, type ZkBuilderAndCrsGenerator } from '../encrypt/zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
 import { type FheKeyDeserializer } from '../fetchKeys.js';
 
@@ -257,7 +257,7 @@ describe('EncryptInputsBuilder', () => {
       compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       initTfhe: mockInitTfhe,
-      zkProveWorkerFn: undefined,
+      provingWorker: undefined,
       keysStorage: keysStorage,
       requireConnected: vi.fn(),
     };
@@ -904,88 +904,213 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
-  describe('where the inputs are packed', () => {
+  describe('the two proving paths', () => {
     const workerProof = new TextEncoder().encode('{"items":[],"metadata":[]}');
     type StepCallback = (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
-    const packContexts = (calls: Array<Parameters<StepCallback>>) =>
-      calls.filter(([step, context]) => step === EncryptStep.Pack && context?.isEnd).map(([, context]) => context);
+    const endOf = (calls: Array<Parameters<StepCallback>>, wanted: EncryptStep) =>
+      calls.filter(([step, context]) => step === wanted && context?.isEnd).map(([, context]) => context);
 
-    it('leaves building and packing to the worker when the worker proves', async () => {
-      const zkBuilderAndCrsGenerator = vi.fn(mockZkBuilderAndCrsGenerator);
-      const zkProveWorkerFn = vi.fn(async () => workerProof);
-      const onStep = vi.fn<StepCallback>();
-
-      await new EncryptInputsBuilder({ ...createDefaultParams(), zkBuilderAndCrsGenerator, zkProveWorkerFn })
-        .setConsumingContract(defaultConsumingContract)
-        .onStep(onStep)
-        .execute();
-
-      expect(zkProveWorkerFn).toHaveBeenCalledTimes(1);
-      expect(zkBuilderAndCrsGenerator).not.toHaveBeenCalled();
-      // The step is still reported, so a progress display keeps its five steps.
-      expect(packContexts(onStep.mock.calls)).toEqual([expect.objectContaining({ packedInWorker: true })]);
+    /** A proving worker in which every step succeeds, unless a step is replaced. */
+    const mockProvingWorker = (replace: Partial<ProvingWorker> = {}) => ({
+      initTfhe: vi.fn(replace.initTfhe ?? (async () => ({ tfheInitializationExecuted: true }))),
+      fetchKeys: vi.fn(
+        replace.fetchKeys ?? (async () => ({ fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false }))
+      ),
+      prove: vi.fn(replace.prove ?? (async () => workerProof)),
     });
 
-    it('still rejects a value outside its type before the worker is asked to prove', async () => {
-      const zkProveWorkerFn = vi.fn(async () => workerProof);
-
-      const outOfRange = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        inputs: [{ ...Encryptable.uint8(1n), data: 256n }] as unknown as [EncryptableUint128],
-        zkProveWorkerFn,
-      }).setConsumingContract(defaultConsumingContract);
-
-      await expect(outOfRange.execute()).rejects.toThrow();
-      expect(zkProveWorkerFn).not.toHaveBeenCalled();
+    /** The parts only the main-thread path uses, as spies. */
+    const mainThreadParts = () => ({
+      initTfhe: vi.fn(mockInitTfhe),
+      tfhePublicKeyDeserializer: vi.fn(mockTfhePublicKeyDeserializer),
+      compactPkeCrsDeserializer: vi.fn(mockCompactPkeCrsDeserializer),
+      zkBuilderAndCrsGenerator: vi.fn(mockZkBuilderAndCrsGenerator),
     });
 
-    it('still enforces the bit limit before the worker is asked to prove', async () => {
-      const zkProveWorkerFn = vi.fn(async () => workerProof);
+    describe('worker path', () => {
+      it('does nothing heavy on this thread: no TFHE, no keys, no packing', async () => {
+        const provingWorker = mockProvingWorker();
+        const mainThread = mainThreadParts();
+        const onStep = vi.fn<StepCallback>();
 
-      const tooManyBits = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        // 17 x 128 bits = 2176 bits, over the 2048-bit limit.
-        inputs: Array.from({ length: 17 }, () => Encryptable.uint128(1n)) as unknown as [EncryptableUint128],
-        zkProveWorkerFn,
-      }).setConsumingContract(defaultConsumingContract);
+        await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
 
-      await expect(tooManyBits.execute()).rejects.toMatchObject({ code: CofheErrorCode.ZkPackFailed });
-      expect(zkProveWorkerFn).not.toHaveBeenCalled();
-    });
+        expect(mainThread.initTfhe).not.toHaveBeenCalled();
+        expect(mainThread.tfhePublicKeyDeserializer).not.toHaveBeenCalled();
+        expect(mainThread.compactPkeCrsDeserializer).not.toHaveBeenCalled();
+        expect(mainThread.zkBuilderAndCrsGenerator).not.toHaveBeenCalled();
 
-    it('builds and packs on this thread when workers are off', async () => {
-      const zkBuilderAndCrsGenerator = vi.fn(mockZkBuilderAndCrsGenerator);
-      const zkProveWorkerFn = vi.fn(async () => workerProof);
-      const onStep = vi.fn<StepCallback>();
-
-      await new EncryptInputsBuilder({ ...createDefaultParams(), zkBuilderAndCrsGenerator, zkProveWorkerFn })
-        .setConsumingContract(defaultConsumingContract)
-        .setUseWorker(false)
-        .onStep(onStep)
-        .execute();
-
-      expect(zkProveWorkerFn).not.toHaveBeenCalled();
-      expect(zkBuilderAndCrsGenerator).toHaveBeenCalledTimes(1);
-      expect(packContexts(onStep.mock.calls)).toEqual([expect.objectContaining({ packedInWorker: false })]);
-    });
-
-    it('builds and packs on this thread after the worker fails', async () => {
-      const zkBuilderAndCrsGenerator = vi.fn(mockZkBuilderAndCrsGenerator);
-      const zkProveWorkerFn = vi.fn(async () => {
-        throw new Error('worker is gone');
+        expect(endOf(onStep.mock.calls, EncryptStep.Prove)).toEqual([
+          expect.objectContaining({ usedWorker: true, workerFailedError: undefined }),
+        ]);
       });
-      const onStep = vi.fn<StepCallback>();
 
-      await new EncryptInputsBuilder({ ...createDefaultParams(), zkBuilderAndCrsGenerator, zkProveWorkerFn })
-        .setConsumingContract(defaultConsumingContract)
-        .onStep(onStep)
-        .execute();
+      it('has the worker do each step, telling it which keys to use', async () => {
+        const provingWorker = mockProvingWorker();
+        const target = { coFheUrl: MockZkVerifierUrl, chainId: defaultChainId, securityZone: 0 };
 
-      expect(zkBuilderAndCrsGenerator).toHaveBeenCalledTimes(1);
-      const proveEnd = onStep.mock.calls.find(([step, context]) => step === EncryptStep.Prove && context?.isEnd);
-      expect(proveEnd?.[1]).toEqual(
-        expect.objectContaining({ usedWorker: false, workerFailedError: 'worker is gone' })
-      );
+        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
+
+        expect(provingWorker.initTfhe).toHaveBeenCalledTimes(1);
+        expect(provingWorker.fetchKeys).toHaveBeenCalledExactlyOnceWith(target);
+        expect(provingWorker.prove).toHaveBeenCalledExactlyOnceWith(target, expect.any(Array), expect.any(Uint8Array));
+      });
+
+      it('reports every step, with what the worker said about it', async () => {
+        const provingWorker = mockProvingWorker({
+          fetchKeys: async () => ({ fheKeyFetchedFromCoFHE: true, crsFetchedFromCoFHE: true }),
+        });
+        const onStep = vi.fn<StepCallback>();
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
+
+        expect(endOf(onStep.mock.calls, EncryptStep.InitTfhe)).toEqual([
+          expect.objectContaining({ tfheInitializationExecuted: true }),
+        ]);
+        expect(endOf(onStep.mock.calls, EncryptStep.FetchKeys)).toEqual([
+          expect.objectContaining({ fheKeyFetchedFromCoFHE: true, crsFetchedFromCoFHE: true }),
+        ]);
+        // The Pack step is still reported, so a progress display keeps its five steps.
+        expect(endOf(onStep.mock.calls, EncryptStep.Pack)).toEqual([expect.objectContaining({ packedInWorker: true })]);
+      });
+
+      it('rejects a value outside its type before the worker is asked to prove', async () => {
+        const provingWorker = mockProvingWorker();
+
+        const outOfRange = new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          inputs: [{ ...Encryptable.uint8(1n), data: 256n }] as unknown as [EncryptableUint128],
+          provingWorker,
+        }).setConsumingContract(defaultConsumingContract);
+
+        await expect(outOfRange.execute()).rejects.toThrow();
+        expect(provingWorker.prove).not.toHaveBeenCalled();
+      });
+
+      it('enforces the bit limit before the worker is asked to prove', async () => {
+        const provingWorker = mockProvingWorker();
+
+        const tooManyBits = new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          // 17 x 128 bits = 2176 bits, over the 2048-bit limit.
+          inputs: Array.from({ length: 17 }, () => Encryptable.uint128(1n)) as unknown as [EncryptableUint128],
+          provingWorker,
+        }).setConsumingContract(defaultConsumingContract);
+
+        await expect(tooManyBits.execute()).rejects.toMatchObject({ code: CofheErrorCode.ZkPackFailed });
+        expect(provingWorker.prove).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('main-thread path', () => {
+      it('is used, and the worker left alone, when workers are off', async () => {
+        const provingWorker = mockProvingWorker();
+        const mainThread = mainThreadParts();
+        const onStep = vi.fn<StepCallback>();
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .setUseWorker(false)
+          .onStep(onStep)
+          .execute();
+
+        expect(provingWorker.initTfhe).not.toHaveBeenCalled();
+        expect(provingWorker.fetchKeys).not.toHaveBeenCalled();
+        expect(provingWorker.prove).not.toHaveBeenCalled();
+
+        expect(mainThread.initTfhe).toHaveBeenCalledTimes(1);
+        expect(mainThread.zkBuilderAndCrsGenerator).toHaveBeenCalledTimes(1);
+        expect(endOf(onStep.mock.calls, EncryptStep.Pack)).toEqual([
+          expect.objectContaining({ packedInWorker: false }),
+        ]);
+        expect(endOf(onStep.mock.calls, EncryptStep.Prove)).toEqual([expect.objectContaining({ usedWorker: false })]);
+      });
+    });
+
+    describe('falling back from the worker', () => {
+      const failing = (message: string) => async () => {
+        throw new Error(message);
+      };
+
+      it.each([
+        ['starting TFHE', { initTfhe: failing('worker is gone') }],
+        ['fetching the keys', { fetchKeys: failing('worker is gone') }],
+        ['proving', { prove: failing('worker is gone') }],
+      ] as const)('does the whole encrypt on this thread when the worker fails %s', async (_when, replace) => {
+        const provingWorker = mockProvingWorker(replace);
+        const mainThread = mainThreadParts();
+        const onStep = vi.fn<StepCallback>();
+
+        const result = await new EncryptInputsBuilder({ ...createDefaultParams(), ...mainThread, provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
+
+        expect(result).toBeDefined();
+        // The main-thread path starts from the beginning, whatever the worker had already done.
+        expect(mainThread.initTfhe).toHaveBeenCalledTimes(1);
+        expect(mainThread.zkBuilderAndCrsGenerator).toHaveBeenCalledTimes(1);
+        expect(endOf(onStep.mock.calls, EncryptStep.Prove)).toEqual([
+          expect.objectContaining({ usedWorker: false, workerFailedError: 'worker is gone' }),
+        ]);
+      });
+
+      it('still reports each step exactly once', async () => {
+        const provingWorker = mockProvingWorker({ fetchKeys: failing('worker is gone') });
+        const onStep = vi.fn<StepCallback>();
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
+
+        const ended = onStep.mock.calls.filter(([, context]) => context?.isEnd).map(([step]) => step);
+        expect(ended).toEqual([
+          EncryptStep.InitTfhe,
+          EncryptStep.FetchKeys,
+          EncryptStep.Pack,
+          EncryptStep.Prove,
+          EncryptStep.Verify,
+        ]);
+      });
+
+      it('does not go back to the worker once it has failed', async () => {
+        const provingWorker = mockProvingWorker({ initTfhe: failing('worker is gone') });
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
+
+        expect(provingWorker.fetchKeys).not.toHaveBeenCalled();
+        expect(provingWorker.prove).not.toHaveBeenCalled();
+      });
+
+      it('takes the keys the worker stored instead of downloading them again', async () => {
+        // This thread holds no keys: only the worker's store has them.
+        keysStorage = createKeysStore(null);
+        const readWorkerStoredKeys = vi.fn(async () => ({ fheKey: '0x1234567890', crs: '0x1234567890' }));
+        const provingWorker = mockProvingWorker({ prove: failing('worker is gone') });
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), provingWorker, readWorkerStoredKeys })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
+
+        expect(readWorkerStoredKeys).toHaveBeenCalledExactlyOnceWith(defaultChainId, 0);
+        expect(keysStorage.getFheKey(defaultChainId, 0)).toBe('0x1234567890');
+        expect(keysStorage.getCrs(defaultChainId, 0)).toBe('0x1234567890');
+        const keyDownloads = fetchSpy.mock.calls.filter(([url]) => /GetNetworkPublicKey|GetCrs/.test(String(url)));
+        expect(keyDownloads).toEqual([]);
+        fetchSpy.mockRestore();
+      });
     });
   });
 

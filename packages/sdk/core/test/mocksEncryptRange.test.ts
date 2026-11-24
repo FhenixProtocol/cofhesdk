@@ -35,7 +35,7 @@ const mocksBuilder = (inputs: EncryptableItem[]) => {
     compactPkeCrsDeserializer: vi.fn(),
     zkBuilderAndCrsGenerator: vi.fn() as any,
     initTfhe: undefined,
-    zkProveWorkerFn: undefined,
+    provingWorker: undefined,
     keysStorage: undefined,
     requireConnected: vi.fn(),
   });

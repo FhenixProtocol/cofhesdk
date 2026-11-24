@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from '../workerManager.js';
 
+// Keys no server has: the worker cannot get ready for a proof with these, so the request fails.
+const NO_SUCH_KEYS = { coFheUrl: 'http://127.0.0.1:1', chainId: 0, securityZone: 0 };
+
 describe('WorkerManager', () => {
   afterEach(() => {
     // Clean up worker after each test
@@ -34,14 +37,12 @@ describe('WorkerManager', () => {
     });
   });
 
-  describe('submitProof', () => {
+  describe('prove', () => {
     it('should throw immediately when workers not available', async () => {
       if (!areWorkersAvailable()) {
         const manager = getWorkerManager();
 
-        await expect(manager.submitProof('invalid', 'invalid', [], new Uint8Array())).rejects.toThrow(
-          'Web Workers not supported'
-        );
+        await expect(manager.prove(NO_SUCH_KEYS, [], new Uint8Array())).rejects.toThrow('Web Workers not supported');
       }
     });
   });
@@ -67,7 +68,7 @@ describe('WorkerManager', () => {
         const manager = getWorkerManager();
 
         // Start a request that will fail
-        const requestPromise = manager.submitProof('test', 'test', [], new Uint8Array());
+        const requestPromise = manager.prove(NO_SUCH_KEYS, [], new Uint8Array());
 
         // Terminate while request is pending
         terminateWorker();
@@ -100,7 +101,9 @@ class FakeWorker {
   }
 
   postMessage(message: { id: string }) {
-    queueMicrotask(() => this.onmessage?.({ data: { id: message.id, type: 'success', result: [1, 2, 3] } }));
+    queueMicrotask(() =>
+      this.onmessage?.({ data: { id: message.id, type: 'success', result: new Uint8Array([1, 2, 3]) } })
+    );
   }
 
   terminate() {
@@ -119,11 +122,11 @@ describe('WorkerManager initialization failures', () => {
     vi.stubGlobal('Worker', FakeWorker);
     const manager = getWorkerManager();
 
-    const first = manager.submitProof('key', 'crs', [], new Uint8Array());
+    const first = manager.prove(NO_SUCH_KEYS, [], new Uint8Array());
     FakeWorker.instances[0].fail('Failed to fetch dynamically imported module');
     await expect(first).rejects.toThrow('Worker failed to initialize');
 
-    const second = manager.submitProof('key', 'crs', [], new Uint8Array());
+    const second = manager.prove(NO_SUCH_KEYS, [], new Uint8Array());
     await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(2));
     FakeWorker.instances[1].ready();
     await expect(second).resolves.toEqual(new Uint8Array([1, 2, 3]));

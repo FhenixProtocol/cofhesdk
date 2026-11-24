@@ -234,13 +234,15 @@ EncryptStep.Verify; // 'verify'
 
 Calling `.execute()` runs five sequential steps. You can observe them via the `.onStep()` callback.
 
-| Step        | Description                                                                                                                                              |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.                                                                      |
-| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.                                                                           |
-| `Pack`      | Checks the plaintext values and packs them into a ZK list ready for proving. With a Web Worker the packing itself happens in the worker, during `Prove`. |
-| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                                                           |
-| `Verify`    | Sends the proof to the CoFHE verifier's `/verifyBatch` endpoint. Returns the hashes and one shared batch signature.                                      |
+| Step        | Description                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `InitTfhe`  | Lazy-initializes the TFHE WASM module. A no-op after the first call. In a browser with Web Workers on, TFHE is started inside the worker and not on the page.                  |
+| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain. With Web Workers on, the worker does this itself and keeps the keys in its own IndexedDB store. |
+| `Pack`      | Checks the plaintext values and packs them into a ZK list ready for proving. With a Web Worker the packing itself happens in the worker, during `Prove`.                       |
+| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                                                                                 |
+| `Verify`    | Sends the proof to the CoFHE verifier's `/verifyBatch` endpoint. Returns the hashes and one shared batch signature.                                                            |
+
+With Web Workers on (the default in a browser), the page's thread does nothing heavy in any of these steps: the worker runs TFHE, fetches and stores the keys, packs and proves. If the worker fails in any step, the encrypt carries on on the page's thread, reusing the keys the worker stored. `fheKeyStorage` only applies to keys the page's thread holds, that is, when Web Workers are off or after such a fallback.
 
 `Prove` normally dominates the total time. On the web it can run across multiple threads
 — roughly 5× faster — if your app is served with the right headers. See

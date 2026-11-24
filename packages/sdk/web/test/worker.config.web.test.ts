@@ -7,7 +7,11 @@ import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofheClient, createCofheConfig, createCofheClientWithCustomWorker } from '../index.js';
+import { createCofheClient, createCofheConfig } from '../index.js';
+import { createCofheClientWithProvingWorker } from '../testing.js';
+
+/** A proving worker in which every step fails the given way. */
+const failingWorker = (fail: () => Promise<never>) => ({ initTfhe: fail, fetchKeys: fail, prove: fail });
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
@@ -208,7 +212,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       };
 
       // Inject the failing worker into the client
-      const client = createCofheClientWithCustomWorker(config, failingWorkerFn);
+      const client = createCofheClientWithProvingWorker(config, failingWorker(failingWorkerFn));
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks to verify fallback
@@ -245,7 +249,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         throw new Error('Worker unavailable');
       };
 
-      const client = createCofheClientWithCustomWorker(config, failingWorkerFn);
+      const client = createCofheClientWithProvingWorker(config, failingWorker(failingWorkerFn));
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;
@@ -281,7 +285,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         throw new Error('Async worker failure');
       };
 
-      const client = createCofheClientWithCustomWorker(config, asyncFailingWorkerFn);
+      const client = createCofheClientWithProvingWorker(config, failingWorker(asyncFailingWorkerFn));
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;

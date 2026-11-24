@@ -8,9 +8,10 @@ import {
   type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
-  type EncryptableItem,
   type TfheInitializer,
   type TfheThreadsSetting,
+  type ProvingWorker,
+  createKeysStore,
   fheTypeToString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
@@ -21,166 +22,47 @@ import { createIndexedDbStorage, createSsrStorage, createWebStorage } from './st
 
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
+import { WORKER_KEYS_DB_NAME } from './workerProtocol.js';
+import type { WorkerStoredKeysReader } from '../core/encrypt/encryptInputsBuilder.js';
 
-// Type-only import for tfhe — the runtime is loaded lazily via `await import('tfhe')`
-// inside `initTfhe()` so that simply importing `@cofhe/sdk/web` (e.g. transitively
-// through `@cofhe/react`) does not pull tfhe — and its worker helpers that
-// reference `self` at module top — into the import graph during Next.js SSR.
-import type { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
+import { getTfheThreadPoolStatus, webClientParams } from './mainThreadTfhe.js';
 import { hasDOM } from './const';
-import { initTfheThreadPool, type TfheThreadPoolResult } from './tfheThreadPool.js';
 
-let tfheModule: typeof import('tfhe') | null = null;
-let tfheInitialized = false;
-let tfheInitPromise: Promise<void> | null = null;
-let threadPoolPromise: Promise<TfheThreadPoolResult> | null = null;
-let threadPoolResult: TfheThreadPoolResult | null = null;
+export { getTfheThreadPoolStatus };
 
 /**
- * Outcome of the rayon thread pool setup on the main thread, or `null` if the
- * main thread hasn't had to generate a proof yet. `enabled: false` carries a
- * `reason`.
+ * The proving worker, as the SDK core uses it. The worker runs its own TFHE and manages the keys
+ * itself; this only forwards each step to it.
  *
- * Note this reflects the *main thread* only. When workers are enabled (the
- * default) proving happens inside the zkProve worker, which runs its own pool,
- * and the main thread never starts one — so `null` is the normal value there.
+ * Bound to the client's `tfheThreads` setting, which the worker applies when it first starts tfhe.
  */
-export function getTfheThreadPoolStatus(): TfheThreadPoolResult | null {
-  return threadPoolResult;
-}
-
-/**
- * Internal TFHE initializer used on web.
- * Called automatically on first encryption - users don't need to call this manually.
- *
- * The wasm instance is a module-level singleton, so initialization is memoised.
- * It deliberately does NOT start the rayon thread pool: the main thread only
- * needs one when it generates a proof itself, see `createStartMainThreadPool`.
- *
- * @returns true if it performed the initialization, false if TFHE was already initialized
- */
-const initTfhe: TfheInitializer = async () => {
-  if (tfheInitialized) return false;
-
-  if (tfheInitPromise) {
-    // Another caller is already initializing; wait it out but don't claim
-    // credit for having done it.
-    await tfheInitPromise;
-    return false;
-  }
-
-  tfheInitPromise = (async () => {
-    const mod = await import('tfhe');
-    await mod.default();
-    await mod.init_panic_hook();
-    tfheModule = mod;
-    tfheInitialized = true;
-  })();
-
-  try {
-    await tfheInitPromise;
-  } catch (error) {
-    // Let the next call retry from scratch.
-    tfheInitPromise = null;
-    throw error;
-  }
-
-  return true;
-};
-
-/**
- * Starts the main thread's rayon pool right before the main thread generates a
- * proof (workers disabled, unavailable, or the worker failed). With workers on
- * the proof runs in the zkProve worker, which has its own pool, so a second one
- * here would just be idle Web Workers plus another shared wasm memory.
- *
- * Must run before the FIRST main-thread proof: rayon locks in its global pool
- * on first use, and `initThreadPool` fails from then on. Deserializing keys and
- * packing inputs beforehand is fine. Memoised because `initThreadPool` may only
- * run once per wasm instance — if an app creates several clients with different
- * `tfheThreads` values, whichever proves on the main thread first wins.
- *
- * Best-effort: leaves tfhe single-threaded when the page isn't cross-origin
- * isolated rather than failing the encryption.
- */
-function createStartMainThreadPool(tfheThreads: TfheThreadsSetting) {
-  return async (): Promise<void> => {
-    threadPoolPromise ??= initTfheThreadPool(requireTfhe(), tfheThreads);
-    threadPoolResult = await threadPoolPromise;
+function createProvingWorker(tfheThreads: TfheThreadsSetting): ProvingWorker {
+  return {
+    initTfhe: () => getWorkerManager().initTfhe(tfheThreads),
+    fetchKeys: (target) => getWorkerManager().fetchKeys(target, tfheThreads),
+    prove: (target, items, metadata) =>
+      getWorkerManager().prove(
+        target,
+        // Bigints do not survive postMessage as such; the enum goes by its name.
+        items.map((item) => ({
+          utype: fheTypeToString(item.utype),
+          data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
+        })),
+        metadata,
+        tfheThreads
+      ),
   };
 }
 
-function requireTfhe(): typeof import('tfhe') {
-  if (!tfheModule) {
-    throw new Error('TFHE not initialized — call initTfhe() (or any client method that triggers it) first');
-  }
-  return tfheModule;
-}
-
-const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
-  return requireTfhe().TfheCompactPublicKey.safe_deserialize(
-    fromHexString(buff),
-    TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT
-  );
-};
-
-const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
-  return requireTfhe().CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
-};
-
 /**
- * Serializer for TFHE public keys
- * Validates that the buffer can be deserialized into a TfheCompactPublicKey
+ * Reads the keys the proving worker stored. For the main-thread fallback, so that it does not
+ * download megabytes the browser already holds.
  */
-const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
-  _deserializeTfhePublicKey(buff);
+const readWorkerStoredKeys: WorkerStoredKeysReader = async (chainId, securityZone) => {
+  const store = createKeysStore(createIndexedDbStorage(WORKER_KEYS_DB_NAME));
+  await store.rehydrateKeysStore();
+  return { fheKey: store.getFheKey(chainId, securityZone), crs: store.getCrs(chainId, securityZone) };
 };
-
-/**
- * Serializer for Compact PKE CRS
- * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
- */
-const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
-  _deserializeCompactPkeCrs(buff);
-};
-
-/**
- * Creates a ZK builder and CRS from FHE public key and CRS buffers
- * This is used internally by the SDK to create encrypted inputs
- */
-const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
-  const fhePublicKey = _deserializeTfhePublicKey(fhe);
-  const zkBuilder = requireTfhe().ProvenCompactCiphertextList.builder(fhePublicKey);
-  const zkCrs = _deserializeCompactPkeCrs(crs);
-
-  return { zkBuilder, zkCrs };
-};
-
-/**
- * Worker-enabled zkProve function
- * This submits proof generation to a Web Worker
- *
- * Bound to the client's `tfheThreads` setting, which the worker applies when it
- * first initialises tfhe.
- */
-function createZkProveWithWorker(tfheThreads: TfheThreadsSetting) {
-  return async function zkProveWithWorker(
-    fheKeyHex: string,
-    crsHex: string,
-    items: EncryptableItem[],
-    metadata: Uint8Array
-  ): Promise<Uint8Array> {
-    // Serialize items for worker (convert enum to string name)
-    const serializedItems = items.map((item) => ({
-      utype: fheTypeToString(item.utype),
-      data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
-    }));
-
-    // Submit to worker
-    const workerManager = getWorkerManager();
-    return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata, tfheThreads);
-  };
-}
 
 /**
  * Creates a CoFHE configuration for web with IndexedDB storage as default
@@ -205,15 +87,10 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
  */
 export function createCofheClient<TConfig extends CofheConfig>(config: TConfig): CofheClient<TConfig> {
   return createCofheClientBase({
-    config,
-    zkBuilderAndCrsGenerator,
-    tfhePublicKeyDeserializer,
-    compactPkeCrsDeserializer,
-    initTfhe,
-    beforeMainThreadProve: createStartMainThreadPool(config.tfheThreads),
-    // Always provide the worker function if available - config.useWorkers controls usage
-    // areWorkersAvailable will return true if the Worker API is available and false in Node.js
-    zkProveWorkerFn: areWorkersAvailable() ? createZkProveWithWorker(config.tfheThreads) : undefined,
+    ...webClientParams(config),
+    // Always provided when the Worker API exists (not in Node.js); `config.useWorkers` decides its use.
+    provingWorker: areWorkersAvailable() ? createProvingWorker(config.tfheThreads) : undefined,
+    readWorkerStoredKeys: areWorkersAvailable() ? readWorkerStoredKeys : undefined,
   });
 }
 
@@ -227,33 +104,9 @@ export { terminateWorker };
  */
 export { areWorkersAvailable };
 
-/**
- * Test helper: Create a client with custom worker function (for testing fallback behavior)
- * @internal - Only for testing purposes
- */
-export function createCofheClientWithCustomWorker(
-  config: CofheConfig,
-  customZkProveWorkerFn: (
-    fheKeyHex: string,
-    crsHex: string,
-    items: EncryptableItem[],
-    metadata: Uint8Array
-  ) => Promise<Uint8Array>
-): CofheClient {
-  return createCofheClientBase({
-    config,
-    zkBuilderAndCrsGenerator,
-    tfhePublicKeyDeserializer,
-    compactPkeCrsDeserializer,
-    initTfhe,
-    beforeMainThreadProve: createStartMainThreadPool(config.tfheThreads),
-    zkProveWorkerFn: customZkProveWorkerFn,
-  });
-}
-
 // `createWebStorage` is the default `fheKeyStorage` of `createCofheConfig` (the shared hub, falling back
 // to `createIndexedDbStorage`, the page's own IndexedDB). Exported so that an app can put its own observer
 // around either (e.g. to report a storage it had to give up on) and pass the result.
 export { createSsrStorage, createWebStorage, createIndexedDbStorage };
 export type { OnStorageFallback, StorageOperation } from './storage.js';
-export { hasDOM } from './const';
+export { hasDOM };

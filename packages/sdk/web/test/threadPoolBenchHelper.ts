@@ -14,7 +14,9 @@ import { fromHexString } from '../../core/utils.js';
 
 // Same backend as the rest of the web suite: Arbitrum Sepolia, or staging when
 // TEST_STAGING_ENABLED=true.
-const COFHE_URL = (STAGING_TESTS ? stagingCofhe : cofheArbSepolia).coFheUrl;
+const COFHE_CHAIN = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+export const COFHE_URL = COFHE_CHAIN.coFheUrl;
+export const COFHE_CHAIN_ID = COFHE_CHAIN.id;
 
 // Injected by vitest.config.mts from TEST_THREADPOOL_ENABLED.
 declare const __THREADPOOL_TESTS__: boolean | undefined;

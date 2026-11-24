@@ -1,20 +1,25 @@
 /**
- * Worker Manager for ZK Proof Generation
- * Manages worker lifecycle and request/response handling
+ * Manager of the proving worker: its lifecycle, and matching each request with its response.
  */
 
-import type { TfheThreadsSetting, ZkProveWorkerRequest, ZkProveWorkerResponse } from '@/core';
+import type { KeysTarget, TfheThreadsSetting } from '@/core';
+import type { WorkerCall, WorkerItem, WorkerRequest, WorkerResponse, WorkerResults } from './workerProtocol.js';
 
 // Declare Worker type for environments where it's not available
 declare const Worker: any;
 
+const INIT_TFHE_TIMEOUT_MS = 30_000;
+/** A first use downloads the CRS, several megabytes. */
+const FETCH_KEYS_TIMEOUT_MS = 120_000;
+const PROVE_TIMEOUT_MS = 30_000;
+
 interface PendingRequest {
-  resolve: (value: Uint8Array) => void;
+  resolve: (value: any) => void;
   reject: (error: Error) => void;
   timeoutId: ReturnType<typeof setTimeout>;
 }
 
-class ZkProveWorkerManager {
+class ProvingWorkerManager {
   private worker: (typeof Worker extends new (...args: any[]) => infer W ? W : any) | null = null;
   private pendingRequests = new Map<string, PendingRequest>();
   private requestCounter = 0;
@@ -57,30 +62,28 @@ class ZkProveWorkerManager {
 
         // Set up message handler
         (this.worker as any).onmessage = (event: any) => {
-          const { id, type, result, error } = event.data as ZkProveWorkerResponse;
+          const response = event.data as WorkerResponse;
 
           // Handle ready signal
-          if (type === 'ready') {
+          if (response.type === 'ready') {
             this.workerReady = true;
             resolve();
             return;
           }
 
-          // Handle proof responses
-          const pending = this.pendingRequests.get(id);
+          const pending = this.pendingRequests.get(response.id);
           if (!pending) {
-            console.warn('[Worker Manager] Received response for unknown request:', id);
+            console.warn('[Worker Manager] Received response for unknown request:', response.id);
             return;
           }
 
-          // Clear timeout
           clearTimeout(pending.timeoutId);
-          this.pendingRequests.delete(id);
+          this.pendingRequests.delete(response.id);
 
-          if (type === 'success' && result) {
-            pending.resolve(new Uint8Array(result));
-          } else if (type === 'error') {
-            pending.reject(new Error(error || 'Worker error'));
+          if (response.type === 'success') {
+            pending.resolve(response.result);
+          } else if (response.type === 'error') {
+            pending.reject(new Error(response.error || 'Worker error'));
           } else {
             pending.reject(new Error('Invalid response from worker'));
           }
@@ -133,45 +136,45 @@ class ZkProveWorkerManager {
     this.initializationPromise = null;
   }
 
-  /**
-   * Submit a proof generation request to the worker
-   */
-  async submitProof(
-    fheKeyHex: string,
-    crsHex: string,
-    items: Array<{ utype: string; data: any }>,
+  /** Sends one request to the worker, starting it first if needed, and resolves with its result. */
+  private async call<T extends WorkerCall['type']>(
+    request: Extract<WorkerCall, { type: T }>,
+    timeoutMs: number
+  ): Promise<WorkerResults[T]> {
+    await this.initializeWorker();
+
+    const id = `${request.type}-${Date.now()}-${this.requestCounter++}`;
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`Worker request timeout (${timeoutMs / 1000}s)`));
+      }, timeoutMs);
+
+      this.pendingRequests.set(id, { resolve, reject, timeoutId });
+
+      (this.worker as any).postMessage({ ...request, id } as WorkerRequest);
+    });
+  }
+
+  /** Starts TFHE in the worker. */
+  initTfhe(tfheThreads?: TfheThreadsSetting): Promise<WorkerResults['initTfhe']> {
+    return this.call({ type: 'initTfhe', tfheThreads }, INIT_TFHE_TIMEOUT_MS);
+  }
+
+  /** Makes sure the worker holds the keys for `target`; it downloads them when it has none stored. */
+  fetchKeys(target: KeysTarget, tfheThreads?: TfheThreadsSetting): Promise<WorkerResults['fetchKeys']> {
+    return this.call({ type: 'fetchKeys', target, tfheThreads }, FETCH_KEYS_TIMEOUT_MS);
+  }
+
+  /** Packs the items and proves them in the worker, with the keys for `target`. */
+  prove(
+    target: KeysTarget,
+    items: WorkerItem[],
     metadata: Uint8Array,
     tfheThreads?: TfheThreadsSetting
   ): Promise<Uint8Array> {
-    // Initialize worker if needed
-    await this.initializeWorker();
-
-    // Generate unique request ID
-    const id = `zkprove-${Date.now()}-${this.requestCounter++}`;
-
-    return new Promise((resolve, reject) => {
-      // Set up timeout (30 seconds)
-      const timeoutId = setTimeout(() => {
-        this.pendingRequests.delete(id);
-        reject(new Error('Worker request timeout (30s)'));
-      }, 30000);
-
-      // Store pending request
-      this.pendingRequests.set(id, { resolve, reject, timeoutId });
-
-      // Send message to worker
-      const message: ZkProveWorkerRequest = {
-        id,
-        type: 'zkProve',
-        fheKeyHex,
-        crsHex,
-        items,
-        metadata: Array.from(metadata),
-        tfheThreads,
-      };
-
-      (this.worker as any).postMessage(message);
-    });
+    return this.call({ type: 'zkProve', target, items, metadata, tfheThreads }, PROVE_TIMEOUT_MS);
   }
 
   /**
@@ -202,14 +205,14 @@ class ZkProveWorkerManager {
 }
 
 // Singleton instance
-let workerManager: ZkProveWorkerManager | null = null;
+let workerManager: ProvingWorkerManager | null = null;
 
 /**
  * Get the worker manager instance
  */
-export function getWorkerManager(): ZkProveWorkerManager {
+export function getWorkerManager(): ProvingWorkerManager {
   if (!workerManager) {
-    workerManager = new ZkProveWorkerManager();
+    workerManager = new ProvingWorkerManager();
   }
   return workerManager;
 }

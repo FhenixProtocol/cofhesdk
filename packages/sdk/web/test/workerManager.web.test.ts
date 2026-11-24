@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from '../workerManager.js';
 
+// Keys no server has: the worker cannot get ready for a proof with these, so the request fails.
+const NO_SUCH_KEYS = { coFheUrl: 'http://127.0.0.1:1', chainId: 0, securityZone: 0 };
+
 describe('WorkerManager (Browser)', () => {
   afterEach(() => {
     // Clean up worker after each test
@@ -35,12 +38,12 @@ describe('WorkerManager (Browser)', () => {
     });
   });
 
-  describe('submitProof', () => {
+  describe('prove', () => {
     it('should reject invalid data with error message', async () => {
       const manager = getWorkerManager();
 
       // Submit with invalid data - should fail quickly
-      await expect(manager.submitProof('invalid', 'invalid', [], new Uint8Array())).rejects.toThrow();
+      await expect(manager.prove(NO_SUCH_KEYS, [], new Uint8Array())).rejects.toThrow();
     }, 35000);
 
     it('should reject invalid message type', async () => {
@@ -48,12 +51,7 @@ describe('WorkerManager (Browser)', () => {
 
       // Submit with invalid data that will cause worker error
       await expect(
-        manager.submitProof(
-          '', // empty key
-          '', // empty crs
-          [{ utype: 'invalid', data: 'test' }],
-          new Uint8Array([1, 2, 3])
-        )
+        manager.prove(NO_SUCH_KEYS, [{ utype: 'invalid', data: 'test' }], new Uint8Array([1, 2, 3]))
       ).rejects.toThrow();
     }, 35000);
   });
@@ -64,9 +62,9 @@ describe('WorkerManager (Browser)', () => {
 
       // Submit multiple requests concurrently
       const requests = [
-        manager.submitProof('key1', 'crs1', [], new Uint8Array([1])),
-        manager.submitProof('key2', 'crs2', [], new Uint8Array([2])),
-        manager.submitProof('key3', 'crs3', [], new Uint8Array([3])),
+        manager.prove(NO_SUCH_KEYS, [], new Uint8Array([1])),
+        manager.prove(NO_SUCH_KEYS, [], new Uint8Array([2])),
+        manager.prove(NO_SUCH_KEYS, [], new Uint8Array([3])),
       ];
 
       // All should reject (invalid data), but shouldn't crash
@@ -85,12 +83,7 @@ describe('WorkerManager (Browser)', () => {
 
       // This should cause an error in the worker
       await expect(
-        manager.submitProof(
-          'malformed-hex',
-          'malformed-crs',
-          [{ utype: 'uint128', data: 'not-a-number' }],
-          new Uint8Array([])
-        )
+        manager.prove(NO_SUCH_KEYS, [{ utype: 'uint128', data: 'not-a-number' }], new Uint8Array([]))
       ).rejects.toThrow();
     }, 35000);
   });
@@ -100,7 +93,7 @@ describe('WorkerManager (Browser)', () => {
       const manager = getWorkerManager();
 
       // Start a request (will timeout)
-      const proofPromise = manager.submitProof('test', 'test', [], new Uint8Array());
+      const proofPromise = manager.prove(NO_SUCH_KEYS, [], new Uint8Array());
 
       // Terminate immediately
       setTimeout(() => {
@@ -115,7 +108,7 @@ describe('WorkerManager (Browser)', () => {
       const manager = getWorkerManager();
 
       // Terminated in the same tick: the worker cannot have signalled ready yet.
-      const proofPromise = manager.submitProof('test', 'test', [], new Uint8Array());
+      const proofPromise = manager.prove(NO_SUCH_KEYS, [], new Uint8Array());
       terminateWorker();
 
       await expect(proofPromise).rejects.toThrow('Worker terminated');

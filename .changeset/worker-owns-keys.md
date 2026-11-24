@@ -1,0 +1,9 @@
+---
+'@cofhe/sdk': minor
+---
+
+Changes `encryptInputs` in the browser so that the Web Worker does all the heavy work: it starts TFHE, fetches, validates and stores the FHE key and the CRS, and proves. The page's thread no longer starts TFHE or handles the keys, so the first encrypt of a page no longer freezes it either.
+
+- On the worker path the keys are kept in the worker's own IndexedDB store, per origin. `fheKeyStorage` now only applies when the page's thread proves (Web Workers off, or after a worker failure).
+- A worker failure in any step, not only in proving, falls back to the page's thread, which reuses the keys the worker stored.
+- Removes the internal test helper `createCofheClientWithCustomWorker` and the worker message types `ZkProveWorkerFunction`, `ZkProveWorkerRequest` and `ZkProveWorkerResponse`. An app that supplied its own worker through that helper should use `createCofheClient`, whose built-in worker now covers it.
