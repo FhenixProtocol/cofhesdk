@@ -5,6 +5,7 @@ import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys } from '../fetchKeysForConfig.js';
+import { validatingOnce } from '../fetchKeys.js';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { createKeysStore, type KeysStorage } from '../keyStore.js';
 
@@ -181,33 +182,64 @@ describe('fetchKeys', () => {
     expect(retrievedCrs).toEqual(mockCachedCrs);
   });
 
-  it('validates a cached key once, not on every call', async () => {
-    keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
-    keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
-    const fetchCached = () =>
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+  describe('with deserializers wrapped in validatingOnce, as the platforms pass them', () => {
+    const fetchCachedWith = (tfhePublicKey: (key: string) => void, compactPkeCrs: (key: string) => void) => () =>
+      fetchKeys(config, sepolia.id, 0, tfhePublicKey, compactPkeCrs, keysStorage);
 
-    await fetchCached();
-    await fetchCached();
-    await fetchCached();
+    it('validates a cached key once, not on every call', async () => {
+      keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
+      keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
+      const fetchCached = fetchCachedWith(
+        validatingOnce(mockTfhePublicKeyDeserializer),
+        validatingOnce(mockCompactPkeCrsDeserializer)
+      );
 
-    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(1);
-    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
-  });
+      await fetchCached();
+      await fetchCached();
+      await fetchCached();
 
-  it('validates again when the cached key changes', async () => {
-    keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
-    keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
-    const fetchCached = () =>
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+      expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(1);
+      expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
+    });
 
-    await fetchCached();
-    keysStorage.setFheKey(sepolia.id, 0, '0xabcdef');
-    await fetchCached();
+    it('validates again when the cached key changes', async () => {
+      keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
+      keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
+      const fetchCached = fetchCachedWith(
+        validatingOnce(mockTfhePublicKeyDeserializer),
+        validatingOnce(mockCompactPkeCrsDeserializer)
+      );
 
-    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(2);
-    expect(mockTfhePublicKeyDeserializer).toHaveBeenLastCalledWith('0xabcdef');
-    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
+      await fetchCached();
+      keysStorage.setFheKey(sepolia.id, 0, '0xabcdef');
+      await fetchCached();
+
+      expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(2);
+      expect(mockTfhePublicKeyDeserializer).toHaveBeenLastCalledWith('0xabcdef');
+      expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not remember a key the deserializer rejected', async () => {
+      const rejecting = vi.fn(() => {
+        throw new Error('bad key');
+      });
+      const once = validatingOnce(rejecting);
+
+      expect(() => once('0xbad')).toThrow('bad key');
+      expect(() => once('0xbad')).toThrow('bad key');
+      expect(rejecting).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not validate again when the app goes back to a key it accepted before', async () => {
+      const deserializer = vi.fn();
+      const once = validatingOnce(deserializer);
+
+      once('0xchainA');
+      once('0xchainB');
+      once('0xchainA');
+
+      expect(deserializer).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('should throw error for unsupported chain ID', async () => {

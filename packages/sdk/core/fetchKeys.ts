@@ -3,26 +3,30 @@ import { type KeysStorage } from './keyStore.js';
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
 export type FheKeyDeserializer = (buff: string) => void;
 
-// Keys a deserializer has already accepted, by storage slot. Deserializing is the only way to
-// validate a key, and it is synchronous and heavy (the CRS is several megabytes), so each key is
-// validated once per page, not on every encrypt. A slot whose key changes is validated again.
-const validatedKeys = new WeakMap<FheKeyDeserializer, Map<string, string>>();
-
-const isAlreadyValidated = (slot: string, key: string, deserializer: FheKeyDeserializer) =>
-  validatedKeys.get(deserializer)?.get(slot) === key;
-
-const markValidated = (slot: string, key: string, deserializer: FheKeyDeserializer) => {
-  let slots = validatedKeys.get(deserializer);
-  if (!slots) validatedKeys.set(deserializer, (slots = new Map()));
-  slots.set(slot, key);
+/**
+ * Wraps a deserializer so that it does its work once per key: a key it has already accepted is
+ * accepted again without deserializing it.
+ *
+ * Deserializing is the only way to validate a key, and it is synchronous and heavy (the CRS is
+ * several megabytes), while the stored keys are checked on every encrypt. A platform wraps its
+ * deserializers with this so that the check costs nothing after the first time.
+ *
+ * It remembers one string per key accepted: one per chain and security zone, and one more only
+ * when a key is replaced.
+ */
+export const validatingOnce = (deserializer: FheKeyDeserializer): FheKeyDeserializer => {
+  const accepted: string[] = [];
+  return (key) => {
+    if (accepted.includes(key)) return;
+    deserializer(key);
+    accepted.push(key);
+  };
 };
 
-const checkKeyValidity = (key: string | undefined, serializer: FheKeyDeserializer, slot: string) => {
+const checkKeyValidity = (key: string | undefined, serializer: FheKeyDeserializer) => {
   if (key == null || key.length === 0) return [false, `Key is null or empty <${key}>`];
-  if (isAlreadyValidated(slot, key, serializer)) return [true, `Key is valid`];
   try {
     serializer(key);
-    markValidated(slot, key, serializer);
     return [true, `Key is valid`];
   } catch (err) {
     return [false, `Serialization failed <${err}> key length <${key.length}>`];
@@ -38,8 +42,7 @@ const fetchFhePublicKey = async (
 ): Promise<[string, boolean]> => {
   // Escape if key already exists
   const storedKey = keysStorage?.getFheKey(chainId, securityZone);
-  const slot = `fheKey:${chainId}:${securityZone}`;
-  const [storedKeyValid] = checkKeyValidity(storedKey, tfhePublicKeyDeserializer, slot);
+  const [storedKeyValid] = checkKeyValidity(storedKey, tfhePublicKeyDeserializer);
   if (storedKeyValid) return [storedKey!, false];
 
   let pk_data: string | undefined = undefined;
@@ -78,7 +81,6 @@ const fetchFhePublicKey = async (
   } catch (err) {
     throw new Error(`Error serializing FHE publicKey; ${err}`);
   }
-  markValidated(slot, pk_data, tfhePublicKeyDeserializer);
 
   // Store result
   keysStorage?.setFheKey(chainId, securityZone, pk_data);
@@ -95,8 +97,7 @@ const fetchCrs = async (
 ): Promise<[string, boolean]> => {
   // Escape if key already exists
   const storedKey = keysStorage?.getCrs(chainId, securityZone);
-  const slot = `crs:${chainId}:${securityZone}`;
-  const [storedKeyValid] = checkKeyValidity(storedKey, compactPkeCrsDeserializer, slot);
+  const [storedKeyValid] = checkKeyValidity(storedKey, compactPkeCrsDeserializer);
   if (storedKeyValid) return [storedKey!, false];
 
   let crs_data: string | undefined = undefined;
@@ -125,7 +126,6 @@ const fetchCrs = async (
     console.error(`Error serializing CRS ${err}`);
     throw new Error(`Error serializing CRS; ${err}`);
   }
-  markValidated(slot, crs_data, compactPkeCrsDeserializer);
 
   keysStorage?.setCrs(chainId, securityZone, crs_data);
 

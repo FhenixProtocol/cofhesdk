@@ -11,6 +11,7 @@ import {
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 import { fromHexString } from '../core/utils.js';
+import { validatingOnce } from '../core/fetchKeys.js';
 import type { MainThreadProving } from '../core/encrypt/provingPaths.js';
 
 // Type-only import for tfhe — the runtime is loaded lazily via `await import('tfhe')`
@@ -121,19 +122,19 @@ const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
 
 /**
  * Serializer for TFHE public keys
- * Validates that the buffer can be deserialized into a TfheCompactPublicKey
+ * Validates that the buffer can be deserialized into a TfheCompactPublicKey (once per key)
  */
-const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
+const tfhePublicKeyDeserializer: FheKeyDeserializer = validatingOnce((buff: string): void => {
   _deserializeTfhePublicKey(buff);
-};
+});
 
 /**
  * Serializer for Compact PKE CRS
- * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
+ * Validates that the buffer can be deserialized into ZkCompactPkePublicParams (once per key)
  */
-const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
+const compactPkeCrsDeserializer: FheKeyDeserializer = validatingOnce((buff: string): void => {
   _deserializeCompactPkeCrs(buff);
-};
+});
 
 /**
  * Creates a ZK builder and CRS from FHE public key and CRS buffers
