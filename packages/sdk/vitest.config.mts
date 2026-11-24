@@ -18,9 +18,9 @@ const crossOriginIsolationHeaders = {
 const encryptBench = process.env.TEST_ENCRYPT_BENCH_ENABLED === 'true';
 
 // The worker manager loads `./zkProve.worker.js`, the name the file has once built. The test
-// server serves sources, where it is `.ts`, so the real worker never starts under test and every
-// proof falls back to the main thread. The encrypt benchmark has to measure the worker path, so
-// for that run only the request is pointed at the source file.
+// server serves sources, where it is `.ts`. Without this the request fails, the real worker never
+// starts, and every proof under test quietly falls back to the main thread, so the worker path
+// would go untested. The request is pointed at the source file.
 const serveZkProveWorkerSource = {
   name: 'serve-zk-prove-worker-source',
   configureServer(server: { middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void } }) {
@@ -32,7 +32,7 @@ const serveZkProveWorkerSource = {
 };
 
 export default defineConfig({
-  plugins: encryptBench ? [serveZkProveWorkerSource] : [],
+  plugins: [serveZkProveWorkerSource],
   define: {
     __STAGING_TESTS__: JSON.stringify(process.env.TEST_STAGING_ENABLED === 'true'),
     __THREADPOOL_TESTS__: JSON.stringify(process.env.TEST_THREADPOOL_ENABLED === 'true'),

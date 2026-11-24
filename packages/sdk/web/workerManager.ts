@@ -20,6 +20,8 @@ class ZkProveWorkerManager {
   private requestCounter = 0;
   private workerReady = false;
   private initializationPromise: Promise<void> | null = null;
+  /** Fails the start that is in flight, if any: set while a worker is being started. */
+  private rejectInitialization: ((error: Error) => void) | null = null;
 
   /**
    * Initialize the worker
@@ -34,6 +36,7 @@ class ZkProveWorkerManager {
     }
 
     const initialization: Promise<void> = new Promise<void>((resolve, reject) => {
+      this.rejectInitialization = reject;
       try {
         // Check if Worker is supported
         if (typeof Worker === 'undefined') {
@@ -175,6 +178,11 @@ class ZkProveWorkerManager {
    * Terminate the worker and clean up
    */
   terminate(): void {
+    // A request that is still waiting for the worker to start is not in `pendingRequests` yet.
+    // Without this it would hang until the start timeout instead of failing now.
+    this.rejectInitialization?.(new Error('Worker terminated'));
+    this.rejectInitialization = null;
+
     this.discardWorker();
 
     // Reject all pending requests
