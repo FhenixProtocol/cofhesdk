@@ -4,7 +4,8 @@ import { type CofheConfig } from './config.js';
 import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
-import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
+import { type ProvingParams } from './encrypt/provingPaths.js';
+import { type ZkBuilderAndCrsGenerator, type ProvingWorker } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
@@ -163,18 +164,12 @@ export type CofheClientACPs = {
   deserialize: typeof ACPUtils.deserialize;
 };
 
+/**
+ * What a platform (web, node) builds a client from. Internal: apps use the platform's
+ * `createCofheClient`, which fills this in.
+ */
 export type CofheClientParams<TConfig extends CofheConfig> = {
   config: TConfig;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeyDeserializer: FheKeyDeserializer;
-  compactPkeCrsDeserializer: FheKeyDeserializer;
-  initTfhe: TfheInitializer;
-  zkProveWorkerFn?: ZkProveWorkerFunction;
-  /**
-   * Runs right before a ZK proof is generated on the calling thread, i.e. only
-   * when the worker path is disabled, unavailable or has failed. Platforms use
-   * it for setup that only pays off when that thread does the proving (web
-   * starts tfhe's rayon thread pool here).
-   */
-  beforeMainThreadProve?: () => Promise<void>;
+  /** The platform's ways to make a ZK proof. See {@link ProvingParams}. */
+  proving: ProvingParams;
 };

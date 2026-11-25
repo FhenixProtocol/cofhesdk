@@ -321,10 +321,51 @@ export function isLastEncryptionStep(step: EncryptStep): boolean {
   return step === EncryptStep.Verify;
 }
 
+/**
+ * What a step event carries. Every event has `isStart`, `isEnd` and `duration`; the other fields
+ * are present on the events named in their description.
+ *
+ * `InitTfhe`, `FetchKeys`, `Pack` and `Prove` run on one proving path: the worker, or the calling
+ * thread. When the worker path fails, the calling thread runs all four again from `InitTfhe`, and
+ * those events are reported too. `Verify` runs on neither path.
+ */
 export type EncryptStepCallbackContext = Record<string, any> & {
+  /** This event is the start of the step. */
   isStart: boolean;
+  /** This event is the end of the step. A step that fails has no end event. */
   isEnd: boolean;
+  /** On an end event: how long the step took, in ms. 0 on a start event. */
   duration: number;
+
+  /**
+   * Every event of the four proving steps: the step runs in the worker (true) or on the calling
+   * thread (false).
+   */
+  inWorker?: boolean;
+  /**
+   * Every event of the calling-thread run that follows a failed worker run: why the worker
+   * failed. Absent on every other event, so its presence marks the fallback.
+   */
+  workerFailedError?: string;
+
+  /** `InitTfhe` end: TFHE was started by this step (false: it already was). */
+  tfheInitializationExecuted?: boolean;
+  /** `FetchKeys` end: the FHE public key was downloaded by this step (false: it was stored). */
+  fheKeyFetchedFromCoFHE?: boolean;
+  /** `FetchKeys` end: the CRS was downloaded by this step (false: it was stored). */
+  crsFetchedFromCoFHE?: boolean;
+  /** `Prove` end: a worker was asked for (`useWorkers` in the config, or `setUseWorker`). What happened is `inWorker`. */
+  useWorker?: boolean;
+
+  /** `Pack` end. @deprecated Same as `inWorker`. */
+  packedInWorker?: boolean;
+  /** `Prove` end. @deprecated Same as `inWorker`. */
+  usedWorker?: boolean;
+
+  /** End events of an encrypt against the mocks: nothing real ran in this step. */
+  isMocks?: boolean;
+  /** End events of an encrypt against the mocks: the pause that stood in for the step, in ms. */
+  mockSleep?: number;
 };
 export type EncryptStepCallbackFunction = (state: EncryptStep, context?: EncryptStepCallbackContext) => void;
 

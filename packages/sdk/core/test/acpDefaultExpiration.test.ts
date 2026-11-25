@@ -65,10 +65,14 @@ const connectedClient = async (defaultACPExpiration?: number): Promise<CofheClie
       defaultACPExpiration,
       acp: { defaultRevoker: { [CHAIN_ID]: REVOKER } },
     }),
-    zkBuilderAndCrsGenerator: {} as any,
-    tfhePublicKeyDeserializer: {} as any,
-    compactPkeCrsDeserializer: {} as any,
-    initTfhe: () => Promise.resolve(false),
+    proving: {
+      mainThread: {
+        zkBuilderAndCrsGenerator: {} as any,
+        tfhePublicKeyDeserializer: {} as any,
+        compactPkeCrsDeserializer: {} as any,
+        initTfhe: () => Promise.resolve(false),
+      },
+    },
   });
   await client.connect(publicClient, walletClient);
   return client;

@@ -34,10 +34,14 @@ const walletClient = {
 const connectedClient = async (acp: CofheInputConfig['acp']): Promise<CofheClient> => {
   const client = createCofheClientBase({
     config: createCofheConfigBase({ supportedChains: [], acp: { sharingRegistry: { [CHAIN_ID]: REGISTRY }, ...acp } }),
-    zkBuilderAndCrsGenerator: {} as any,
-    tfhePublicKeyDeserializer: {} as any,
-    compactPkeCrsDeserializer: {} as any,
-    initTfhe: () => Promise.resolve(false),
+    proving: {
+      mainThread: {
+        zkBuilderAndCrsGenerator: {} as any,
+        tfhePublicKeyDeserializer: {} as any,
+        compactPkeCrsDeserializer: {} as any,
+        initTfhe: () => Promise.resolve(false),
+      },
+    },
   });
   await client.connect(publicClient, walletClient);
   return client;

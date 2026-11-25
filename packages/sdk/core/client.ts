@@ -33,6 +33,7 @@ export const InitialConnectStore: CofheClientConnectionState = {
 
 /**
  * Creates a CoFHE client instance (base implementation)
+ * @internal The platforms' `createCofheClient` (web, node) call this; apps use those.
  * @param {CofheClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofheClient} - The CoFHE client instance
  */
@@ -167,12 +168,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       walletClient: state.walletClient ?? undefined,
       zkvWalletClient: opts.config._internal?.zkvWalletClient,
 
-      tfhePublicKeyDeserializer: opts.tfhePublicKeyDeserializer,
-      compactPkeCrsDeserializer: opts.compactPkeCrsDeserializer,
-      zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
-      initTfhe: opts.initTfhe,
-      zkProveWorkerFn: opts.zkProveWorkerFn,
-      beforeMainThreadProve: opts.beforeMainThreadProve,
+      proving: opts.proving,
 
       keysStorage,
 

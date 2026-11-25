@@ -1,51 +1,31 @@
 import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
 import { CofheError, CofheErrorCode, isCofheError } from '../error';
-import { type EncryptableItem, FheTypes, type TfheThreadsSetting } from '../types';
+import { type EncryptableItem, FheTypes } from '../types';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
 // ===== TYPES =====
 
-/**
- * Worker function type for ZK proof generation
- * Platform-specific implementations (web) can provide this to enable worker-based proofs
- */
-export type ZkProveWorkerFunction = (
-  fheKeyHex: string,
-  crsHex: string,
-  items: EncryptableItem[],
-  metadata: Uint8Array
-) => Promise<Uint8Array>;
+/** Which keys a proof is made with: the chain's CoFHE server and the security zone. */
+export type KeysTarget = {
+  coFheUrl: string;
+  chainId: number;
+  securityZone: number;
+};
 
 /**
- * Message sent from main thread to worker to request proof generation
+ * A worker that makes proofs by itself: it runs its own TFHE, and fetches, validates, stores and
+ * keeps the FHE key and the CRS, so the calling thread never handles them. One method per step
+ * an encrypt reports. A platform that has such a worker (web) provides it; a failure of any
+ * method makes the encrypt fall back to the calling thread.
  */
-export interface ZkProveWorkerRequest {
-  id: string;
-  type: 'zkProve';
-  fheKeyHex: string;
-  crsHex: string;
-  items: Array<{
-    utype: string;
-    data: any;
-  }>;
-  metadata: number[]; // Uint8Array serialized as array
-  /**
-   * Forwarded from `config.tfheThreads`. The worker applies it the first time it
-   * initialises tfhe — `initThreadPool` can only run once per wasm instance, so
-   * later requests carrying a different value have no effect.
-   */
-  tfheThreads?: TfheThreadsSetting;
-}
-
-/**
- * Message sent from worker back to main thread with proof result
- */
-export interface ZkProveWorkerResponse {
-  id: string;
-  type: 'success' | 'error' | 'ready';
-  result?: number[]; // Uint8Array serialized as array
-  error?: string;
-}
+export type ProvingWorker = {
+  /** Starts TFHE in the worker. Resolves with false when it was already started. */
+  initTfhe(): Promise<{ tfheInitializationExecuted: boolean }>;
+  /** Makes sure the worker holds the keys for `target`, downloading them when it has none stored. */
+  fetchKeys(target: KeysTarget): Promise<{ fheKeyFetchedFromCoFHE: boolean; crsFetchedFromCoFHE: boolean }>;
+  /** Packs `items` and proves them with the keys for `target`. Resolves with the serialized proven list. */
+  prove(target: KeysTarget, items: EncryptableItem[], metadata: Uint8Array): Promise<Uint8Array>;
+};
 
 export type VerifyBatchOutputRaw = {
   ct_hash: string;
@@ -222,26 +202,6 @@ const checkOnlyBuilder: ZkCiphertextListBuilder = {
  */
 export const assertZkPackable = (items: EncryptableItem[]): void => {
   zkPack(items, checkOnlyBuilder);
-};
-
-/**
- * Generates ZK proof using Web Worker (offloads heavy WASM computation)
- * Serializes items and calls the platform-specific worker function
- * @param workerFn - Platform-specific worker function (provided by web/index.ts)
- * @param fheKeyHex - Hex-encoded FHE public key for worker deserialization
- * @param crsHex - Hex-encoded CRS for worker deserialization
- * @param items - Encryptable items to pack in the worker
- * @param metadata - Pre-constructed ZK PoK metadata
- * @returns The serialized proven ciphertext list
- */
-export const zkProveWithWorker = async (
-  workerFn: ZkProveWorkerFunction,
-  fheKeyHex: string,
-  crsHex: string,
-  items: EncryptableItem[],
-  metadata: Uint8Array
-): Promise<Uint8Array> => {
-  return await workerFn(fheKeyHex, crsHex, items, metadata);
 };
 
 /**

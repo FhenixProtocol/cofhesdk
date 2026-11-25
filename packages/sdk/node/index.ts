@@ -11,6 +11,7 @@ import {
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 import { fromHexString } from '../core/utils.js';
+import { validatingOnce } from '../core/fetchKeys.js';
 
 // Import node-specific storage (internal use only)
 import { createNodeStorage } from './storage.js';
@@ -41,19 +42,19 @@ const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
 
 /**
  * Serializer for TFHE public keys
- * Validates that the buffer can be deserialized into a TfheCompactPublicKey
+ * Validates that the buffer can be deserialized into a TfheCompactPublicKey (once per key)
  */
-const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
+const tfhePublicKeyDeserializer: FheKeyDeserializer = validatingOnce((buff: string): void => {
   _deserializeTfhePublicKey(buff);
-};
+});
 
 /**
  * Serializer for Compact PKE CRS
- * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
+ * Validates that the buffer can be deserialized into ZkCompactPkePublicParams (once per key)
  */
-const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
+const compactPkeCrsDeserializer: FheKeyDeserializer = validatingOnce((buff: string): void => {
   _deserializeCompactPkeCrs(buff);
-};
+});
 
 /**
  * Creates a ZK builder and CRS from FHE public key and CRS buffers
@@ -89,9 +90,8 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
 export function createCofheClient(config: CofheConfig): CofheClient {
   return createCofheClientBase({
     config,
-    zkBuilderAndCrsGenerator,
-    tfhePublicKeyDeserializer,
-    compactPkeCrsDeserializer,
-    initTfhe,
+    proving: {
+      mainThread: { initTfhe, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, zkBuilderAndCrsGenerator },
+    },
   });
 }

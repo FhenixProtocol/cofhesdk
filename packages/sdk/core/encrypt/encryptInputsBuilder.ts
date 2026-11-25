@@ -1,24 +1,23 @@
+import { type KeysTarget, type VerifyBatchResult, zkVerifyBatch, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import {
-  type ZkBuilderAndCrsGenerator,
-  type ZkProveWorkerFunction,
-  type VerifyBatchResult,
-  zkVerifyBatch,
-  constructZkPoKMetadata,
-} from './zkPackProveVerify.js';
-import { mainThreadProvingPath, proveFromTheStart, workerProvingPath } from './provingPaths.js';
+  mainThreadProvingPath,
+  workerProvingPath,
+  type MainThreadProving,
+  type ProvingParams,
+  type ProvingPath,
+  type WorkerProving,
+} from './provingPaths.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import {
   type EncryptStepCallbackFunction,
   EncryptStep,
   type EncryptableItem,
-  type TfheInitializer,
   type EncryptStepCallbackContext,
   type HashPlusProofResult,
 } from '../types.js';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign.js';
 import { hardhat } from 'viem/chains';
-import { fetchKeys, type FheKeyDeserializer } from '../fetchKeys.js';
-import { getZkVerifierUrlOrThrow } from '../config.js';
+import { getCoFheUrlOrThrow, getZkVerifierUrlOrThrow } from '../config.js';
 import { type WalletClient, isAddress } from 'viem';
 import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
@@ -30,13 +29,9 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 
   zkvWalletClient?: WalletClient | undefined;
 
-  tfhePublicKeyDeserializer: FheKeyDeserializer | undefined;
-  compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
-  initTfhe: TfheInitializer | undefined;
-  zkProveWorkerFn: ZkProveWorkerFunction | undefined;
-  beforeMainThreadProve?: (() => Promise<void>) | undefined;
+  proving: ProvingParams;
 
+  /** Where the calling thread keeps the keys. The worker has a store of its own. */
   keysStorage: KeysStorage | undefined;
 };
 
@@ -45,6 +40,10 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  * account, securityZone, and chainId can be overridden in the builder.
  * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  */
+
+/** What every step event of one run of a proving path carries (see `EncryptStepCallbackContext`). */
+type ProvingRunContext = Required<Pick<EncryptStepCallbackContext, 'inWorker'>> &
+  Pick<EncryptStepCallbackContext, 'workerFailedError'>;
 
 /**
  * The builder as returned by `client.encryptInputs(...)`, before a consuming contract has been set.
@@ -55,13 +54,6 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  */
 export type EncryptInputsBuilderUnset<T extends EncryptableItem[]> = Omit<EncryptInputsBuilder<T>, 'execute'>;
 
-/** The name and message of the innermost `cause` of an error, for a serialisable error context. */
-function describeRootCause(error: unknown): { name: string; message: string } | undefined {
-  let current: unknown = error;
-  while (current instanceof Error && current.cause instanceof Error) current = current.cause;
-  return current instanceof Error ? { name: current.name, message: current.message } : undefined;
-}
-
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
   private securityZoneSet: boolean;
@@ -71,12 +63,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
   private zkvWalletClient: WalletClient | undefined;
 
-  private tfhePublicKeyDeserializer: FheKeyDeserializer;
-  private compactPkeCrsDeserializer: FheKeyDeserializer;
-  private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  private initTfhe: TfheInitializer | undefined;
-  private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
-  private beforeMainThreadProve: (() => Promise<void>) | undefined;
+  private mainThread: MainThreadProving;
+  private worker: WorkerProving | undefined;
 
   private keysStorage: KeysStorage | undefined;
 
@@ -107,53 +95,42 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.zkvWalletClient = params.zkvWalletClient;
 
-    // Check that tfhePublicKeyDeserializer is provided
-    if (!params.tfhePublicKeyDeserializer) {
+    const { mainThread, worker } = params.proving;
+
+    // The types require these; the checks are for callers that are not type-checked.
+    if (!mainThread.tfhePublicKeyDeserializer) {
       throw new CofheError({
         code: CofheErrorCode.MissingTfhePublicKeyDeserializer,
         message: 'EncryptInputsBuilder tfhePublicKeyDeserializer is undefined',
         hint: 'Ensure client has been created with a tfhePublicKeyDeserializer.',
         context: {
-          tfhePublicKeyDeserializer: params.tfhePublicKeyDeserializer,
+          tfhePublicKeyDeserializer: mainThread.tfhePublicKeyDeserializer,
         },
       });
     }
-    this.tfhePublicKeyDeserializer = params.tfhePublicKeyDeserializer;
-
-    // Check that compactPkeCrsDeserializer is provided
-    if (!params.compactPkeCrsDeserializer) {
+    if (!mainThread.compactPkeCrsDeserializer) {
       throw new CofheError({
         code: CofheErrorCode.MissingCompactPkeCrsDeserializer,
         message: 'EncryptInputsBuilder compactPkeCrsDeserializer is undefined',
         hint: 'Ensure client has been created with a compactPkeCrsDeserializer.',
         context: {
-          compactPkeCrsDeserializer: params.compactPkeCrsDeserializer,
+          compactPkeCrsDeserializer: mainThread.compactPkeCrsDeserializer,
         },
       });
     }
-    this.compactPkeCrsDeserializer = params.compactPkeCrsDeserializer;
-
-    // Check that zkBuilderAndCrsGenerator is provided
-    if (!params.zkBuilderAndCrsGenerator) {
+    if (!mainThread.zkBuilderAndCrsGenerator) {
       throw new CofheError({
         code: CofheErrorCode.MissingZkBuilderAndCrsGenerator,
         message: 'EncryptInputsBuilder zkBuilderAndCrsGenerator is undefined',
         hint: 'Ensure client has been created with a zkBuilderAndCrsGenerator.',
         context: {
-          zkBuilderAndCrsGenerator: params.zkBuilderAndCrsGenerator,
+          zkBuilderAndCrsGenerator: mainThread.zkBuilderAndCrsGenerator,
         },
       });
     }
-    this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
 
-    // Optional tfhe initialization function, will be run if provided
-    this.initTfhe = params.initTfhe;
-
-    // Optional zkProve worker function, will be used on web if useWorkers is true and worker function is provided
-    this.zkProveWorkerFn = params.zkProveWorkerFn;
-
-    // Optional platform setup that only matters when this thread generates the proof
-    this.beforeMainThreadProve = params.beforeMainThreadProve;
+    this.mainThread = mainThread;
+    this.worker = worker;
 
     // Keys storage is used to store the FHE key and CRS
     this.keysStorage = params.keysStorage;
@@ -392,110 +369,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * initTfhe is a platform-specific dependency injected into core/createCofheClientBase by web/createCofheClient and node/createCofheClient
-   * web/ uses zama "tfhe"
-   * node/ uses zama "node-tfhe"
-   * Users should not set this manually.
-   */
-  private async initTfheOrThrow(): Promise<boolean> {
-    if (!this.initTfhe) return false;
-
-    try {
-      return await this.initTfhe();
-    } catch (error) {
-      throw CofheError.fromError(error, {
-        code: CofheErrorCode.InitTfheFailed,
-        message: `Failed to initialize TFHE`,
-        context: {
-          initTfhe: this.initTfhe,
-        },
-      });
-    }
-  }
-
-  /**
-   * Fetches the FHE key and CRS from the CoFHE API
-   * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
-   */
-  private async fetchFheKeyAndCrs(): Promise<{
-    fheKey: string;
-    fheKeyFetchedFromCoFHE: boolean;
-    crs: string;
-    crsFetchedFromCoFHE: boolean;
-  }> {
-    this.assertChainId();
-    const securityZone = this.getSecurityZone();
-
-    try {
-      await this.keysStorage?.rehydrateKeysStore();
-    } catch (error) {
-      // A storage that cannot be read no longer ends up here: the keys store gives it up and keeps
-      // the keys in memory (see `guardStorage` in keyStore.ts). What still ends up here is a stored
-      // value of the wrong shape, which `merge` rejects. The context names the original error, not
-      // the wrappers around it, so the failure can be told apart in error tracking.
-      throw CofheError.fromError(error, {
-        code: CofheErrorCode.RehydrateKeysStoreFailed,
-        message: `Failed to rehydrate keys store`,
-        context: {
-          storage: this.keysStorage?.storageStatus() ?? 'memory',
-          storageError: describeRootCause(error),
-        },
-      });
-    }
-
-    let fheKey: string | undefined;
-    let fheKeyFetchedFromCoFHE: boolean = false;
-    let crs: string | undefined;
-    let crsFetchedFromCoFHE: boolean = false;
-
-    try {
-      [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
-        this.config,
-        this.chainId,
-        securityZone,
-        this.tfhePublicKeyDeserializer,
-        this.compactPkeCrsDeserializer,
-        this.keysStorage
-      );
-    } catch (error) {
-      throw CofheError.fromError(error, {
-        code: CofheErrorCode.FetchKeysFailed,
-        message: `Failed to fetch FHE key and CRS`,
-        context: {
-          config: this.config,
-          chainId: this.chainId,
-          securityZone,
-          compactPkeCrsDeserializer: this.compactPkeCrsDeserializer,
-          tfhePublicKeyDeserializer: this.tfhePublicKeyDeserializer,
-        },
-      });
-    }
-
-    if (!fheKey) {
-      throw new CofheError({
-        code: CofheErrorCode.MissingFheKey,
-        message: `FHE key not found`,
-        context: {
-          chainId: this.chainId,
-          securityZone,
-        },
-      });
-    }
-
-    if (!crs) {
-      throw new CofheError({
-        code: CofheErrorCode.MissingCrs,
-        message: `CRS not found for chainId <${this.chainId}>`,
-        context: {
-          chainId: this.chainId,
-        },
-      });
-    }
-
-    return { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE };
-  }
-
-  /**
    * Resolves the encryptDelay config into an array of 5 per-step delays.
    * A single number is broadcast to all steps; a tuple is used as-is.
    */
@@ -564,6 +437,52 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return result;
   }
 
+  /** Which keys this encrypt is made with: all a proving path needs to get them by itself. */
+  private keysTarget(): KeysTarget {
+    this.assertChainId();
+    return {
+      coFheUrl: getCoFheUrlOrThrow(this.config, this.chainId),
+      chainId: this.chainId,
+      securityZone: this.getSecurityZone(),
+    };
+  }
+
+  /**
+   * Runs the four proving steps on one path and reports each of them.
+   * @param about Goes into every event of the run: which thread the path works on and, for the
+   * run that follows a failed worker, why the worker failed.
+   * @returns The serialized proven ciphertext list.
+   */
+  private async proveOn(path: ProvingPath, metadata: Uint8Array, about: ProvingRunContext): Promise<Uint8Array> {
+    this.fireStepStart(EncryptStep.InitTfhe, about);
+
+    const tfheInit = await path.initTfhe();
+
+    this.fireStepEnd(EncryptStep.InitTfhe, { ...about, ...tfheInit });
+
+    this.fireStepStart(EncryptStep.FetchKeys, about);
+
+    const keysFetched = await path.fetchKeys();
+
+    this.fireStepEnd(EncryptStep.FetchKeys, { ...about, ...keysFetched });
+
+    this.fireStepStart(EncryptStep.Pack, about);
+
+    path.pack();
+
+    // `packedInWorker` is the older name of `inWorker` on this event.
+    this.fireStepEnd(EncryptStep.Pack, { ...about, packedInWorker: about.inWorker });
+
+    this.fireStepStart(EncryptStep.Prove, about);
+
+    const proof = await path.prove(metadata);
+
+    // `usedWorker` is the older name of `inWorker` on this event.
+    this.fireStepEnd(EncryptStep.Prove, { ...about, useWorker: this.useWorker, usedWorker: about.inWorker });
+
+    return proof;
+  }
+
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
@@ -573,67 +492,41 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertConsumingContract();
 
     // The proof is made in a worker when one is to be used, and on this thread otherwise. Each
-    // path is whole in itself (see provingPaths.ts); this method only picks one, reports the
-    // steps, and runs the main-thread path when the worker fails.
+    // path is whole in itself (see provingPaths.ts); this method only picks one and reports its
+    // steps. When the worker path fails, the main-thread path runs from its first step, and
+    // those steps are reported as well: a listener sees everything that ran.
     const items = this.inputItems;
-    const setup = {
-      // TFHE and the keys are only needed once an encrypt runs, so both are prepared here, not earlier.
-      initTfhe: () => this.initTfheOrThrow(),
-      fetchKeys: () => this.fetchFheKeyAndCrs(),
-    };
     const createMainThreadPath = () =>
       mainThreadProvingPath({
         items,
-        setup,
-        zkBuilderAndCrsGenerator: this.zkBuilderAndCrsGenerator,
-        beforeProve: this.beforeMainThreadProve,
+        target: () => this.keysTarget(),
+        parts: this.mainThread,
+        keysStorage: this.keysStorage,
+        readWorkerStoredKeys: this.worker?.readStoredKeys,
       });
     const workerPath =
-      this.useWorker && this.zkProveWorkerFn
-        ? workerProvingPath({ items, setup, zkProveWorkerFn: this.zkProveWorkerFn })
+      this.useWorker && this.worker
+        ? workerProvingPath({ items, target: () => this.keysTarget(), worker: this.worker.instance })
         : undefined;
-    const firstChoicePath = workerPath ?? createMainThreadPath();
-
-    this.fireStepStart(EncryptStep.InitTfhe);
-
-    const tfheInit = await firstChoicePath.initTfhe();
-
-    this.fireStepEnd(EncryptStep.InitTfhe, tfheInit);
-
-    this.fireStepStart(EncryptStep.FetchKeys);
-
-    const keysFetched = await firstChoicePath.fetchKeys();
-
-    this.fireStepEnd(EncryptStep.FetchKeys, keysFetched);
-
-    this.fireStepStart(EncryptStep.Pack);
-
-    firstChoicePath.pack();
-
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: workerPath != null });
-
-    this.fireStepStart(EncryptStep.Prove);
 
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
-    let proof: Uint8Array;
-    let usedWorker = workerPath != null;
+    // First choice: the worker.
+    let proof: Uint8Array | undefined;
     let workerFailedError: string | undefined;
-    try {
-      proof = await firstChoicePath.prove(metadata);
-    } catch (error) {
-      // Only a failed worker has somewhere to fall back to.
-      if (!workerPath) throw error;
-      workerFailedError = error instanceof Error ? error.message : String(error);
-      usedWorker = false;
-      proof = await proveFromTheStart(createMainThreadPath(), metadata);
+    if (workerPath) {
+      try {
+        proof = await this.proveOn(workerPath, metadata, { inWorker: true });
+      } catch (error) {
+        workerFailedError = error instanceof Error ? error.message : String(error);
+      }
     }
 
-    this.fireStepEnd(EncryptStep.Prove, {
-      useWorker: this.useWorker,
-      usedWorker,
-      workerFailedError,
-    });
+    // The main thread: when there is no worker to use, or as the fallback when the worker failed.
+    // It starts from its own first step either way.
+    if (!proof) {
+      proof = await this.proveOn(createMainThreadPath(), metadata, { inWorker: false, workerFailedError });
+    }
 
     this.fireStepStart(EncryptStep.Verify);
 

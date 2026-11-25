@@ -1,25 +1,20 @@
 import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
 import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
-import { Encryptable, fheTypeToString, type EncryptableItem } from '@/core';
+import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import {
-  createCofheClient,
-  createCofheConfig,
-  createCofheClientWithCustomWorker,
-  getTfheThreadPoolStatus,
-} from '../index';
+import { createCofheClient, createCofheConfig, terminateWorker, getTfheThreadPoolStatus } from '../index';
 import { THREADPOOL_TESTS } from './threadPoolBenchHelper';
 
 // Which thread needs a rayon pool?
 //
 // With workers on (the default) the ZK proof is generated inside the zkProve
-// worker, which runs its own rayon pool. The main thread only deserializes keys
-// and packs inputs, so a pool there is pure overhead: N idle Web Workers plus a
+// worker, which runs its own tfhe and its own rayon pool. The main thread does
+// not touch tfhe at all, so a pool there is pure overhead: N idle Web Workers plus a
 // second shared wasm memory. The main thread should start one only when it has
 // to generate a proof itself.
 //
@@ -38,65 +33,9 @@ const THREADS = 2;
 const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
 const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
 
-/**
- * Drives the real zkProve worker. The SDK's worker manager points at the built
- * `zkProve.worker.js`, which doesn't exist when tests run from source, so the
- * default client always falls back to the main thread here. Loading the worker
- * from its `.ts` source gives these tests a worker path that actually works.
- */
-function createRealWorkerProver(tfheThreads: number) {
-  const worker = new Worker(new URL('../zkProve.worker.ts', import.meta.url), { type: 'module' });
-
-  const ready = new Promise<void>((resolve, reject) => {
-    worker.addEventListener('message', function onReady(event: MessageEvent) {
-      if (event.data?.type !== 'ready') return;
-      worker.removeEventListener('message', onReady);
-      resolve();
-    });
-    worker.addEventListener('error', (event) => reject(new Error(`zkProve worker failed to load: ${event.message}`)));
-  });
-
-  let requests = 0;
-
-  const prove = async (
-    fheKeyHex: string,
-    crsHex: string,
-    items: EncryptableItem[],
-    metadata: Uint8Array
-  ): Promise<Uint8Array> => {
-    await ready;
-    const id = `main-thread-pool-test-${requests++}`;
-
-    return new Promise<Uint8Array>((resolve, reject) => {
-      worker.addEventListener('message', function onResponse(event: MessageEvent) {
-        if (event.data?.id !== id) return;
-        worker.removeEventListener('message', onResponse);
-        if (event.data.type === 'success') resolve(new Uint8Array(event.data.result));
-        else reject(new Error(event.data.error ?? 'zkProve worker error'));
-      });
-
-      worker.postMessage({
-        id,
-        type: 'zkProve',
-        fheKeyHex,
-        crsHex,
-        items: items.map((item) => ({
-          utype: fheTypeToString(item.utype),
-          data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
-        })),
-        metadata: Array.from(metadata),
-        tfheThreads,
-      });
-    });
-  };
-
-  return { prove, terminate: () => worker.terminate() };
-}
-
 describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - main-thread rayon pool', () => {
   const RealWorker = globalThis.Worker;
   let rayonWorkersStartedByPage = 0;
-  let prover: ReturnType<typeof createRealWorkerProver>;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let consumingContract: `0x${string}`;
@@ -115,10 +54,8 @@ describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - main-thread rayon pool', ()
     walletClient = createWalletClient({ chain: testViemChain, transport: http(), account });
     consumingContract = account.address;
 
-    prover = createRealWorkerProver(THREADS);
-
     const config = createCofheConfig({ supportedChains: [testCofheChain], tfheThreads: THREADS });
-    const client = createCofheClientWithCustomWorker(config, prover.prove);
+    const client = createCofheClient(config);
     await client.connect(publicClient, walletClient);
 
     await client
@@ -132,7 +69,7 @@ describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - main-thread rayon pool', ()
 
   afterAll(() => {
     (globalThis as any).Worker = RealWorker;
-    prover?.terminate();
+    terminateWorker();
   });
 
   it('generates the proof in the worker', () => {
@@ -146,9 +83,8 @@ describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - main-thread rayon pool', ()
     expect(getTfheThreadPoolStatus()).toBeNull();
   });
 
-  // Runs after a worker-path encryption on the same wasm instance: the main
-  // thread has already deserialized keys and packed inputs by now, and the
-  // pool must still come up.
+  // Runs after a worker-path encryption: the main thread has not used tfhe yet,
+  // and the pool must come up when it first has to prove.
   it('starts the pool once the main thread has to prove', async () => {
     const config = createCofheConfig({
       supportedChains: [testCofheChain],
