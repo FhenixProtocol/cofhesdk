@@ -1,7 +1,5 @@
-import type { CofheConfig } from '../config.js';
 import { CofheError, CofheErrorCode } from '../error.js';
-import type { FheKeyDeserializer } from '../fetchKeys.js';
-import { fetchKeys } from '../fetchKeysForConfig.js';
+import { fetchKeysFromUrl, type FheKeyDeserializer } from '../fetchKeys.js';
 import type { KeysStorage } from '../keyStore.js';
 import type { EncryptableItem, TfheInitializer } from '../types.js';
 import {
@@ -115,8 +113,8 @@ function describeRootCause(error: unknown): { name: string; message: string } | 
  */
 export function mainThreadProvingPath(params: {
   items: EncryptableItem[];
-  /** Which keys to prove with. Read when first needed, so a missing chain fails a step, not the setup. */
-  keysFor: () => { config: CofheConfig; chainId: number; securityZone: number };
+  /** Which keys to prove with. Read when first needed, so a missing URL fails a step, not the setup. */
+  target: () => KeysTarget;
   /** The platform's TFHE: how to start it, validate keys with it and build a proof with it. */
   parts: MainThreadProving;
   /** Where the calling thread keeps the keys. Without one, they are downloaded for every encrypt. */
@@ -124,7 +122,7 @@ export function mainThreadProvingPath(params: {
   /** Reads the keys a proving worker stored, when there is such a worker. See `adoptKeysStoredByWorker`. */
   readWorkerStoredKeys?: WorkerStoredKeysReader | undefined;
 }): ProvingPath {
-  const { items, keysFor, parts, keysStorage, readWorkerStoredKeys } = params;
+  const { items, target, parts, keysStorage, readWorkerStoredKeys } = params;
 
   let keys: KeysHex | undefined;
   let packed:
@@ -175,7 +173,7 @@ export function mainThreadProvingPath(params: {
   const fetchFheKeyAndCrs = async (): Promise<
     KeysHex & { fheKeyFetchedFromCoFHE: boolean; crsFetchedFromCoFHE: boolean }
   > => {
-    const { config, chainId, securityZone } = keysFor();
+    const { coFheUrl, chainId, securityZone } = target();
 
     try {
       await keysStorage?.rehydrateKeysStore();
@@ -202,8 +200,8 @@ export function mainThreadProvingPath(params: {
     let crsFetchedFromCoFHE: boolean = false;
 
     try {
-      [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
-        config,
+      [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeysFromUrl(
+        coFheUrl,
         chainId,
         securityZone,
         parts.tfhePublicKeyDeserializer,
@@ -215,7 +213,7 @@ export function mainThreadProvingPath(params: {
         code: CofheErrorCode.FetchKeysFailed,
         message: `Failed to fetch FHE key and CRS`,
         context: {
-          config,
+          coFheUrl,
           chainId,
           securityZone,
           compactPkeCrsDeserializer: parts.compactPkeCrsDeserializer,

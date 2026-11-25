@@ -4,12 +4,29 @@
 import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchKeys } from '../fetchKeysForConfig.js';
-import { validatingOnce } from '../fetchKeys.js';
-import { type CofheConfig, createCofheConfigBase } from '../config.js';
+import { fetchKeysFromUrl, validatingOnce, type FheKeyDeserializer } from '../fetchKeys.js';
+import { type CofheConfig, createCofheConfigBase, getCoFheUrlOrThrow } from '../config.js';
 import { createKeysStore, type KeysStorage } from '../keyStore.js';
 
-describe('fetchKeys', () => {
+/** `fetchKeysFromUrl`, for the chain's CoFHE URL in `config`. */
+const fetchKeys = async (
+  config: CofheConfig,
+  chainId: number,
+  securityZone: number,
+  tfhePublicKeyDeserializer: FheKeyDeserializer,
+  compactPkeCrsDeserializer: FheKeyDeserializer,
+  keysStorage?: KeysStorage | null
+) =>
+  fetchKeysFromUrl(
+    getCoFheUrlOrThrow(config, chainId),
+    chainId,
+    securityZone,
+    tfhePublicKeyDeserializer,
+    compactPkeCrsDeserializer,
+    keysStorage
+  );
+
+describe('fetchKeysFromUrl', () => {
   let config: CofheConfig;
   let mockTfhePublicKeyDeserializer: any;
   let mockCompactPkeCrsDeserializer: any;

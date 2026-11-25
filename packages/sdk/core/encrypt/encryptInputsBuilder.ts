@@ -437,7 +437,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return result;
   }
 
-  /** Which keys this encrypt is made with: what a worker needs to get them by itself. */
+  /** Which keys this encrypt is made with: all a proving path needs to get them by itself. */
   private keysTarget(): KeysTarget {
     this.assertChainId();
     return {
@@ -499,11 +499,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     const createMainThreadPath = () =>
       mainThreadProvingPath({
         items,
-        // Which keys: read when the path first needs them, so a missing chain fails a step, not the setup.
-        keysFor: () => {
-          this.assertChainId();
-          return { config: this.config, chainId: this.chainId, securityZone: this.getSecurityZone() };
-        },
+        target: () => this.keysTarget(),
         parts: this.mainThread,
         keysStorage: this.keysStorage,
         readWorkerStoredKeys: this.worker?.readStoredKeys,

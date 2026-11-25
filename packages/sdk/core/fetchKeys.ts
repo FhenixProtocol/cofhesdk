@@ -136,9 +136,9 @@ const fetchCrs = async (
  * The FHE public key and the CRS for one chain and security zone, from `keysStorage` when it holds
  * valid ones and from the CoFHE server at `coFheUrl` otherwise (then stored).
  *
- * Takes the URL, not the client config, and this file does not import the config module, so the
- * proving worker can use it without bundling the config's dependencies. `fetchKeys` in
- * `fetchKeysForConfig.ts` is the same call for a caller that has the config.
+ * Takes the URL, not the client config. Keep this file free of any import of `config.ts`: the
+ * proving worker imports it, and `config.ts` imports `zod`, which the built worker would then
+ * load just to fetch keys from a URL it is handed.
  *
  * @returns [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]]
  */
