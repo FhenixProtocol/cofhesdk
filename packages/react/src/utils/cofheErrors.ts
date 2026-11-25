@@ -1,4 +1,5 @@
 import errorsJson from '@fhenixprotocol/cofhe-errors/errors.json';
+import { isCofheError } from '@cofhe/sdk';
 import { ContractFunctionExecutionError, ContractFunctionRevertedError } from 'viem';
 
 export type CofheSolidityError = {
@@ -88,4 +89,13 @@ export function cofheHumanizeViemError(error: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * The text of an error for a toast or an inline message. A `CofheError` gives its
+ * `shortMessage`: its `message` also carries the developer-facing hint and the cause.
+ */
+export function displayErrorMessage(error: unknown, fallback = 'Unknown error'): string {
+  if (isCofheError(error)) return error.shortMessage;
+  return error instanceof Error ? error.message : fallback;
 }

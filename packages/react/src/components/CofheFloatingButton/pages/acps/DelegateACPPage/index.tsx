@@ -9,6 +9,7 @@ import type { DelegateACPPageProps } from './types';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer';
 import { Button } from '@/components/CofheFloatingButton/components';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 export const DelegateACPPage: React.FC<DelegateACPPageProps> = ({ onSuccessNavigateTo, onCancel, onBack }) => {
   const { navigateBack, navigateTo, pageHistory } = usePortalNavigation();
@@ -43,7 +44,7 @@ export const DelegateACPPage: React.FC<DelegateACPPageProps> = ({ onSuccessNavig
       addToast({
         variant: 'error',
         title: 'Failed to create acp',
-        description: error.message,
+        description: displayErrorMessage(error),
       });
     },
   });

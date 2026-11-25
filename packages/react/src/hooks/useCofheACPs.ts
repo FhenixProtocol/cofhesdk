@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { NOOP_CALLBACK } from '../utils';
 import { ACP_STORE_DEFAULTS, ACPUtils, type ACP } from '@cofhe/sdk/acps';
 import { useCofheConnection } from './useCofheConnection';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 const subscribeToACPsConstructor = (client: CofheClient) => (onStoreChange: () => void) => {
   return client.acp.subscribe(() => {
@@ -186,7 +187,7 @@ export const useCofheRemoveACP = ({ onSuccess, onError }: Callbacks = {}) => {
         client.acp.removeACP(hashToRemove, chainId, account);
         onSuccess?.();
       } catch (error) {
-        onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
+        onError?.(new Error(displayErrorMessage(error, 'Unknown error')));
       }
     },
     [client, chainId, account, onSuccess, onError]
@@ -206,7 +207,7 @@ export const useCofheSelectACP = ({ onSuccess, onError }: Callbacks = {}) => {
         client.acp.selectActiveACP(hashToSet, chainId, account);
         onSuccess?.();
       } catch (error) {
-        onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
+        onError?.(new Error(displayErrorMessage(error, 'Unknown error')));
       }
     },
     [client, chainId, account, onSuccess, onError]

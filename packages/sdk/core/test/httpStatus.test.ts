@@ -36,7 +36,8 @@ describe('httpStatus on errors from an HTTP response', () => {
     expect(error).toBeInstanceOf(CofheError);
     expect(error.code).toBe(CofheErrorCode.ZkVerifyFailed);
     expect(error.httpStatus).toBe(400);
-    expect(error.message).toBe(
+    expect(error.shortMessage).toBe('ZK batch proof verification failed');
+    expect(error.message).toContain(
       `ZK batch proof verification failed | Caused by: HTTP error! ZK batch proof verification failed - ${body}`
     );
     expect(error.toString()).toContain('[ZK_VERIFY_FAILED] (http: 400)');

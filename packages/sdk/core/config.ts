@@ -191,21 +191,26 @@ export const RENAMED_COFHE_CONFIG_KEYS: Record<string, string> = {
 
 /**
  * Throws a migration-shaped error if any pre-ACP config key is present.
- * @throws {Error} Naming each stale key and its replacement.
+ * @throws {CofheError} `INVALID_CONFIG`, naming each stale key and its replacement.
  */
 export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<string, string>, label: string): void {
   const stale = Object.keys(config).filter((key) => key in renamedKeys);
   if (stale.length === 0) return;
 
   const renames = stale.map((key) => `\`${key}\` is now \`${renamedKeys[key]}\``).join('; ');
-  throw new Error(`Invalid ${label}: ${renames}. See the v0.7.0 migration guide.`);
+  throw new CofheError({
+    code: CofheErrorCode.InvalidConfig,
+    message: `Invalid ${label}: ${renames}. See the v0.7.0 migration guide.`,
+    hint: `Rename ${stale.map((key) => `\`${key}\` to \`${renamedKeys[key]}\``).join(', ')}.`,
+    context: { renamedKeys: Object.fromEntries(stale.map((key) => [key, renamedKeys[key]])) },
+  });
 }
 
 /**
  * Creates and validates a cofhe configuration (base implementation)
  * @param config - The configuration object to validate
  * @returns The validated configuration
- * @throws {Error} If the configuration is invalid
+ * @throws {CofheError} `INVALID_CONFIG` if the configuration is invalid
  */
 export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
   assertNoRenamedConfigKeys(config, RENAMED_COFHE_CONFIG_KEYS, 'cofhe configuration');
@@ -216,15 +221,20 @@ export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
   const result = CofheConfigSchema.strict().safeParse(config);
 
   if (!result.success) {
-    throw new Error(`Invalid cofhe configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
+    // No `cause`: CofheError appends the cause's message, and zod's is the raw issue JSON.
+    throw new CofheError({
+      code: CofheErrorCode.InvalidConfig,
+      message: `Invalid cofhe configuration: ${z.prettifyError(result.error)}`,
+      hint: 'Fix the keys listed above. Unknown keys are rejected, so check for typos and for keys renamed in a newer version.',
+      context: { issues: result.error.issues },
+    });
   }
 
   return result.data;
 }
 
 /**
- * Access the CofheConfig object directly by providing the key.
- * This is powerful when you use OnchainKit utilities outside of the React context.
+ * Reads one key of a `CofheConfig`. Same as `config[key]`.
  */
 export const getCofheConfigItem = <K extends keyof CofheConfig>(config: CofheConfig, key: K): CofheConfig[K] => {
   return config[key];

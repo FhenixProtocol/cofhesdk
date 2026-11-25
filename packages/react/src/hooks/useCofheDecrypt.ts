@@ -3,7 +3,7 @@ import { useCofheContext, useInternalQuery, useInternalQueryClient } from '@/pro
 import { removeDecryptsOfACPs } from '@/providers/acpDecryptCache';
 import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
-import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
+import { isCofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
@@ -94,7 +94,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     enabled: userEnabled,
     meta: optionMeta,
     retry = (failureCount: number, error: Error) => {
-      if (error instanceof CofheError) return false; // don't retry decryption errors
+      if (isCofheError(error)) return false; // don't retry decryption errors
 
       // default retry behavior - 3 retries
       return failureCount < 3;

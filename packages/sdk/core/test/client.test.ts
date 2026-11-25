@@ -265,7 +265,8 @@ describe('createCofheClientBase', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofheError).message).toBe(
+        expect((error as CofheError).shortMessage).toBe('getting chain ID from public client failed');
+        expect((error as CofheError).message).toContain(
           'getting chain ID from public client failed | Caused by: Network error'
         );
         expect((error as CofheError).cause).toBe(getChainIdError);
@@ -284,7 +285,7 @@ describe('createCofheClientBase', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofheError).message).toBe('chain ID from public client is null');
+        expect((error as CofheError).shortMessage).toBe('chain ID from public client is null');
       }
     });
 
@@ -315,7 +316,8 @@ describe('createCofheClientBase', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofheError).message).toBe(
+        expect((error as CofheError).shortMessage).toBe('getting chain ID from public client failed');
+        expect((error as CofheError).message).toContain(
           'getting chain ID from public client failed | Caused by: Network error'
         );
         expect((error as CofheError).cause).toBe(getChainIdError);

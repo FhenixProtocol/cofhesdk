@@ -38,6 +38,7 @@ import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
 import { cofheLogger } from '@/utils/debug';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -132,7 +133,7 @@ function useClaimUnshieldedWithLifecycle() {
     },
     onError: (error) => {
       const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to claim unshielded tokens');
+        cofheHumanizeViemError(error) ?? displayErrorMessage(error, 'Failed to claim unshielded tokens');
       setError(errorMessage);
       setStatus(null);
       cofheLogger.error('Claim tx submit error:', error);
@@ -200,8 +201,7 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
       setShieldAmount('');
     },
     onError: (error) => {
-      const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to shield tokens');
+      const errorMessage = cofheHumanizeViemError(error) ?? displayErrorMessage(error, 'Failed to shield tokens');
       setError(errorMessage);
       setStatus(null);
       cofheLogger.error('Shield tx submit error:', error);
@@ -390,8 +390,7 @@ function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshi
       setUnshieldAmount('');
     },
     onTransactionSubmitError: (error) => {
-      const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to unshield tokens');
+      const errorMessage = cofheHumanizeViemError(error) ?? displayErrorMessage(error, 'Failed to unshield tokens');
       setError(errorMessage);
       setStatus(null);
       cofheLogger.error('Unshield tx submit error:', error);
@@ -861,8 +860,7 @@ function useApproveWithLifecycle({
       });
     },
     onError: (error) => {
-      const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
+      const errorMessage = cofheHumanizeViemError(error) ?? displayErrorMessage(error, 'Failed to approve tokens');
       setError(errorMessage);
       setStatus(null);
       cofheLogger.error('Approve tx submit error:', error);

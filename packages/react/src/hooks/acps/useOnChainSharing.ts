@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { Hex } from 'viem';
 import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP, ShareLabel } from '@cofhe/sdk/acps';
-import { CofheError, CofheErrorCode } from '@cofhe/sdk';
+import { CofheError, isCofheError, CofheErrorCode } from '@cofhe/sdk';
 import { useInternalMutation, useInternalQuery, useInternalQueryClient } from '../../providers/index.js';
 import { useCofheClient } from '../useCofheClient.js';
 import { useCofheACPs } from '../useCofheACPs.js';
@@ -66,7 +66,7 @@ export const useCofheIncomingShares = ({
         return await cofheClient.acp.getIncomingShares();
       } catch (e) {
         // no registry on this chain: sharing is simply unavailable, not an error
-        if (e instanceof CofheError && e.code === CofheErrorCode.MissingConfig) return [];
+        if (isCofheError(e, CofheErrorCode.MissingConfig)) return [];
         throw e;
       }
     },

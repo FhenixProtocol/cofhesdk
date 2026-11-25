@@ -8,6 +8,7 @@ import { getTokenConfidentialityLabel, isWrappedTokenConfidentialityType, type C
 
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { Button } from '../components';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 export const ImportCustomTokenCard: React.FC<{
   balanceType: BalanceType;
@@ -66,7 +67,7 @@ export const ImportCustomTokenCard: React.FC<{
       )}
 
       {resolvedToken.error && !existingToken && (
-        <p className="text-xxxs text-[#c2410c]">{resolvedToken.error.message}</p>
+        <p className="text-xxxs text-[#c2410c]">{displayErrorMessage(resolvedToken.error)}</p>
       )}
 
       {previewToken && (

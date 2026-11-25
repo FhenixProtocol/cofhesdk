@@ -85,7 +85,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
         code: CofheErrorCode.NotConnected,
         message: 'Client must be connected, account and chainId must be initialized',
         hint: 'Ensure client.connect() has been called and awaited.',
-        context: { connected, account, chainId, publicClient, walletClient },
+        context: { connected, account, chainId, hasPublicClient: !!publicClient, hasWalletClient: !!walletClient },
       });
     }
     return { account, chainId, publicClient, walletClient };

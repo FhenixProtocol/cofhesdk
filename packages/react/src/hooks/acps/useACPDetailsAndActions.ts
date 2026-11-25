@@ -5,6 +5,7 @@ import { useCofheActiveACP, useCofheACP, useCofheRemoveACP, useCofheSelectACP } 
 import { useCopyFeedback } from '../useCopyFeedback.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils/utils.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 const COPY_KEY = 'acp-details-json';
 
@@ -25,7 +26,7 @@ export const useACPDetailsAndActions = (acpHash: string) => {
       addToast({
         variant: 'error',
         title: 'Failed to select acp',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: displayErrorMessage(error, 'Unknown error'),
       });
     },
   });
@@ -40,7 +41,7 @@ export const useACPDetailsAndActions = (acpHash: string) => {
       addToast({
         variant: 'error',
         title: 'Failed to delete acp',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: displayErrorMessage(error, 'Unknown error'),
       });
     },
   });

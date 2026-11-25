@@ -309,7 +309,7 @@ describe('decrypt request retries and onPoll', () => {
 
     const promise = tnDecryptV2({ ctHash: 1n, chainId: 1, acp: null, thresholdNetworkUrl, onPoll });
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'decrypt result was not ready after retrying for 300000ms',
+      shortMessage: 'decrypt result was not ready after retrying for 300000ms',
     });
 
     await vi.advanceTimersByTimeAsync(310_000);
@@ -609,7 +609,7 @@ describe('decrypt request retries and onPoll', () => {
 
     const promise = tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl, onPoll });
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'sealOutput result was not ready after retrying for 300000ms',
+      shortMessage: 'sealOutput result was not ready after retrying for 300000ms',
     });
 
     await vi.advanceTimersByTimeAsync(310_000);

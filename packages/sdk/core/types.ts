@@ -1,3 +1,5 @@
+import { CofheError, CofheErrorCode } from './error.js';
+
 export type TfheInitializer = () => Promise<boolean>;
 
 /**
@@ -236,7 +238,14 @@ function createEncryptableByLiteral(
 ): EncryptableItem {
   switch (type) {
     case 'bool': {
-      if (typeof data !== 'boolean') throw new Error('Bool encryptable data must be boolean');
+      if (typeof data !== 'boolean') {
+        throw new CofheError({
+          code: CofheErrorCode.InvalidArgument,
+          message: 'Bool encryptable data must be boolean',
+          hint: "Pass true or false: Encryptable.create('bool', true).",
+          context: { type, received: typeof data },
+        });
+      }
       return EncryptableFactoriesImpl.bool(data, securityZone);
     }
     case 'address':
@@ -245,13 +254,25 @@ function createEncryptableByLiteral(
     case 'uint32':
     case 'uint64':
     case 'uint128': {
-      if (typeof data === 'boolean') throw new Error('Uint encryptable data must be string or bigint');
+      if (typeof data === 'boolean') {
+        throw new CofheError({
+          code: CofheErrorCode.InvalidArgument,
+          message: 'Uint encryptable data must be string or bigint',
+          hint: `Pass a bigint or an integer string: Encryptable.create('${type}', 42n). For a boolean use Encryptable.create('bool', value).`,
+          context: { type, received: typeof data },
+        });
+      }
       return EncryptableFactoriesImpl[type](data, securityZone);
     }
     default: {
       // Exhaustiveness guard
       const _exhaustive: never = type;
-      throw new Error(`Unsupported encryptable type: ${_exhaustive}`);
+      throw new CofheError({
+        code: CofheErrorCode.InvalidArgument,
+        message: `Unsupported encryptable type: ${_exhaustive}`,
+        hint: `Supported types: ${FheTypeValues.join(', ')}.`,
+        context: { type: _exhaustive },
+      });
     }
   }
 }

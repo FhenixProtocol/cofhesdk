@@ -3,6 +3,7 @@ import type { Transaction } from '@/stores/transactionStore';
 import { ContractFunctionExecutionError, ContractFunctionRevertedError, type TransactionReceipt } from 'viem';
 import { cofheHumanizeRevertReason } from '@/utils/cofheErrors';
 import { cofheLogger } from '@/utils/debug';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 const TOAST_DELAY_MS = 10_000;
 function useTransactionGlobalToastsLifecycle() {
@@ -41,7 +42,7 @@ function useTransactionGlobalToastsLifecycle() {
           title: `${transactionType} Transaction Submission Failed`,
           description:
             humanReadableError ??
-            (error instanceof Error ? error.message : 'An unknown error occurred during transaction submission.'),
+            displayErrorMessage(error, 'An unknown error occurred during transaction submission.'),
         },
         TOAST_DELAY_MS
       );

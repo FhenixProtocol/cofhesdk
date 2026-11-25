@@ -136,7 +136,6 @@ async function calcCtHashes(
         items,
         account,
         securityZone,
-        publicClient,
         calcCtHashesArgs,
       },
     });
@@ -150,7 +149,6 @@ async function calcCtHashes(
         items,
         account,
         securityZone,
-        publicClient,
         calcCtHashesArgs,
         ctHashes,
       },
@@ -187,7 +185,6 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
       cause: err instanceof Error ? err : undefined,
       context: {
         items,
-        walletClient,
         insertPackedCtHashesArgs,
       },
     });

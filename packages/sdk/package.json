@@ -54,6 +54,7 @@
     "acps/**",
     "node/**",
     "web/**",
+    "skills/**",
     "CHANGELOG.md"
   ],
   "scripts": {
