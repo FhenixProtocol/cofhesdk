@@ -1,12 +1,10 @@
 import { type KeysTarget, type VerifyBatchResult, zkVerifyBatch, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import {
-  catchUpTo,
   mainThreadProvingPath,
   workerProvingPath,
   type MainThreadProving,
   type ProvingParams,
   type ProvingPath,
-  type ProvingStep,
   type WorkerProving,
 } from './provingPaths.js';
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -42,6 +40,10 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  * account, securityZone, and chainId can be overridden in the builder.
  * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  */
+
+/** What every step event of one run of a proving path carries (see `EncryptStepCallbackContext`). */
+type ProvingRunContext = Required<Pick<EncryptStepCallbackContext, 'inWorker'>> &
+  Pick<EncryptStepCallbackContext, 'workerFailedError'>;
 
 /**
  * The builder as returned by `client.encryptInputs(...)`, before a consuming contract has been set.
@@ -446,6 +448,42 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * Runs the four proving steps on one path and reports each of them.
+   * @param about Goes into every event of the run: which thread the path works on and, for the
+   * run that follows a failed worker, why the worker failed.
+   * @returns The serialized proven ciphertext list.
+   */
+  private async proveOn(path: ProvingPath, metadata: Uint8Array, about: ProvingRunContext): Promise<Uint8Array> {
+    this.fireStepStart(EncryptStep.InitTfhe, about);
+
+    const tfheInit = await path.initTfhe();
+
+    this.fireStepEnd(EncryptStep.InitTfhe, { ...about, ...tfheInit });
+
+    this.fireStepStart(EncryptStep.FetchKeys, about);
+
+    const keysFetched = await path.fetchKeys();
+
+    this.fireStepEnd(EncryptStep.FetchKeys, { ...about, ...keysFetched });
+
+    this.fireStepStart(EncryptStep.Pack, about);
+
+    path.pack();
+
+    // `packedInWorker` is the older name of `inWorker` on this event.
+    this.fireStepEnd(EncryptStep.Pack, { ...about, packedInWorker: about.inWorker });
+
+    this.fireStepStart(EncryptStep.Prove, about);
+
+    const proof = await path.prove(metadata);
+
+    // `usedWorker` is the older name of `inWorker` on this event.
+    this.fireStepEnd(EncryptStep.Prove, { ...about, useWorker: this.useWorker, usedWorker: about.inWorker });
+
+    return proof;
+  }
+
+  /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
   private async productionExecute(): Promise<VerifyBatchResult> {
@@ -454,8 +492,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertConsumingContract();
 
     // The proof is made in a worker when one is to be used, and on this thread otherwise. Each
-    // path is whole in itself (see provingPaths.ts); this method only picks one, reports the
-    // steps, and switches to the main-thread path when the worker fails.
+    // path is whole in itself (see provingPaths.ts); this method only picks one and reports its
+    // steps. When the worker path fails, the main-thread path runs from its first step, and
+    // those steps are reported as well: a listener sees everything that ran.
     const items = this.inputItems;
     const createMainThreadPath = () =>
       mainThreadProvingPath({
@@ -474,54 +513,24 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         ? workerProvingPath({ items, target: () => this.keysTarget(), worker: this.worker.instance })
         : undefined;
 
-    let path: ProvingPath = workerPath ?? createMainThreadPath();
-    let workerFailedError: string | undefined;
-
-    // Runs one step on the current path. Should the worker path fail in it, the main-thread path
-    // takes over for the rest of the encrypt: it first does the earlier steps itself, with
-    // nothing reported, then this one.
-    const run = async <T>(step: ProvingStep, stepOf: (path: ProvingPath) => T | Promise<T>): Promise<T> => {
-      try {
-        return await stepOf(path);
-      } catch (error) {
-        // Only a failed worker has somewhere to fall back to.
-        if (path !== workerPath) throw error;
-        workerFailedError = error instanceof Error ? error.message : String(error);
-        path = createMainThreadPath();
-        await catchUpTo(path, step);
-        return await stepOf(path);
-      }
-    };
-
-    this.fireStepStart(EncryptStep.InitTfhe);
-
-    const tfheInit = await run('initTfhe', (path) => path.initTfhe());
-
-    this.fireStepEnd(EncryptStep.InitTfhe, tfheInit);
-
-    this.fireStepStart(EncryptStep.FetchKeys);
-
-    const keysFetched = await run('fetchKeys', (path) => path.fetchKeys());
-
-    this.fireStepEnd(EncryptStep.FetchKeys, keysFetched);
-
-    this.fireStepStart(EncryptStep.Pack);
-
-    await run('pack', (path) => path.pack());
-
-    this.fireStepEnd(EncryptStep.Pack, { packedInWorker: path === workerPath });
-
-    this.fireStepStart(EncryptStep.Prove);
-
     const metadata = constructZkPoKMetadata(this.account, this.securityZone, this.chainId, this.consumingContract);
 
-    const proof = await run('prove', (path) => path.prove(metadata));
+    // First choice: the worker.
+    let proof: Uint8Array | undefined;
+    let workerFailedError: string | undefined;
+    if (workerPath) {
+      try {
+        proof = await this.proveOn(workerPath, metadata, { inWorker: true });
+      } catch (error) {
+        workerFailedError = error instanceof Error ? error.message : String(error);
+      }
+    }
 
-    this.fireStepEnd(EncryptStep.Prove, {
-      useWorker: this.useWorker,
-      usedWorker: path === workerPath,
-      workerFailedError,
-    });
+    // The main thread: when there is no worker to use, or as the fallback when the worker failed.
+    // It starts from its own first step either way.
+    if (!proof) {
+      proof = await this.proveOn(createMainThreadPath(), metadata, { inWorker: false, workerFailedError });
+    }
 
     this.fireStepStart(EncryptStep.Verify);
 

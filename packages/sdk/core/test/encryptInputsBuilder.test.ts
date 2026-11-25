@@ -963,9 +963,9 @@ describe('EncryptInputsBuilder', () => {
         expect(mainThread.compactPkeCrsDeserializer).not.toHaveBeenCalled();
         expect(mainThread.zkBuilderAndCrsGenerator).not.toHaveBeenCalled();
 
-        expect(endOf(onStep.mock.calls, EncryptStep.Prove)).toEqual([
-          expect.objectContaining({ usedWorker: true, workerFailedError: undefined }),
-        ]);
+        const proveEnds = endOf(onStep.mock.calls, EncryptStep.Prove);
+        expect(proveEnds).toEqual([expect.objectContaining({ usedWorker: true })]);
+        expect(proveEnds[0]?.workerFailedError).toBeUndefined();
       });
 
       it('has the worker do each step, telling it which keys to use', async () => {
@@ -1095,7 +1095,7 @@ describe('EncryptInputsBuilder', () => {
         ]);
       });
 
-      it('still reports each step exactly once', async () => {
+      it("reports the steps of both runs: the worker's up to the failed one, then the main thread's from the start", async () => {
         const provingWorker = mockProvingWorker({ fetchKeys: failing('worker is gone') });
         const onStep = vi.fn<StepCallback>();
 
@@ -1107,14 +1107,66 @@ describe('EncryptInputsBuilder', () => {
           .onStep(onStep)
           .execute();
 
-        const ended = onStep.mock.calls.filter(([, context]) => context?.isEnd).map(([step]) => step);
-        expect(ended).toEqual([
-          EncryptStep.InitTfhe,
-          EncryptStep.FetchKeys,
-          EncryptStep.Pack,
-          EncryptStep.Prove,
-          EncryptStep.Verify,
+        const events = onStep.mock.calls
+          .filter(([step]) => step !== EncryptStep.Verify)
+          .map(([step, context]) => [
+            step,
+            context?.isStart ? 'start' : 'end',
+            context?.inWorker ? 'worker' : context?.workerFailedError ? 'fallback' : 'main thread',
+          ]);
+        expect(events).toEqual([
+          [EncryptStep.InitTfhe, 'start', 'worker'],
+          [EncryptStep.InitTfhe, 'end', 'worker'],
+          // The failed step has a start and no end.
+          [EncryptStep.FetchKeys, 'start', 'worker'],
+          [EncryptStep.InitTfhe, 'start', 'fallback'],
+          [EncryptStep.InitTfhe, 'end', 'fallback'],
+          [EncryptStep.FetchKeys, 'start', 'fallback'],
+          [EncryptStep.FetchKeys, 'end', 'fallback'],
+          [EncryptStep.Pack, 'start', 'fallback'],
+          [EncryptStep.Pack, 'end', 'fallback'],
+          [EncryptStep.Prove, 'start', 'fallback'],
+          [EncryptStep.Prove, 'end', 'fallback'],
         ]);
+      });
+
+      it('says on every event of the fallback run why the worker failed', async () => {
+        const provingWorker = mockProvingWorker({ prove: failing('worker is gone') });
+        const onStep = vi.fn<StepCallback>();
+
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          proving: { mainThread: defaultMainThread(), worker: { instance: provingWorker } },
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
+
+        const fallbackContexts = onStep.mock.calls
+          .map(([, context]) => context)
+          .filter((context) => context?.inWorker === false);
+        expect(fallbackContexts).toHaveLength(8);
+        for (const context of fallbackContexts) {
+          expect(context).toMatchObject({ inWorker: false, workerFailedError: 'worker is gone' });
+        }
+      });
+
+      it('marks no event as a fallback when the main thread was the first choice', async () => {
+        const onStep = vi.fn<StepCallback>();
+
+        await new EncryptInputsBuilder({ ...createDefaultParams(), proving: { mainThread: defaultMainThread() } })
+          .setConsumingContract(defaultConsumingContract)
+          .onStep(onStep)
+          .execute();
+
+        const pathEvents = onStep.mock.calls
+          .filter(([step]) => step !== EncryptStep.Verify)
+          .map(([, context]) => context);
+        expect(pathEvents).toHaveLength(8);
+        for (const context of pathEvents) {
+          expect(context).toMatchObject({ inWorker: false });
+          expect(context?.workerFailedError).toBeUndefined();
+        }
       });
 
       it('does not go back to the worker once it has failed', async () => {

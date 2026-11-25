@@ -33,7 +33,9 @@ export function useStepsState(): StepsState {
   const [currentKey, setCurrentKey] = useState<string | null>(null);
 
   const onStep = useCallback((key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => {
-    if (step === EncryptStep.InitTfhe && context?.isStart) {
+    // An encrypt starts with InitTfhe. So does the main-thread run after a failed worker
+    // (it carries `workerFailedError`), which belongs to the same encrypt and is appended like any other step.
+    if (step === EncryptStep.InitTfhe && context?.isStart && !context.workerFailedError) {
       // init with a single-element array
       setSteps((prev) => ({ ...prev, [key]: [{ step, context }] }));
     } else {

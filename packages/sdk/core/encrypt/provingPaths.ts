@@ -55,8 +55,8 @@ export type ProvingParams = {
  *
  * There are two: {@link workerProvingPath} and {@link mainThreadProvingPath}. Each owns everything
  * that is specific to it, so neither contains a branch on the other, and neither does any of the
- * other's work. The caller picks one, reports the steps, and switches to the main-thread one when
- * the worker fails.
+ * other's work. The caller picks one and reports its steps; when the worker one fails, it runs the main-thread
+ * one from its first step.
  *
  * A path is for one encrypt: it keeps what one step produced for the next.
  */
@@ -70,21 +70,6 @@ export type ProvingPath = {
   /** The `Prove` step. Resolves with the serialized proven ciphertext list. */
   prove(metadata: Uint8Array): Promise<Uint8Array>;
 };
-
-export type ProvingStep = keyof ProvingPath;
-
-/**
- * Runs, with nothing reported, the steps that come before `step`. For a path that takes over
- * part-way through an encrypt and has done none of the earlier steps itself.
- */
-export async function catchUpTo(path: ProvingPath, step: ProvingStep): Promise<void> {
-  if (step === 'initTfhe') return;
-  await path.initTfhe();
-  if (step === 'fetchKeys') return;
-  await path.fetchKeys();
-  if (step === 'pack') return;
-  path.pack();
-}
 
 /**
  * The proof is made in a worker, which leaves the page responsive.

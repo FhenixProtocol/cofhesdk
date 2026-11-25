@@ -70,7 +70,8 @@ describe('@cofhe/sdk/web - the proving worker owns the keys', () => {
     const { result, ended } = await encrypt(client);
 
     expect(result.length).toBe(2);
-    expect(ended[EncryptStep.Prove]).toMatchObject({ usedWorker: true, workerFailedError: undefined });
+    expect(ended[EncryptStep.Prove]).toMatchObject({ usedWorker: true });
+    expect(ended[EncryptStep.Prove]?.workerFailedError).toBeUndefined();
     expect(ended[EncryptStep.Pack]).toMatchObject({ packedInWorker: true });
 
     // Neither downloaded by the page nor stored by it: the worker did both.
