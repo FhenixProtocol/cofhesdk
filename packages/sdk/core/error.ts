@@ -1,5 +1,9 @@
 export enum CofheErrorCode {
   InternalError = 'INTERNAL_ERROR',
+  /** The caller passed a value the SDK cannot use. `hint` says what the argument should be. */
+  InvalidArgument = 'INVALID_ARGUMENT',
+  /** `createCofheConfig` rejected the config. `context.issues` lists each rejected key. */
+  InvalidConfig = 'INVALID_CONFIG',
   UnknownEnvironment = 'UNKNOWN_ENVIRONMENT',
   InitTfheFailed = 'INIT_TFHE_FAILED',
   InitViemFailed = 'INIT_VIEM_FAILED',
@@ -86,36 +90,73 @@ export type CofheErrorParams = {
 };
 
 /**
- * CofheError class
- * This class is used to create errors that are specific to the CoFHE SDK
- * It extends the Error class and adds a code, cause, hint, and context
- * The code is used to identify the type of error
- * The cause is used to indicate the inner error that caused the CofheError
- * The hint is used to provide a hint about how to fix the error
- * The context is used to provide additional context about the state that caused the error
- * The serialize method is used to serialize the error to a JSON string
- * The toString method is used to provide a human-readable string representation of the error
+ * Marks a CofheError. Registered globally, so it is the same symbol in every copy of the SDK
+ * loaded in a process (ESM next to CJS, or two installed versions), where `instanceof` fails.
+ */
+const COFHE_ERROR_BRAND = Symbol.for('@cofhe/sdk/CofheError');
+
+/**
+ * Where the repair guide sits in a project that installed the SDK. It ships in the package, so it
+ * describes the installed version.
+ */
+const REPAIR_GUIDE_PATH = 'node_modules/@cofhe/sdk/skills/cofhe-errors/SKILL.md';
+
+/** The section of the repair guide for `code`, as a path with an anchor. */
+const repairGuideFor = (code: CofheErrorCode): string => `${REPAIR_GUIDE_PATH}#${code.toLowerCase()}`;
+
+/**
+ * An error thrown by the CoFHE SDK.
+ *
+ * - `code`: what went wrong. Stable; branch on this.
+ * - `shortMessage`: one sentence, safe to show to a user.
+ * - `message`: `shortMessage`, then the cause, the hint and the repair guide, so that a log or a
+ *   test runner that prints only the message still shows how to fix it.
+ * - `hint`: how to fix it, addressed to the developer.
+ * - `context`: the values involved. Plain data only: never a client, signer or key.
+ * - `cause`: the underlying error, when there is one.
+ * - `repairGuide`: the section for this code in the guide shipped with the package: causes and
+ *   fixes in more depth than the hint.
+ *
+ * Detect one with `isCofheError(error)` rather than `instanceof`.
  */
 export class CofheError extends Error {
   public readonly code: CofheErrorCode;
+  /** The message without the cause and the hint. Use it for text shown to a user. */
+  public readonly shortMessage: string;
   public readonly cause?: Error;
   public readonly hint?: string;
   public readonly context?: Record<string, unknown>;
   public readonly apiErrorCode?: string;
   public readonly httpStatus?: number;
+  /**
+   * Path, from the project root, of this code's section in the repair guide shipped with the
+   * package: `node_modules/@cofhe/sdk/skills/cofhe-errors/SKILL.md#acp_not_found`.
+   */
+  public readonly repairGuide: string;
+  /** @internal */
+  public readonly [COFHE_ERROR_BRAND] = true;
 
   constructor({ code, message, cause, hint, context, apiErrorCode, httpStatus }: CofheErrorParams) {
-    // If there's a cause, append its message to provide full context
-    const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
+    const repairGuide = repairGuideFor(code);
+    const fullMessage = [
+      message,
+      cause && `Caused by: ${cause.message}`,
+      hint && `Hint: ${hint}`,
+      `Guide: ${repairGuide}`,
+    ]
+      .filter(Boolean)
+      .join(' | ');
 
     super(fullMessage);
     this.name = 'CofheError';
     this.code = code;
+    this.shortMessage = message;
     this.cause = cause;
     this.hint = hint;
     this.context = context;
     this.apiErrorCode = apiErrorCode;
     this.httpStatus = httpStatus;
+    this.repairGuide = repairGuide;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -148,11 +189,13 @@ export class CofheError extends Error {
    * Serializes the error to JSON string with proper handling of Error objects
    */
   serialize(): string {
-    return bigintSafeJsonStringify({
+    return safeJsonStringify({
       name: this.name,
       code: this.code,
       message: this.message,
+      shortMessage: this.shortMessage,
       hint: this.hint,
+      repairGuide: this.repairGuide,
       context: this.context,
       apiErrorCode: this.apiErrorCode,
       httpStatus: this.httpStatus,
@@ -174,14 +217,17 @@ export class CofheError extends Error {
     const apiSuffix = this.apiErrorCode ? ` (api: ${this.apiErrorCode})` : '';
     const httpSuffix = this.httpStatus != null ? ` (http: ${this.httpStatus})` : '';
     const codeSuffix = `${apiSuffix}${httpSuffix}`;
-    const parts = [`${this.name} [${this.code}]${codeSuffix}: ${this.message}`];
+    // The hint and the cause get their own lines below
+    const parts = [`${this.name} [${this.code}]${codeSuffix}: ${this.shortMessage}`];
 
     if (this.hint) {
       parts.push(`Hint: ${this.hint}`);
     }
 
+    parts.push(`Guide: ${this.repairGuide}`);
+
     if (this.context && Object.keys(this.context).length > 0) {
-      parts.push(`Context: ${bigintSafeJsonStringify(this.context)}`);
+      parts.push(`Context: ${safeJsonStringify(this.context)}`);
     }
 
     if (this.stack) {
@@ -200,13 +246,47 @@ export class CofheError extends Error {
   }
 }
 
-const bigintSafeJsonStringify = (value: unknown): string => {
-  return JSON.stringify(value, (key, value) => {
-    if (typeof value === 'bigint') {
-      return `${value}n`;
-    }
+/**
+ * JSON for logs. Never throws, and never prints a client: an error's context may hold whatever the
+ * throw site put there.
+ * - bigint -> `"123n"`
+ * - an object already being printed further up -> `"[Circular]"`
+ * - anything with a `request` function (viem clients, EIP-1193 providers) -> `"[Client]"`, since
+ *   those carry the RPC URL, which often embeds an API key
+ */
+const safeJsonStringify = (value: unknown): string => {
+  const ancestors: object[] = [];
+
+  return JSON.stringify(value, function (this: unknown, _key, value) {
+    if (typeof value === 'bigint') return `${value}n`;
+    if (typeof value !== 'object' || value === null) return value;
+    if (typeof (value as { request?: unknown }).request === 'function') return '[Client]';
+
+    // `this` is the object holding `value`: drop the ancestors that are not on the path to it
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) ancestors.pop();
+    if (ancestors.includes(value)) return '[Circular]';
+    ancestors.push(value);
     return value;
   });
 };
 
-export const isCofheError = (error: unknown): error is CofheError => error instanceof CofheError;
+/**
+ * Whether `error` is a `CofheError`, and with `code`, whether it has that code.
+ *
+ * Unlike `instanceof CofheError` this also recognises an error created by another copy of the
+ * SDK in the same process.
+ *
+ * @example
+ * ```ts
+ * if (isCofheError(error, CofheErrorCode.ACPNotFound)) await client.acp.getOrCreateSelfACP();
+ * ```
+ */
+export function isCofheError<C extends CofheErrorCode>(error: unknown, code: C): error is CofheError & { code: C };
+export function isCofheError(error: unknown): error is CofheError;
+export function isCofheError(error: unknown, code?: CofheErrorCode): error is CofheError {
+  const branded =
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { [COFHE_ERROR_BRAND]?: unknown })[COFHE_ERROR_BRAND] === true;
+  return branded && (code === undefined || (error as CofheError).code === code);
+}

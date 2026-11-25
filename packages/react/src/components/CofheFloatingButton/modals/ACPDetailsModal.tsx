@@ -10,6 +10,7 @@ import type { ACPType } from '@cofhe/sdk/acps';
 import { ACPCard } from '../components/ACPCard';
 import { truncateAddress } from '@/utils';
 import { useCallback, useState } from 'react';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 const ACPTypeLabel: Record<ACPType, string> = {
   self: 'Self',
@@ -54,14 +55,16 @@ export const ACPDetailsModal: React.FC<PortalModalStateMap[PortalModal.ACPDetail
   const [postedShareId, setPostedShareId] = useState<`0x${string}` | null>(null);
 
   const shareOnChain = useShareOnChain({
-    onError: (error) => addToast({ variant: 'error', title: 'On-chain share failed', description: error.message }),
+    onError: (error) =>
+      addToast({ variant: 'error', title: 'On-chain share failed', description: displayErrorMessage(error) }),
   });
   const cancelShare = useRemoveShare({
     onSuccess: () => {
       setPostedShareId(null);
       addToast({ variant: 'success', title: 'On-chain share retracted' });
     },
-    onError: (error) => addToast({ variant: 'error', title: 'Retract failed', description: error.message }),
+    onError: (error) =>
+      addToast({ variant: 'error', title: 'Retract failed', description: displayErrorMessage(error) }),
   });
 
   const handleShareOnChain = useCallback(async () => {

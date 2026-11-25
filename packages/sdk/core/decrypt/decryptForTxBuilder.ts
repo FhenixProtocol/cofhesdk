@@ -171,7 +171,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   setAccessDeniedRetryTimeout(timeoutMs: number): DecryptForTxBuilder {
     if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message:
           'decryptForTx: setAccessDeniedRetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
         context: {
@@ -199,7 +199,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   withACP(acpOrACPHash?: ACP | string): DecryptForTxBuilderSelected {
     if (this.acpSelection === 'with-acp') {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message: 'decryptForTx: withACP() can only be selected once.',
         hint: 'Choose the acp mode once. If you need a different acp, start a new decryptForTx() builder chain.',
       });
@@ -207,7 +207,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
 
     if (this.acpSelection === 'without-acp') {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message: 'decryptForTx: cannot call withACP() after withoutACP() has been selected.',
         hint: 'Choose exactly one acp mode: either call .withACP(...) or .withoutACP(), but not both.',
       });
@@ -239,7 +239,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   withoutACP(): DecryptForTxBuilderSelected {
     if (this.acpSelection === 'without-acp') {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message: 'decryptForTx: withoutACP() can only be selected once.',
         hint: 'Choose the acp mode once. If you need a different mode, start a new decryptForTx() builder chain.',
       });
@@ -247,7 +247,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
 
     if (this.acpSelection === 'with-acp') {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message: 'decryptForTx: cannot call withoutACP() after withACP() has been selected.',
         hint: 'Choose exactly one acp mode: either call .withACP(...) or .withoutACP(), but not both.',
       });
@@ -275,7 +275,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private async getResolvedACP(): Promise<ACP | null> {
     if (this.acpSelection === 'unset') {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message: 'decryptForTx: missing acp selection; call withACP(...) or withoutACP() before execute().',
         hint: 'Call .withACP() to use the active acp, or .withoutACP() for global allowance.',
       });

@@ -95,9 +95,6 @@ export abstract class BaseBuilder {
       code: CofheErrorCode.MissingPublicClient,
       message: 'Public client not found',
       hint: 'Ensure client.connect() has been called with a publicClient.',
-      context: {
-        publicClient: this.publicClient,
-      },
     });
   }
 
@@ -111,9 +108,6 @@ export abstract class BaseBuilder {
       code: CofheErrorCode.MissingWalletClient,
       message: 'Wallet client not found',
       hint: 'Ensure client.connect() has been called with a walletClient.',
-      context: {
-        walletClient: this.walletClient,
-      },
     });
   }
 }

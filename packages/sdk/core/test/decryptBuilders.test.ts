@@ -231,7 +231,7 @@ describe('DecryptForTxBuilder', () => {
         await builder.execute();
         expect.fail('Expected error');
       } catch (error) {
-        expect((error as any).code).toBe(CofheErrorCode.InternalError);
+        expect((error as any).code).toBe(CofheErrorCode.InvalidArgument);
         expect((error as Error).message).toContain('missing acp selection');
       }
     });

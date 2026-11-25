@@ -144,7 +144,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   setAccessDeniedRetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
     if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
       throw new CofheError({
-        code: CofheErrorCode.InternalError,
+        code: CofheErrorCode.InvalidArgument,
         message:
           'decryptForView: setAccessDeniedRetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
         context: {

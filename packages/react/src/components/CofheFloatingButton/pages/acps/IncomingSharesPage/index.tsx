@@ -16,6 +16,7 @@ import {
   type ShareLabelAbis,
   type ShareLabelArg,
 } from '@cofhe/sdk/acps';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 /** The app's tokens by lowercase address: the only contracts the inbox names. */
 type KnownTokens = ReadonlyMap<string, { symbol: string }>;
@@ -77,7 +78,7 @@ const ShareLabels: React.FC<{ share: IncomingShare }> = ({ share }) => {
   );
   const abis = useMemo(() => knownTokenAbisFor(share, known), [share, known]);
   const { labels, error } = useCofheShareLabels(share, { abis });
-  if (error) return <div className="italic">Labels unreadable: {error.message}</div>;
+  if (error) return <div className="italic">Labels unreadable: {displayErrorMessage(error)}</div>;
   if (labels == null) return null;
   return (
     <ul className="flex flex-col gap-0.5">
@@ -104,7 +105,7 @@ const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
       navigateTo(FloatingButtonPage.ACPs);
     },
     onError: (error) => {
-      addToast({ variant: 'error', title: 'Import failed', description: error.message });
+      addToast({ variant: 'error', title: 'Import failed', description: displayErrorMessage(error) });
     },
   });
 
@@ -113,7 +114,7 @@ const ShareRow: React.FC<{ share: IncomingShare }> = ({ share }) => {
       addToast({ variant: 'success', title: 'Share dismissed' });
     },
     onError: (error) => {
-      addToast({ variant: 'error', title: 'Dismiss failed', description: error.message });
+      addToast({ variant: 'error', title: 'Dismiss failed', description: displayErrorMessage(error) });
     },
   });
 
@@ -179,7 +180,7 @@ export const IncomingSharesPage: React.FC = () => {
           {incoming.isLoading && <div className="text-xs italic">Loading shares…</div>}
           {incoming.isError && (
             <div role="alert" className="text-error text-xs">
-              Failed to load shares: {incoming.error.message}
+              Failed to load shares: {displayErrorMessage(incoming.error)}
             </div>
           )}
           {incoming.data != null && incoming.data.length === 0 && (

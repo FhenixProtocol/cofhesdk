@@ -117,6 +117,9 @@ describe('validateBigIntInRange', () => {
 
   it('throws when value exceeds max', () => {
     expect(() => validateBigIntInRange(25n, 20n, 0n)).toThrow('Value out of range');
+    expect(() => validateBigIntInRange(25n, 20n, 0n)).toThrow(
+      expect.objectContaining({ code: 'INVALID_ARGUMENT', hint: expect.stringContaining('between 0 and 20') })
+    );
   });
 
   it('throws when value is below min', () => {

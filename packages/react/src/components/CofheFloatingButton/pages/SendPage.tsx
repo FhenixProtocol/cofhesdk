@@ -21,6 +21,7 @@ import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { cofheLogger } from '@/utils/debug';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 export type SendPageProps = {
   token: ConfidentialToken;
@@ -51,8 +52,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
     },
   } = useCofheTokenTransfer({
     onError: (error) => {
-      const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to send tokens');
+      const errorMessage = cofheHumanizeViemError(error) ?? displayErrorMessage(error, 'Failed to send tokens');
       setError(errorMessage);
       cofheLogger.error('Send tx submit error:', error);
     },

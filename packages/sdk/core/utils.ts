@@ -50,23 +50,42 @@ export const toBigIntOrThrow = (value: bigint | string): bigint => {
 
   // BigInt('') and BigInt('   ') are 0n, which would silently encrypt a missing value as zero
   if (typeof value === 'string' && value.trim() === '') {
-    throw new Error('Invalid input: Unable to convert to bigint');
+    throw new CofheError({
+      code: CofheErrorCode.InvalidArgument,
+      message: 'Invalid input: Unable to convert to bigint',
+      hint: 'The value is an empty string. Pass a bigint (e.g. 42n) or a decimal or 0x-prefixed integer string.',
+    });
   }
 
   try {
     return BigInt(value);
   } catch (error) {
-    throw new Error('Invalid input: Unable to convert to bigint');
+    // The value is omitted on purpose: it is the plaintext about to be encrypted.
+    throw new CofheError({
+      code: CofheErrorCode.InvalidArgument,
+      message: 'Invalid input: Unable to convert to bigint',
+      hint: 'Pass a bigint (e.g. 42n) or a decimal or 0x-prefixed integer string. Decimals such as "1.5" are not integers: scale them first.',
+    });
   }
 };
 
 export const validateBigIntInRange = (value: bigint, max: bigint, min: bigint = 0n): void => {
   if (typeof value !== 'bigint') {
-    throw new Error('Value must be of type bigint');
+    throw new CofheError({
+      code: CofheErrorCode.InvalidArgument,
+      message: 'Value must be of type bigint',
+      context: { received: typeof value },
+    });
   }
 
   if (value > max || value < min) {
-    throw new Error(`Value out of range: ${max} - ${min}, try a different uint type`);
+    // The value is omitted on purpose: it is the plaintext about to be encrypted.
+    throw new CofheError({
+      code: CofheErrorCode.InvalidArgument,
+      message: `Value out of range: ${max} - ${min}, try a different uint type`,
+      hint: `The value must be between ${min} and ${max} for this type. Use a wider Encryptable type (e.g. Encryptable.uint64 instead of Encryptable.uint32).`,
+      context: { min, max },
+    });
   }
 };
 

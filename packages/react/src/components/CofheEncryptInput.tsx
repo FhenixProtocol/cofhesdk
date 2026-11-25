@@ -14,6 +14,7 @@ import { CheckIcon, ContentCopyIcon, KeyboardArrowDownIcon, SecurityIcon } from 
 import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { cofheLogger } from '@/utils/debug';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 export interface CofheEncryptInputProps extends BaseProps {
   /**
@@ -322,13 +323,13 @@ export const CofheEncryptInput: React.FC<CofheEncryptInputProps> = ({
             // Call completion callback
             onEncryptComplete?.(data);
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Encryption failed';
+            const errorMessage = displayErrorMessage(error, 'Encryption failed');
             cofheLogger.error('Encryption failed:', error);
             onEncryptError?.(errorMessage);
           }
         })();
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Encryption setup failed';
+        const errorMessage = displayErrorMessage(error, 'Encryption setup failed');
         cofheLogger.error('Encryption setup failed:', error);
         onEncryptError?.(errorMessage);
       }

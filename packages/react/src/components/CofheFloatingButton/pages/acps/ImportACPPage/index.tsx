@@ -6,6 +6,7 @@ import { PageContainer } from '@/components/CofheFloatingButton/components/PageC
 import { Button } from '@/components/CofheFloatingButton/components/Button.js';
 import { BaseACPCard } from '@/components/CofheFloatingButton/components/ACPCard.js';
 import { cofheLogger } from '@/utils/debug';
+import { displayErrorMessage } from '@/utils/cofheErrors';
 
 export const ImportACPPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
@@ -24,7 +25,7 @@ export const ImportACPPage: React.FC = () => {
         addToast({
           variant: 'error',
           title: 'Failed to import acp',
-          description: error.message,
+          description: displayErrorMessage(error),
         });
         cofheLogger.error('Error importing acp', error);
       },
