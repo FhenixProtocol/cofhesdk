@@ -1,6 +1,9 @@
 // Client (base implementations)
 export { createCofheClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
 
+// Stubs for the platform functions: they point to `@cofhe/sdk/node` / `@cofhe/sdk/web`
+export { createCofheClient, createCofheConfig } from './entrypointGuard.js';
+
 // Debug interceptors (neutral, opt-in network hooks for fault injection / logging)
 export { setCofheDebugInterceptors, getCofheDebugInterceptors, cofheFetch } from './debug.js';
 export type {
@@ -22,6 +25,9 @@ export type {
   CofheClientParams as CofheClientParams,
   CofheClientConnectionState as CofheClientConnectionState,
   CofheClientACPs as CofheClientACPs,
+  EncryptInputsOptions,
+  DecryptForViewOptions,
+  DecryptForTxOptions,
 } from './clientTypes.js';
 
 export type {

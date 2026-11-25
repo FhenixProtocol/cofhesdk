@@ -7,7 +7,18 @@ import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.j
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { acps, type ImportSharedOptions, type ShareOnChainOptions } from './acps.js';
-import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
+import type {
+  DecryptPollCallbackFunction,
+  EncryptableItem,
+  EncryptStepCallbackFunction,
+  FheTypes,
+  FheTypeValue,
+  FheTypeValueUtypeMap,
+  HashPlusProofResult,
+  TfheInitializer,
+  UnsealedItem,
+} from './types.js';
+import type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';
 import type { WalletClientWithAccount } from './utils.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
@@ -51,18 +62,182 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
    */
   disconnect(): void;
   /**
-   * Types docstring
+   * Encrypts values so a contract can take them as `externalEuint*` / `externalEbool` /
+   * `externalEaddress` arguments. Resolves to one hash per input, in input order, followed by the
+   * single signature that covers the whole batch.
+   *
+   * `consumingContract` is the contract that will call `FHE.asEuint*` with the result. The
+   * signature is bound to it: the hashes are rejected by any other contract.
+   *
+   * @example
+   * ```ts
+   * const [amount, flag, signature] = await client.encryptInputs(
+   *   [Encryptable.uint64(100n), Encryptable.bool(true)],
+   *   { consumingContract: '0xContract…' }
+   * );
+   * await walletClient.writeContract({ address, abi, functionName: 'deposit', args: [amount, flag, signature] });
+   * ```
+   *
+   * @throws {CofheError} `NOT_CONNECTED` before `connect`, `INVALID_ARGUMENT` for a value that does
+   * not fit its type, `ZK_VERIFY_FAILED` when the verifier rejects the proof. `error.hint` names the fix.
+   */
+  encryptInputs<T extends EncryptableItem[]>(
+    inputs: [...T],
+    options: EncryptInputsOptions
+  ): Promise<HashPlusProofResult<[...T]>>;
+  /**
+   * Builder form of `encryptInputs`. `.execute()` is only available after
+   * `.setConsumingContract(address)`.
+   *
+   * @example
+   * ```ts
+   * const [amount, signature] = await client
+   *   .encryptInputs([Encryptable.uint64(100n)])
+   *   .setConsumingContract('0xContract…')
+   *   .execute();
+   * ```
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]>;
   /**
    * @deprecated Use `decryptForView` instead. Kept for backward compatibility.
    */
   decryptHandle<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
+  /**
+   * Decrypts an encrypted value for display. The plaintext comes back to this client only;
+   * nothing is published on chain. Resolves to a `boolean` for `bool`, a checksummed address
+   * `string` for `address`, and a `bigint` for the uint types.
+   *
+   * Needs an ACP that covers the handle. By default the active ACP of the connected account is
+   * used; create one with `client.acp.getOrCreateSelfACP()`.
+   *
+   * @param ctHash - The handle of the encrypted value, as read from the contract (`euint64` etc.).
+   * @param utype - The FHE type of the handle: `'uint64'` or `FheTypes.Uint64`. It must match the
+   * Solidity type the contract stores.
+   * @param options - Pass `{}` for the defaults. Without this argument the call returns a builder.
+   *
+   * @example
+   * ```ts
+   * await client.acp.getOrCreateSelfACP();
+   * const handle = await publicClient.readContract({ address, abi, functionName: 'balanceOf', args: [account] });
+   * const balance = await client.decryptForView(handle, 'uint64', {}); // bigint
+   * ```
+   *
+   * @throws {CofheError} `ACP_NOT_FOUND` without an ACP, `ACP_DENIED` when the ACP does not cover
+   * the handle, `CT_NOT_FOUND` for an unknown handle. `error.hint` names the fix.
+   */
+  decryptForView<V extends FheTypeValue>(
+    ctHash: bigint | string,
+    utype: V,
+    options: DecryptForViewOptions
+  ): Promise<UnsealedItem<FheTypeValueUtypeMap<V>>>;
+  decryptForView<U extends FheTypes>(
+    ctHash: bigint | string,
+    utype: U,
+    options: DecryptForViewOptions
+  ): Promise<UnsealedItem<U>>;
+  /**
+   * Builder form of `decryptForView`. Call `.execute()` to run it.
+   *
+   * @example
+   * ```ts
+   * const balance = await client.decryptForView(handle, FheTypes.Uint64).execute();
+   * ```
+   */
+  decryptForView<V extends FheTypeValue>(
+    ctHash: bigint | string,
+    utype: V
+  ): DecryptForViewBuilder<FheTypeValueUtypeMap<V>>;
   decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
+  /**
+   * Decrypts an encrypted value together with a Threshold Network signature, so a contract can
+   * verify the plaintext when you publish it in a transaction (`FHE.publishDecryptResult`).
+   *
+   * `options.acp` is required and says who is allowed to decrypt:
+   * - `'none'`: the handle is publicly decryptable (`FHE.allowPublic` / global allowance).
+   * - `'active'`: use the active ACP of the connected account.
+   * - an `ACP`, or the hash of a stored one: use that ACP.
+   *
+   * @example
+   * ```ts
+   * const { decryptedValue, signature } = await client.decryptForTx(handle, { acp: 'none' });
+   * await walletClient.writeContract({ address, abi, functionName: 'reveal', args: [handle, decryptedValue, signature] });
+   * ```
+   *
+   * @throws {CofheError} `NOT_PUBLICLY_ALLOWED` for `'none'` on a handle that is not public,
+   * `ACP_NOT_FOUND` / `ACP_DENIED` for an ACP that is missing or does not cover the handle.
+   */
+  decryptForTx(ctHash: bigint | string, options: DecryptForTxOptions): Promise<DecryptForTxResult>;
+  /**
+   * Builder form of `decryptForTx`. `.execute()` is only available after `.withACP(...)` or
+   * `.withoutACP()`.
+   *
+   * @example
+   * ```ts
+   * const { decryptedValue, signature } = await client.decryptForTx(handle).withoutACP().execute();
+   * ```
+   */
   decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset;
+  /**
+   * Checks a `decryptForTx` result against the chain, the way a contract would. Resolves to
+   * `false` for a signature the `TaskManager` would reject.
+   *
+   * @param handle - The handle that was decrypted (`DecryptForTxResult.ctHash`).
+   * @param cleartext - `DecryptForTxResult.decryptedValue`.
+   * @param signature - `DecryptForTxResult.signature`.
+   */
   verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean>;
   /** ACP (Access Control Permission) management — create, share, revoke, select. */
   acp: CofheClientACPs;
+};
+
+/** Options of `client.encryptInputs(inputs, options)`. Only `consumingContract` is required. */
+export type EncryptInputsOptions = {
+  /** The contract that will consume the result (the one calling `FHE.asEuint*`). The signature is bound to it. */
+  consumingContract: string;
+  /** The account that will send the transaction. Default: the connected account. */
+  account?: string;
+  /** The chain the transaction will be sent on. Default: the connected chain. */
+  chainId?: number;
+  /** Security zone for the whole batch. Default: the zone of the inputs (0 unless set on the `Encryptable`). */
+  securityZone?: number;
+  /** Web only: override the config's `useWorkers` for this call. */
+  useWorker?: boolean;
+  /** Called at the start and end of each step (`initTfhe`, `fetchKeys`, `pack`, `prove`, `verify`). */
+  onStep?: EncryptStepCallbackFunction;
+};
+
+/** Options shared by `client.decryptForView(..., options)` and `client.decryptForTx(..., options)`. */
+type DecryptOptionsBase = {
+  /** The chain the handle lives on. Default: the connected chain. */
+  chainId?: number;
+  /** The account whose ACP is used. Default: the connected account. */
+  account?: string;
+  /** Called before each retry while the network answers that the result is not ready yet. */
+  onPoll?: DecryptPollCallbackFunction;
+  /**
+   * Milliseconds to keep retrying while the network answers "access denied". Default 0 (no retry).
+   * Set it when decrypting right after the transaction that grants access: the network can be a
+   * block behind your RPC.
+   */
+  accessDeniedRetryTimeout?: number;
+};
+
+/** An ACP, or the hash of an ACP stored for the account. */
+type ACPOrHash = ACP | (string & {});
+
+/** Options of `client.decryptForView(ctHash, utype, options)`. All optional: pass `{}` for the defaults. */
+export type DecryptForViewOptions = DecryptOptionsBase & {
+  /** The ACP to decrypt with. Default `'active'`: the active ACP of the account. */
+  acp?: 'active' | ACPOrHash;
+};
+
+/** Options of `client.decryptForTx(ctHash, options)`. `acp` is required. */
+export type DecryptForTxOptions = DecryptOptionsBase & {
+  /**
+   * Who is allowed to decrypt: `'none'` for a publicly decryptable handle, `'active'` for the
+   * active ACP of the account, or a specific ACP (or its hash).
+   */
+  acp: 'none' | 'active' | ACPOrHash;
 };
 
 export type CofheClientConnectionState = {

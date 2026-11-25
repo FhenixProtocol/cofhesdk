@@ -279,7 +279,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       throw new CofheError({
         code: CofheErrorCode.ConsumingContractUninitialized,
         message: 'Consuming contract is not set',
-        hint: 'Use setConsumingContract(...) to set the contract that will consume the encrypted inputs.',
+        hint: 'Name the contract that will consume the encrypted inputs: pass `consumingContract` in the options of encryptInputs(inputs, options), or call .setConsumingContract(address) on the builder.',
         context: {
           consumingContract: this.consumingContract,
         },

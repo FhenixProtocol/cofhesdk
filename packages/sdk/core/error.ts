@@ -4,6 +4,8 @@ export enum CofheErrorCode {
   InvalidArgument = 'INVALID_ARGUMENT',
   /** `createCofheConfig` rejected the config. `context.issues` lists each rejected key. */
   InvalidConfig = 'INVALID_CONFIG',
+  /** A platform function was imported from `@cofhe/sdk` instead of `@cofhe/sdk/node` or `@cofhe/sdk/web`. */
+  WrongEntrypoint = 'WRONG_ENTRYPOINT',
   UnknownEnvironment = 'UNKNOWN_ENVIRONMENT',
   InitTfheFailed = 'INIT_TFHE_FAILED',
   InitViemFailed = 'INIT_VIEM_FAILED',

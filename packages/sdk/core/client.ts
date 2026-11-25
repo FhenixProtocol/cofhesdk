@@ -17,8 +17,12 @@ import type {
   CofheClient,
   CofheClientACPs,
   CofheClientACPsClients,
+  DecryptForTxOptions,
+  DecryptForViewOptions,
+  EncryptInputsOptions,
 } from './clientTypes.js';
-import type { EncryptableItem, FheTypes } from './types.js';
+import { FheTypeValueUtype, FheTypeValues } from './types.js';
+import type { EncryptableItem, FheTypes, FheTypeValue } from './types.js';
 import type { CofheConfig } from './config.js';
 
 export const InitialConnectStore: CofheClientConnectionState = {
@@ -154,7 +158,27 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // CLIENT OPERATIONS
 
-  function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]> {
+  // Each operation has two forms: with an options object it runs and returns a promise, without
+  // one it returns the builder. The options form is a thin layer over the builder, so both behave
+  // the same.
+
+  function encryptInputs<T extends EncryptableItem[]>(inputs: [...T], options?: EncryptInputsOptions) {
+    if (options === undefined) return createEncryptInputsBuilder(inputs);
+
+    // async: NOT_CONNECTED and a throwing setter reject the promise instead of throwing at the call site
+    return (async () => {
+      // `execute()` reports a missing or malformed address (CONSUMING_CONTRACT_*)
+      const ready = createEncryptInputsBuilder(inputs).setConsumingContract(options.consumingContract);
+      if (options.account !== undefined) ready.setAccount(options.account);
+      if (options.chainId !== undefined) ready.setChainId(options.chainId);
+      if (options.securityZone !== undefined) ready.setSecurityZone(options.securityZone);
+      if (options.useWorker !== undefined) ready.setUseWorker(options.useWorker);
+      if (options.onStep !== undefined) ready.onStep(options.onStep);
+      return ready.execute();
+    })();
+  }
+
+  function createEncryptInputsBuilder<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]> {
     const state = connectStore.getState();
 
     return new EncryptInputsBuilder({
@@ -180,7 +204,45 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U> {
+  /** `'uint64'` -> `FheTypes.Uint64`; an `FheTypes` member passes through. */
+  function resolveUtype(utype: FheTypes | FheTypeValue): FheTypes {
+    if (typeof utype !== 'string') return utype;
+    if (!(utype in FheTypeValueUtype)) {
+      throw new CofheError({
+        code: CofheErrorCode.InvalidArgument,
+        message: `Unknown FHE type name <${utype}>`,
+        hint: `Use one of: ${FheTypeValues.join(', ')} (or the matching FheTypes member).`,
+        context: { utype },
+      });
+    }
+    return FheTypeValueUtype[utype];
+  }
+
+  function decryptForView(ctHash: bigint | string, utype: FheTypes | FheTypeValue, options?: DecryptForViewOptions) {
+    if (options === undefined) return createDecryptForViewBuilder(ctHash, resolveUtype(utype));
+
+    return (async () => {
+      const builder = createDecryptForViewBuilder(ctHash, resolveUtype(utype));
+      if (options.chainId !== undefined) builder.setChainId(options.chainId);
+      if (options.account !== undefined) builder.setAccount(options.account);
+      if (options.onPoll !== undefined) builder.onPoll(options.onPoll);
+      if (options.accessDeniedRetryTimeout !== undefined) {
+        builder.setAccessDeniedRetryTimeout(options.accessDeniedRetryTimeout);
+      }
+      // 'active' is the builder's default
+      if (typeof options.acp === 'string') {
+        if (options.acp !== 'active') builder.withACP(options.acp);
+      } else if (options.acp !== undefined) {
+        builder.withACP(options.acp);
+      }
+      return builder.execute();
+    })();
+  }
+
+  function createDecryptForViewBuilder<U extends FheTypes>(
+    ctHash: bigint | string,
+    utype: U
+  ): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
     return new DecryptForViewBuilder({
@@ -197,7 +259,37 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset {
+  function decryptForTx(ctHash: bigint | string, options?: DecryptForTxOptions) {
+    if (options === undefined) return createDecryptForTxBuilder(ctHash);
+
+    return (async () => {
+      const builder = createDecryptForTxBuilder(ctHash);
+      if (options.acp === undefined) {
+        throw new CofheError({
+          code: CofheErrorCode.InvalidArgument,
+          message: 'decryptForTx: options.acp is required',
+          hint: "Pass acp: 'none' for a publicly decryptable handle, acp: 'active' for the active ACP of the account, or an ACP (or its hash).",
+        });
+      }
+      if (options.chainId !== undefined) builder.setChainId(options.chainId);
+      if (options.account !== undefined) builder.setAccount(options.account);
+      if (options.onPoll !== undefined) builder.onPoll(options.onPoll);
+      if (options.accessDeniedRetryTimeout !== undefined) {
+        builder.setAccessDeniedRetryTimeout(options.accessDeniedRetryTimeout);
+      }
+      const selected =
+        options.acp === 'none'
+          ? builder.withoutACP()
+          : options.acp === 'active'
+            ? builder.withACP()
+            : typeof options.acp === 'string'
+              ? builder.withACP(options.acp)
+              : builder.withACP(options.acp);
+      return selected.execute();
+    })();
+  }
+
+  function createDecryptForTxBuilder(ctHash: bigint | string): DecryptForTxBuilderUnset {
     const state = connectStore.getState();
 
     return new DecryptForTxBuilder({
@@ -480,13 +572,15 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     connect,
     disconnect,
-    encryptInputs,
-    decryptForView,
+    // The implementations return "builder or promise" depending on `options`; the casts attach
+    // the overloads of `CofheClient`, which say which one a given call returns.
+    encryptInputs: encryptInputs as CofheClient<TConfig>['encryptInputs'],
+    decryptForView: decryptForView as CofheClient<TConfig>['decryptForView'],
     /**
      * @deprecated Use `decryptForView` instead. Kept for backward compatibility.
      */
-    decryptHandle: decryptForView,
-    decryptForTx,
+    decryptHandle: createDecryptForViewBuilder,
+    decryptForTx: decryptForTx as CofheClient<TConfig>['decryptForTx'],
     verifyDecryptResult,
     acp: clientACPs,
 

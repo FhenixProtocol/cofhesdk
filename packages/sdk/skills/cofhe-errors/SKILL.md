@@ -5,7 +5,7 @@ description: >-
   "CofheError", a "Guide: node_modules/@cofhe/sdk/skills/cofhe-errors/SKILL.md#..." reference, or
   one of the SDK error codes, for example ACP_NOT_FOUND, ACP_DENIED, ACP_EXPIRED,
   NOT_PUBLICLY_ALLOWED, CT_NOT_FOUND, NOT_CONNECTED, WALLET_CLIENT_ACCOUNT_MISSING,
-  INVALID_CONFIG, INVALID_ARGUMENT, UNSUPPORTED_CHAIN,
+  WRONG_ENTRYPOINT, INVALID_CONFIG, INVALID_ARGUMENT, UNSUPPORTED_CHAIN,
   CONSUMING_CONTRACT_UNINITIALIZED, ZK_PACK_FAILED, ZK_VERIFY_FAILED, INIT_TFHE_FAILED,
   FETCH_KEYS_FAILED, DECRYPT_FAILED, SEAL_OUTPUT_FAILED or TASK_MANAGER_UNRESOLVED.
 license: MIT
@@ -31,6 +31,18 @@ This file ships inside `@cofhe/sdk`, so it matches the installed version. Every 
 Sections are grouped by where the error appears: [setup](#setup-and-config), [connection](#connection), [encrypting](#encrypting-inputs), [decrypting](#decrypting), [local mocks](#local-mocks), [not thrown](#codes-this-version-does-not-throw).
 
 ## Setup and config
+
+### WRONG_ENTRYPOINT
+
+`createCofheClient` or `createCofheConfig` was imported from `@cofhe/sdk`. The client is created from the entrypoint of the runtime, because the TFHE WASM module differs between them.
+
+```ts
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node'; // Node.js, Hardhat, scripts
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web'; // browser
+import { Encryptable, FheTypes, CofheError } from '@cofhe/sdk'; // everything else stays here
+```
+
+In a React app use `@cofhe/react`, which picks `/web` itself. Do not import `/node` and `/web` in the same module.
 
 ### INVALID_CONFIG
 
@@ -105,11 +117,11 @@ wagmi's wallet client and the adapters in `@cofhe/sdk/adapters` already set it.
 
 ### ACCOUNT_UNINITIALIZED
 
-A builder has no account. Connect first, or name one with `.setAccount(address)`.
+A builder has no account. Connect first, or name one: `account` in the options, `.setAccount(address)` on the builder.
 
 ### CHAIN_ID_UNINITIALIZED
 
-A builder has no chain id. Connect first, or name one with `.setChainId(id)`.
+A builder has no chain id. Connect first, or name one: `chainId` in the options, `.setChainId(id)` on the builder.
 
 ### MISSING_PUBLIC_CLIENT
 
@@ -126,6 +138,8 @@ A builder needed the wallet client and there is none. Call `await client.connect
 `encryptInputs` was not told which contract will consume the result. It is required: the signature is bound to that contract.
 
 ```ts
+await client.encryptInputs(inputs, { consumingContract: contractAddress });
+// builder form
 await client.encryptInputs(inputs).setConsumingContract(contractAddress).execute();
 ```
 
@@ -142,8 +156,8 @@ A value the SDK cannot use. The message and `hint` say which; the usual cases:
 - **`Value out of range`**: the value does not fit the type, e.g. `Encryptable.uint8(300n)`. Use a wider type, and make the Solidity parameter match (`externalEuint16`).
 - **`Unable to convert to bigint`**: an empty string, a decimal such as `"1.5"`, or a non-numeric string. Uints take a `bigint` or an integer string; scale decimals first (`parseUnits`).
 - **`Bool encryptable data must be boolean`** / **`Uint encryptable data must be string or bigint`**: the value type does not match the `Encryptable` type.
-- **`Unsupported encryptable type`**: supported names are `bool`, `uint8`, `uint16`, `uint32`, `uint64`, `uint128`, `address`.
-- **`missing acp selection`**: say who may decrypt before `.execute()`: `.withoutACP()` for a publicly decryptable handle, `.withACP()` for the active ACP, `.withACP(acp)` for a specific one.
+- **`Unknown FHE type name`** / **`Unsupported encryptable type`**: supported names are `bool`, `uint8`, `uint16`, `uint32`, `uint64`, `uint128`, `address`.
+- **`decryptForTx: options.acp is required`** / **`missing acp selection`**: say who may decrypt: `{ acp: 'none' }`, `{ acp: 'active' }` or an ACP (`.withoutACP()` / `.withACP()` on the builder).
 - **`can only be selected once`** / **`cannot call … after …`**: a `decryptForTx` builder had its ACP mode chosen twice. Start a new `client.decryptForTx(...)`.
 - **`setAccessDeniedRetryTimeout(timeoutMs) expects …`**: pass milliseconds, 0 or more.
 
@@ -217,7 +231,7 @@ await client.acp.getOrCreateSelfACP(); // one wallet signature, reused until it 
 
 - ACPs are stored per account and per chain. After the user switches either, create one again.
 - In React, `useCofheCreateACP` creates one; the read and decrypt hooks stay disabled until an ACP is valid (`disabledDueToMissingValidACP`).
-- For a handle anyone may decrypt, `decryptForTx` needs no ACP: `.withoutACP()`.
+- For a handle anyone may decrypt, `decryptForTx` needs no ACP: `{ acp: 'none' }`.
 
 ### ACP_DENIED
 
@@ -225,7 +239,7 @@ The network found no grant that lets this ACP decrypt this handle. It also answe
 
 1. **The grant is not visible yet.** Decrypting right after the transaction that grants access: wait for its receipt, and let the SDK retry for a few seconds.
    ```ts
-   await client.decryptForView(handle, FheTypes.Uint64).setAccessDeniedRetryTimeout(10_000).execute();
+   await client.decryptForView(handle, 'uint64', { accessDeniedRetryTimeout: 10_000 });
    ```
 2. **The contract never granted access.** After computing the value it must call `FHE.allowSender(value)` or `FHE.allow(value, account)`, and `FHE.allowThis(value)` to keep using it.
 3. **Wrong account or chain.** The ACP's issuer is not the account that was granted access, or the handle is from another chain.
@@ -253,11 +267,11 @@ Not sent by the current network, which reports a revoked ACP as [ACP_DENIED](#ac
 
 ### NOT_PUBLICLY_ALLOWED
 
-`decryptForTx` ran without an ACP (`.withoutACP()`) on a handle that is not publicly decryptable.
+`decryptForTx` ran without an ACP (`{ acp: 'none' }`, `.withoutACP()`) on a handle that is not publicly decryptable.
 
-- If access is restricted to an account, decrypt with its ACP: `.withACP()`.
+- If access is restricted to an account, decrypt with its ACP: `{ acp: 'active' }`.
 - If the handle should be public, the contract must allow that for the value, in a transaction mined before the decrypt.
-- Right after that transaction, the network may not have seen it: add `.setAccessDeniedRetryTimeout(ms)`.
+- Right after that transaction, the network may not have seen it: set `accessDeniedRetryTimeout`.
 
 ### CT_NOT_FOUND
 
@@ -273,7 +287,7 @@ The ACP was signed for one chain and the decrypt targets another. `context` has 
 
 ### INVALID_UTYPE
 
-`decryptForView` was given a type it cannot decrypt to. Pass `FheTypes.Bool`, `Uint8`, `Uint16`, `Uint32`, `Uint64`, `Uint128` or `Uint160` (an address), the one matching the Solidity type of the handle. The other `FheTypes` members are not supported.
+`decryptForView` was given a type it cannot decrypt to. Pass `'bool'`, `'uint8'`, `'uint16'`, `'uint32'`, `'uint64'`, `'uint128'` or `'address'` (or the matching `FheTypes` member), the one matching the Solidity type of the handle. The other `FheTypes` members are not supported.
 
 ### UNSUPPORTED_TYPE
 
