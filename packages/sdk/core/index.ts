@@ -22,6 +22,9 @@ export type {
   CofheClientParams as CofheClientParams,
   CofheClientConnectionState as CofheClientConnectionState,
   CofheClientACPs as CofheClientACPs,
+  EncryptInputsOptions,
+  DecryptForViewOptions,
+  DecryptForTxOptions,
 } from './clientTypes.js';
 
 export type {

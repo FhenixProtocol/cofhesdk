@@ -86,7 +86,7 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
  * @param config - The CoFHE configuration (use createCofheConfig to create with Node.js defaults)
  * @returns The CoFHE client instance
  */
-export function createCofheClient(config: CofheConfig): CofheClient {
+export function createCofheClient<TConfig extends CofheConfig>(config: TConfig): CofheClient<TConfig> {
   return createCofheClientBase({
     config,
     zkBuilderAndCrsGenerator,
