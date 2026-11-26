@@ -8,6 +8,7 @@ test/
   integration-matrix/          # cross-chain × cross-environment SDK test runner
   hardhat-plugin-test/         # HH2 plugin integration tests
   hardhat-3-plugin-test/       # HH3 plugin integration tests
+  agent-eval/                  # cold coding agents solve tasks with the packed SDK; not in `pnpm test` (see its README)
 
 packages/sdk/
   core/test/                   # unit tests for core SDK logic (decrypt, encrypt, acps, etc.)

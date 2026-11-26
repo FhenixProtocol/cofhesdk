@@ -1,0 +1,29 @@
+{
+  "name": "vault-app",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile"
+  },
+  "dependencies": {
+    "@cofhe/sdk": "__COFHE_SDK__",
+    "viem": "2.38.6"
+  },
+  "devDependencies": {
+    "@cofhe/hardhat-plugin": "__COFHE_HARDHAT_PLUGIN__",
+    "@fhenixprotocol/cofhe-contracts": "1.0.0",
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "@nomicfoundation/hardhat-toolbox": "6.1.0",
+    "@types/node": "20.19.15",
+    "ethers": "6.15.0",
+    "hardhat": "2.26.3",
+    "tsx": "4.19.2",
+    "typescript": "5.5.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@cofhe/sdk": "__COFHE_SDK__",
+      "@cofhe/mock-contracts": "__COFHE_MOCK_CONTRACTS__",
+      "@cofhe/hardhat-plugin": "__COFHE_HARDHAT_PLUGIN__"
+    }
+  }
+}

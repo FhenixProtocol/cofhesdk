@@ -653,6 +653,12 @@ importers:
 
   packages/tsconfig: {}
 
+  test/agent-eval:
+    dependencies:
+      viem:
+        specifier: 2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+
   test/anvil:
     dependencies:
       '@cofhe/hardhat-3-plugin':

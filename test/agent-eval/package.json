@@ -1,0 +1,15 @@
+{
+  "name": "@cofhe/agent-eval",
+  "private": true,
+  "type": "module",
+  "description": "Measures how well a cold coding agent uses @cofhe/sdk, per SDK version",
+  "scripts": {
+    "eval": "node src/cli.mjs run",
+    "eval:pack": "node src/cli.mjs pack",
+    "eval:verify": "node src/cli.mjs verify",
+    "eval:report": "node src/cli.mjs report"
+  },
+  "dependencies": {
+    "viem": "2.38.6"
+  }
+}
