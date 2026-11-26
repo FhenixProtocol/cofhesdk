@@ -10,6 +10,4 @@ Adds an options-object form of `encryptInputs`, `decryptForView` and `decryptFor
 - `decryptForView` also takes the type by name: `'uint64'` in place of `FheTypes.Uint64`
 - Types `EncryptInputsOptions`, `DecryptForViewOptions`, `DecryptForTxOptions`
 
-Adds `createCofheClient` and `createCofheConfig` to `@cofhe/sdk` as stubs that fail with the new code `WRONG_ENTRYPOINT` and name `@cofhe/sdk/node` and `@cofhe/sdk/web`. Previously that import failed with "has no exported member". The new `CofheErrorCode.WrongEntrypoint` can break an exhaustive `switch` or `Record<CofheErrorCode, …>`.
-
 Changes `createCofheClient` from `@cofhe/sdk/node` to return `CofheClient<TConfig>`, typed by the config passed in, as the `@cofhe/sdk/web` one does.

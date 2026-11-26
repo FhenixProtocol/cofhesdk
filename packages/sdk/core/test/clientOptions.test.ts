@@ -7,7 +7,6 @@ import { EncryptInputsBuilder } from '../encrypt/encryptInputsBuilder';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder';
 import { Encryptable, FheTypes } from '../types';
-import { createCofheClient as rootCreateCofheClient, createCofheConfig as rootCreateCofheConfig } from '../index';
 
 vi.mock('../keyStore', () => ({
   createKeysStore: vi.fn(() => ({
@@ -226,21 +225,5 @@ describe('client options-object forms', () => {
     it('still returns the builder without options', () => {
       expect(client.decryptForTx(7n)).toBeInstanceOf(DecryptForTxBuilder);
     });
-  });
-});
-
-describe("platform functions imported from '@cofhe/sdk'", () => {
-  it.each([
-    ['createCofheClient', rootCreateCofheClient],
-    ['createCofheConfig', rootCreateCofheConfig],
-  ] as const)('%s throws WRONG_ENTRYPOINT naming both entrypoints', (name, stub) => {
-    try {
-      (stub as (config: unknown) => never)({ supportedChains: [] });
-      expect.fail('Expected error');
-    } catch (error) {
-      expect(error).toMatchObject({ code: CofheErrorCode.WrongEntrypoint, context: { name } });
-      expect((error as any).hint).toContain('@cofhe/sdk/node');
-      expect((error as any).hint).toContain('@cofhe/sdk/web');
-    }
   });
 });

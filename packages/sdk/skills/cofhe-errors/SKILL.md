@@ -5,9 +5,9 @@ description: >-
   "CofheError", a "Guide: node_modules/@cofhe/sdk/skills/cofhe-errors/SKILL.md#..." reference, or
   one of the SDK error codes, for example ACP_NOT_FOUND, ACP_DENIED, ACP_EXPIRED,
   NOT_PUBLICLY_ALLOWED, CT_NOT_FOUND, NOT_CONNECTED, WALLET_CLIENT_ACCOUNT_MISSING,
-  WRONG_ENTRYPOINT, INVALID_CONFIG, INVALID_ARGUMENT, UNSUPPORTED_CHAIN,
-  CONSUMING_CONTRACT_UNINITIALIZED, ZK_PACK_FAILED, ZK_VERIFY_FAILED, INIT_TFHE_FAILED,
-  FETCH_KEYS_FAILED, DECRYPT_FAILED, SEAL_OUTPUT_FAILED or TASK_MANAGER_UNRESOLVED.
+  INVALID_CONFIG, INVALID_ARGUMENT, UNSUPPORTED_CHAIN, CONSUMING_CONTRACT_UNINITIALIZED,
+  ZK_PACK_FAILED, ZK_VERIFY_FAILED, INIT_TFHE_FAILED, FETCH_KEYS_FAILED, DECRYPT_FAILED,
+  SEAL_OUTPUT_FAILED or TASK_MANAGER_UNRESOLVED.
 license: MIT
 ---
 
@@ -31,18 +31,6 @@ This file ships inside `@cofhe/sdk`, so it matches the installed version. Every 
 Sections are grouped by where the error appears: [setup](#setup-and-config), [connection](#connection), [encrypting](#encrypting-inputs), [decrypting](#decrypting), [local mocks](#local-mocks), [not thrown](#codes-this-version-does-not-throw).
 
 ## Setup and config
-
-### WRONG_ENTRYPOINT
-
-`createCofheClient` or `createCofheConfig` was imported from `@cofhe/sdk`. The client is created from the entrypoint of the runtime, because the TFHE WASM module differs between them.
-
-```ts
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node'; // Node.js, Hardhat, scripts
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web'; // browser
-import { Encryptable, FheTypes, CofheError } from '@cofhe/sdk'; // everything else stays here
-```
-
-In a React app use `@cofhe/react`, which picks `/web` itself. Do not import `/node` and `/web` in the same module.
 
 ### INVALID_CONFIG
 

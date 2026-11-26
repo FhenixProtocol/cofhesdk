@@ -21,7 +21,7 @@ The SDK loads a TFHE WASM module that differs between Node.js and the browser, s
 | `@cofhe/sdk/adapters` | `Ethers6Adapter`, `Ethers5Adapter`, `WagmiAdapter`, `HardhatSignerAdapter` | When you don't have viem clients |
 | `@cofhe/sdk/acps`     | `ACPUtils` and the ACP types                                               | Advanced ACP handling            |
 
-Never import both `/node` and `/web` in one module. `createCofheClient` imported from `@cofhe/sdk` throws `WRONG_ENTRYPOINT`.
+Never import both `/node` and `/web` in one module. `@cofhe/sdk` itself does not export `createCofheClient` or `createCofheConfig`.
 
 ## Setup
 
@@ -151,7 +151,6 @@ Use `isCofheError(error)` rather than `error instanceof CofheError`: it also rec
 
 | Code                               | Meaning                                                       | Fix                                                                                       |
 | ---------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `WRONG_ENTRYPOINT`                 | `createCofheClient` imported from `@cofhe/sdk`                | Import from `@cofhe/sdk/node` or `@cofhe/sdk/web`                                         |
 | `INVALID_CONFIG`                   | Unknown, renamed or malformed config key                      | See `message`; `context.issues` lists each key                                            |
 | `NOT_CONNECTED`                    | No connection yet                                             | `await client.connect(publicClient, walletClient)`                                        |
 | `WALLET_CLIENT_ACCOUNT_MISSING`    | Wallet client created without `account`                       | Pass `account` to `createWalletClient`                                                    |
