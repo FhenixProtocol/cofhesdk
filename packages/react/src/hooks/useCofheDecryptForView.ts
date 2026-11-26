@@ -13,7 +13,7 @@ import {
   FheTypes,
   type CofheClient,
   type DecryptPollCallbackFunction,
-  type UnsealedItem,
+  type DecryptForViewResult,
 } from '@cofhe/sdk';
 import type { ACP } from '@cofhe/sdk/acps';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
@@ -36,14 +36,14 @@ export function constructCofheDecryptForViewQueryKey(params: {
   chainId: number | undefined;
   acpHash?: string;
 }): readonly unknown[] {
-  return ['decryptCiphertext', params.chainId, params.ctHash, params.utype, params.acpHash];
+  return ['decryptForView', params.chainId, params.ctHash, params.utype, params.acpHash];
 }
 
 /** What a zero handle (a value never set on chain) reads as, per type: the type's zero. */
-export function zeroPlaintext<U extends FheTypes>(utype: U): UnsealedItem<U> {
-  if (utype === FheTypes.Bool) return false as UnsealedItem<U>;
-  if (utype === FheTypes.Uint160) return '0x0000000000000000000000000000000000000000' as UnsealedItem<U>;
-  return 0n as UnsealedItem<U>;
+export function zeroPlaintext<U extends FheTypes>(utype: U): DecryptForViewResult<U> {
+  if (utype === FheTypes.Bool) return false as DecryptForViewResult<U>;
+  if (utype === FheTypes.Uint160) return '0x0000000000000000000000000000000000000000' as DecryptForViewResult<U>;
+  return 0n as DecryptForViewResult<U>;
 }
 
 /** Structural context from the originating read (address/method), for recognition in activity views. */
@@ -60,7 +60,7 @@ export function defaultDecryptRetry(failureCount: number, error: Error): boolean
 
 /**
  * The query one decrypt runs as — its key, its `queryFn` and its `meta` — shared by
- * `useCofheDecrypt` and `useCofheDecrypter`, so a value decrypted either way is the same cache
+ * `useCofheDecryptForView` and `useCofheDecrypter`, so a value decrypted either way is the same cache
  * entry, persisted under the same rule and listed once in the activity panel.
  */
 export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
@@ -81,7 +81,7 @@ export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
   context?: CofheDecryptContext;
 }): {
   queryKey: readonly unknown[];
-  queryFn: (context?: { signal?: AbortSignal }) => Promise<UnsealedItem<U>>;
+  queryFn: (context?: { signal?: AbortSignal }) => Promise<DecryptForViewResult<U>>;
   // Also a plain record: that is what `fetchQuery` and `useQuery` type `meta` as.
   meta: Record<string, unknown> & CofheQueryMeta & { persist: boolean };
 } {
@@ -109,7 +109,7 @@ export function cofheDecryptForViewQuery<U extends FheTypes>(params: {
       // Persist only what the user own ACP decrypts, whether chosen or active: plaintext decrypted
       // with a shared ACP must not outlive the share, so it stays in memory.
       persist: acp?.type === 'self',
-      kind: 'cofheDecrypt',
+      kind: 'cofheDecryptForView',
       ctHash: input?.ctHash?.toString(),
       chainId: context?.chainId ?? decryptChainId,
       address: context?.address,
@@ -146,7 +146,7 @@ export function useDropDecryptsOfInvalidACP(effectiveACP: CofheEffectiveACP): vo
  * @param queryOptions - Optional React Query options
  * @returns Decrypted balance as bigint
  */
-export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<U>>(
+export function useCofheDecryptForView<U extends FheTypes, TSeletedData = DecryptForViewResult<U>>(
   {
     input,
     onPoll,
@@ -175,7 +175,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     /** The decrypt's whole budget in milliseconds, submit retries and polling together (5 minutes by default). */
     timeoutMs?: number;
   },
-  queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
+  queryOptions?: Omit<UseQueryOptions<DecryptForViewResult<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
   // The chain this decrypt runs on: the one given, else the connected chain. It picks the ACP
@@ -224,3 +224,6 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     retry,
   });
 }
+
+/** @deprecated Use `useCofheDecryptForView`. */
+export const useCofheDecrypt = useCofheDecryptForView;

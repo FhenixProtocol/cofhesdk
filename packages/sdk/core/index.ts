@@ -55,6 +55,7 @@ export type {
   ExternalItemHashes,
   HashPlusProofResult,
   // Decryption types
+  DecryptForViewResult,
   UnsealedItem,
   DecryptPollCallbackFunction,
   DecryptPollCallbackContext,

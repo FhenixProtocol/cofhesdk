@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { CofheError, CofheErrorCode, FheTypes } from '@cofhe/sdk';
-import { useCofheDecrypt } from './useCofheDecrypt';
+import { useCofheDecryptForView } from './useCofheDecryptForView';
 
 type RetryOption = boolean | number | ((failureCount: number, error: Error) => boolean);
 
@@ -30,11 +30,14 @@ vi.mock('./useCofheConnection', () => ({
 }));
 
 function Probe({ retry }: { retry?: RetryOption }) {
-  useCofheDecrypt({ input: { ctHash: '42', utype: FheTypes.Uint8 } }, retry === undefined ? undefined : { retry });
+  useCofheDecryptForView(
+    { input: { ctHash: '42', utype: FheTypes.Uint8 } },
+    retry === undefined ? undefined : { retry }
+  );
   return null;
 }
 
-describe('useCofheDecrypt', () => {
+describe('useCofheDecryptForView', () => {
   it('preserves an explicit retry=false option', () => {
     renderToString(<Probe retry={false} />);
 

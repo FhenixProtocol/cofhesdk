@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
 import { useInternalQueryClient } from '@/providers';
 import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
-import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@cofhe/sdk';
+import { FheTypes, type DecryptPollCallbackContext, type DecryptForViewResult } from '@cofhe/sdk';
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
-import { constructCofheDecryptForViewQueryKey, useCofheDecrypt } from './useCofheDecrypt';
+import { constructCofheDecryptForViewQueryKey, useCofheDecryptForView } from './useCofheDecryptForView';
 import { useCofheChainId } from './useCofheConnection';
 import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import {
@@ -63,7 +63,7 @@ export function useCofheReadContractAndDecrypt<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
   TFheType extends FheTypes = SupportedFheTypeFromReturn<TAbi, TfunctionName>,
-  TDecryptedSelectedData = UnsealedItem<TFheType>,
+  TDecryptedSelectedData = DecryptForViewResult<TFheType>,
 >(
   params: {
     address?: Address;
@@ -85,7 +85,7 @@ export function useCofheReadContractAndDecrypt<
   }: {
     readQueryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>;
     decryptingQueryOptions?: Omit<
-      UseQueryOptions<UnsealedItem<TFheType>, Error, TDecryptedSelectedData>,
+      UseQueryOptions<DecryptForViewResult<TFheType>, Error, TDecryptedSelectedData>,
       'queryKey' | 'queryFn'
     >;
     /** Consumer metadata for debug/activity views, attached to the decrypt stage. */
@@ -114,7 +114,7 @@ export function useCofheReadContractAndDecrypt<
 } {
   const { address, functionName, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
-  // The chain the decrypt runs on — the same resolution `useCofheDecrypt` makes, needed here to
+  // The chain the decrypt runs on — the same resolution `useCofheDecryptForView` makes, needed here to
   // name the exact cache entry a superseded decrypt lives under.
   const connectedChainId = useCofheChainId();
   const decryptChainId = params.chainId ?? connectedChainId;
@@ -144,7 +144,7 @@ export function useCofheReadContractAndDecrypt<
   const currentUtype = asEncryptedReturnType?.utype;
 
   // A read that succeeds with a 0 handle is a known zero — there is no ciphertext, so the decrypt
-  // query stays disabled (see useCofheDecrypt) and never yields a value. Surface it explicitly so
+  // query stays disabled (see useCofheDecryptForView) and never yields a value. Surface it explicitly so
   // callers render a clear `0` instead of mistaking the absent value for a fault.
   const isKnownZero = asEncryptedReturnType != null && BigInt(asEncryptedReturnType.ctHash) === 0n;
   const isOutOfScope = decryptACP.scoped && isHandleOutOfScope(decryptACP.acp, currentCtHash);
@@ -166,7 +166,7 @@ export function useCofheReadContractAndDecrypt<
         : undefined;
   }, [currentCtHash, currentUtype, decryptChainId, decryptACPHash, queryClient]);
 
-  const decrypted = useCofheDecrypt(
+  const decrypted = useCofheDecryptForView(
     {
       input: asEncryptedReturnType,
       onPoll,

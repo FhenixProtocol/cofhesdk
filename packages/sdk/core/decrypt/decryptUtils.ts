@@ -1,5 +1,5 @@
 import { getAddress } from 'viem';
-import { FheTypes, FheUintUTypes, type UnsealedItem } from '../types.js';
+import { FheTypes, FheUintUTypes, type DecryptForViewResult } from '../types.js';
 
 export function uint160ToAddress(uint160: bigint): string {
   // Convert bigint to hex string and pad to 20 bytes (40 hex chars)
@@ -15,13 +15,13 @@ export const isValidUtype = (utype: FheTypes): boolean => {
   );
 };
 
-export const convertViaUtype = <U extends FheTypes>(utype: U, value: bigint): UnsealedItem<U> => {
+export const convertViaUtype = <U extends FheTypes>(utype: U, value: bigint): DecryptForViewResult<U> => {
   if (utype === FheTypes.Bool) {
-    return !!value as UnsealedItem<U>;
+    return !!value as DecryptForViewResult<U>;
   } else if (utype === FheTypes.Uint160) {
-    return uint160ToAddress(value) as UnsealedItem<U>;
+    return uint160ToAddress(value) as DecryptForViewResult<U>;
   } else if (utype == null || FheUintUTypes.includes(utype as number)) {
-    return value as UnsealedItem<U>;
+    return value as DecryptForViewResult<U>;
   } else {
     throw new Error(`convertViaUtype :: invalid utype :: ${utype}`);
   }

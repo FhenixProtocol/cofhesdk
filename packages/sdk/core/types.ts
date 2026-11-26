@@ -424,10 +424,13 @@ export type DecryptPollCallbackFunction = (context: DecryptPollCallbackContext) 
  * - checksummed address `string` for `FheTypes.Uint160`
  * - `bigint` for supported integer utypes
  */
-export type UnsealedItem<U extends FheTypes> = U extends FheTypes.Bool
+export type DecryptForViewResult<U extends FheTypes> = U extends FheTypes.Bool
   ? boolean
   : U extends FheTypes.Uint160
     ? string
     : U extends FheUintUTypesType
       ? bigint
       : never;
+
+/** @deprecated Use `DecryptForViewResult`. */
+export type UnsealedItem<U extends FheTypes> = DecryptForViewResult<U>;

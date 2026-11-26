@@ -65,11 +65,12 @@ export {
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 export {
+  useCofheDecryptForView,
   useCofheDecrypt,
   cofheDecryptForViewQuery,
   constructCofheDecryptForViewQueryKey,
   type CofheDecryptContext,
-} from '@/hooks/useCofheDecrypt';
+} from '@/hooks/useCofheDecryptForView';
 export { useCofheDecryptForViewList, type UseCofheDecryptForViewListInput } from '@/hooks/useCofheDecryptForViewList';
 export { useCofheDecryptForTxList, type UseCofheDecryptForTxListInput } from '@/hooks/useCofheDecryptForTxList';
 export {

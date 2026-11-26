@@ -13,7 +13,7 @@ import {
   useDropDecryptsOfInvalidACP,
   zeroPlaintext,
   type CofheDecryptContext,
-} from './useCofheDecrypt';
+} from './useCofheDecryptForView';
 import { cofheDecryptForTxQuery } from './useCofheDecryptForTx';
 import {
   CofheError,
@@ -21,7 +21,7 @@ import {
   type FheTypes,
   type DecryptForTxResult,
   type DecryptPollCallbackFunction,
-  type UnsealedItem,
+  type DecryptForViewResult,
 } from '@cofhe/sdk';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
@@ -37,7 +37,7 @@ export type CofheDecryptForViewFnOptions = {
   timeoutMs?: number;
   /**
    * A cached plaintext younger than this is returned without a request. `Infinity` by default: a
-   * plaintext never changes, so a handle decrypted once (by this function or by `useCofheDecrypt`)
+   * plaintext never changes, so a handle decrypted once (by this function or by `useCofheDecryptForView`)
    * is never decrypted again.
    */
   staleTime?: number;
@@ -55,7 +55,7 @@ export type CofheDecryptForViewFnOptions = {
 export type CofheDecryptForViewFn = <U extends FheTypes>(
   input: EncryptedReturnTypeByUtype<U>,
   options?: CofheDecryptForViewFnOptions
-) => Promise<UnsealedItem<U>>;
+) => Promise<DecryptForViewResult<U>>;
 
 /** Per-call options of `decryptForTx`; see `useCofheDecrypter`. */
 export type CofheDecryptForTxFnOptions = CofheDecryptForViewFnOptions & {
@@ -168,12 +168,12 @@ function createLimiter(
 }
 
 /**
- * The imperative counterpart of `useCofheDecrypt`: functions that decrypt one handle on demand,
+ * The imperative counterpart of `useCofheDecryptForView`: functions that decrypt one handle on demand,
  * from the handler that needs the value. The rule: a query hook whenever the handle is in the
  * component (`enabled` for the click); this hook only when the handle is born in the handler, or
  * for a long list that is just an input to one aggregate (a history summed into one number).
  *
- * Each call is the same query `useCofheDecrypt` would run — same cache key, same gate, same
+ * Each call is the same query `useCofheDecryptForView` would run — same cache key, same gate, same
  * persistence, same activity row — so a handle decrypted either way is decrypted once, and
  * `decryptForView` returns a cached plaintext without a request. Calls run at most `concurrency` at a
  * time; fan out with `Promise.all` freely.

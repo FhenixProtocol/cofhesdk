@@ -76,7 +76,7 @@ export const unsealWithPrivateKey = (privateKey: string, parsedData: EthEncrypte
   const dataToDecrypt = parsedData.data instanceof Uint8Array ? parsedData.data : new Uint8Array(parsedData.data);
 
   // nacl returns null for a wrong key or tampered payload and throws on malformed inputs. Either way it
-  // is a CofheError, so callers that stop retrying on those (e.g. `useCofheDecrypt`) do not re-request.
+  // is a CofheError, so callers that stop retrying on those (e.g. `useCofheDecryptForView`) do not re-request.
   let decryptedMessage: Uint8Array | null;
   let cause: Error | undefined;
   try {

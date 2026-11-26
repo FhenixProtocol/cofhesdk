@@ -1,7 +1,7 @@
 import { useCofheContext, useInternalQueries } from '@/providers';
 import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
-import { defaultDecryptRetry, useDropDecryptsOfInvalidACP, type CofheDecryptContext } from './useCofheDecrypt';
+import { defaultDecryptRetry, useDropDecryptsOfInvalidACP, type CofheDecryptContext } from './useCofheDecryptForView';
 import { cofheDecryptForTxQuery } from './useCofheDecryptForTx';
 import type { DecryptForTxResult, DecryptPollCallbackFunction } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';

@@ -1,7 +1,7 @@
 /**
  * React hooks integration: a decrypt is cached PER CHAIN, on a real chain.
  *
- * `useCofheDecrypt` decrypts with the ACP and threshold network of the chain it is given
+ * `useCofheDecryptForView` decrypts with the ACP and threshold network of the chain it is given
  * (`chainId`, default the connected chain), so the same ciphertext handle decrypted on two
  * chains is two different requests with two possibly different answers — and must be two cache
  * entries. One shared entry would let chain B render chain A's plaintext, and flipping `chainId`
@@ -145,7 +145,7 @@ describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
     // before the reads resolved carries no ctHash. A's entry holds the value, B's the error.
     const decrypts = queryClient
       .getQueryCache()
-      .findAll({ queryKey: ['decryptCiphertext'] })
+      .findAll({ queryKey: ['decryptForView'] })
       .filter((q) => q.queryKey[2] != null);
     expect(decrypts).toHaveLength(2);
     expect(decrypts.map((q) => q.queryKey[1]).sort()).toStrictEqual([CHAIN_A, CHAIN_B]);
