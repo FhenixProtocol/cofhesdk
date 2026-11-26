@@ -501,7 +501,7 @@ contract MockACL is MockPermissioned {
 
     if (acp.scope == SCOPE_CONTRACT) {
       for (uint256 i = 0; i < acp.contracts.length; i++) {
-        if (isAllowed(handle, acp.contracts[i])) return true;
+        if (persistAllowed(handle, acp.contracts[i])) return true;
       }
       return false;
     }
