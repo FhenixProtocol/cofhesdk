@@ -2,7 +2,7 @@
 import { hardhat } from '@/chains';
 import { type ACP, ACPUtils } from '@/acps';
 
-import { FheTypes, type UnsealedItem } from '../types.js';
+import { FheTypes, type DecryptForViewResult } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { acps } from '../acps.js';
@@ -380,7 +380,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * @returns The unsealed item.
    */
-  async execute(): Promise<UnsealedItem<U>> {
+  async execute(): Promise<DecryptForViewResult<U>> {
     // Ensure utype is valid
     this.validateUtypeOrThrow();
 

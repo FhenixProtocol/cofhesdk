@@ -36,7 +36,7 @@ export interface CofheDecryptMeta {
 // Internal: attached by the SDK to each query's `meta`, read by observers.
 // The consumer never constructs this.
 export interface CofheQueryMeta {
-  kind: 'cofheRead' | 'cofheDecrypt'; // which stage
+  kind: 'cofheRead' | 'cofheDecryptForView'; // which stage
   chainId?: number;
   address?: `0x${string}`; // contract (method context — generic, any read has it)
   functionName?: string; // method
@@ -60,9 +60,9 @@ machinery: `useQuery({ meta })` → readable from the cache as `query.meta`.
 
 - `useCofheReadContract(params, queryOptions)` — attach
   `meta: { kind: 'cofheRead', chainId, address, functionName }`.
-- `useCofheDecrypt({ input, meta? }, queryOptions)` — accept optional
+- `useCofheDecryptForView({ input, meta? }, queryOptions)` — accept optional
   `meta: CofheDecryptMeta`; attach
-  `meta: { kind: 'cofheDecrypt', ctHash, consumer: meta }`.
+  `meta: { kind: 'cofheDecryptForView', ctHash, consumer: meta }`.
 - `useCofheReadContractAndDecrypt(params, opts)` — thread a `meta` through, and
   copy `address`/`functionName` from the read into the decrypt's meta so a
   decrypt row carries its source contract/method without a registry.
@@ -97,7 +97,7 @@ of `CofheDecryptMeta`.
 ```ts
 const encryptedData = encrypted.data; // survives an error (react-query keeps last data)
 const asEncryptedReturnType = encryptedData ? convert(encryptedData) : undefined;
-const decrypted = useCofheDecrypt({ input: asEncryptedReturnType });
+const decrypted = useCofheDecryptForView({ input: asEncryptedReturnType });
 ```
 
 The decrypt input is gated on **data presence**, not the read's **current

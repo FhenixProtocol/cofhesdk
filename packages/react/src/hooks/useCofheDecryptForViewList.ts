@@ -7,8 +7,8 @@ import {
   useDropDecryptsOfInvalidACP,
   zeroPlaintext,
   type CofheDecryptContext,
-} from './useCofheDecrypt';
-import type { DecryptPollCallbackFunction, FheTypes, UnsealedItem } from '@cofhe/sdk';
+} from './useCofheDecryptForView';
+import type { DecryptPollCallbackFunction, FheTypes, DecryptForViewResult } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
@@ -36,16 +36,16 @@ export type UseCofheDecryptForViewListInput<U extends FheTypes> = {
 };
 
 /**
- * `useCofheDecrypt` for a list: one query per handle, the same keys, gate, persistence and
+ * `useCofheDecryptForView` for a list: one query per handle, the same keys, gate, persistence and
  * activity rows, returned in the order of `inputs`. For a list a component renders, or a total it
  * derives from every value, where the handles are known at render time. The client's
  * `decryptConcurrency` cap bounds how many requests run at once, so a long list is safe.
  *
  * A zero handle — a value never set on chain — reads as the type's zero without a request.
  */
-export function useCofheDecryptForViewList<U extends FheTypes, TSelectedData = UnsealedItem<U>>(
+export function useCofheDecryptForViewList<U extends FheTypes, TSelectedData = DecryptForViewResult<U>>(
   { inputs, meta, context, onPoll, chainId, acp, timeoutMs }: UseCofheDecryptForViewListInput<U>,
-  queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSelectedData>, 'queryKey' | 'queryFn'>
+  queryOptions?: Omit<UseQueryOptions<DecryptForViewResult<U>, Error, TSelectedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSelectedData, Error>[] {
   const { client } = useCofheContext();
   const connectedChainId = useCofheChainId();

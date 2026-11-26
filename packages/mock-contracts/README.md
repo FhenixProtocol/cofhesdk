@@ -132,7 +132,7 @@ The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. 
 
 ### Off-chain Decryption / Sealing
 
-For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)` (also exposed as `decryptHandle(...)`) with a valid `ctHash`, the matching FHE type, and a valid `acp` when required.
+For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)` with a valid `ctHash`, the matching FHE type, and a valid `acp` when required.
 
 When interacting with CoFHE this request is routed to the Threshold Network, which returns the plaintext to the consumer for local use.
 

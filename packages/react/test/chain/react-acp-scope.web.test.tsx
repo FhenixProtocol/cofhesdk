@@ -167,7 +167,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     // never answers the unscoped sibling.
     const decrypts = queryClient
       .getQueryCache()
-      .findAll({ queryKey: ['decryptCiphertext'] })
+      .findAll({ queryKey: ['decryptForView'] })
       .filter((q) => q.queryKey[2] != null);
     const keyedByShared = decrypts.filter((q) => q.queryKey[4] === shared.hash);
     expect(keyedByShared).toHaveLength(1);
@@ -236,7 +236,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     const decryptsUnder = (acpHash: string | undefined) =>
       queryClient
         .getQueryCache()
-        .findAll({ queryKey: ['decryptCiphertext'] })
+        .findAll({ queryKey: ['decryptForView'] })
         .filter((q) => q.queryKey[2] != null && q.queryKey[4] === acpHash);
 
     // Plaintext decrypted with a shared ACP stays in memory only; the user own decrypts still persist.
@@ -304,7 +304,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     await waitFor(() => expect(shown('active share')).toBe('44'), { timeout: 90_000 });
     const decrypted = queryClient
       .getQueryCache()
-      .findAll({ queryKey: ['decryptCiphertext'] })
+      .findAll({ queryKey: ['decryptForView'] })
       .filter((q) => q.queryKey[2] != null && q.state.data !== undefined);
     expect(decrypted).toHaveLength(1);
     expect(decrypted[0].meta?.persist).toBe(false);
@@ -321,7 +321,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     const underShare = () =>
       queryClient
         .getQueryCache()
-        .findAll({ queryKey: ['decryptCiphertext'] })
+        .findAll({ queryKey: ['decryptForView'] })
         .filter((q) => q.queryKey[4] === shared.hash && q.state.data !== undefined);
     await waitFor(() => expect(underShare()).toHaveLength(0), { timeout: 10_000 });
   }, 180_000);
@@ -397,7 +397,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     expect(shown('wide status')).toBe('valid');
     const narrowDecrypts = queryClient
       .getQueryCache()
-      .findAll({ queryKey: ['decryptCiphertext'] })
+      .findAll({ queryKey: ['decryptForView'] })
       .filter((q) => q.queryKey[4] === narrow.hash && q.state.fetchStatus !== 'idle');
     expect(narrowDecrypts).toHaveLength(0);
 

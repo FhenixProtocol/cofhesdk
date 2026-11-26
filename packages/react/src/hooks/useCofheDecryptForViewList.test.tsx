@@ -58,7 +58,7 @@ describe('useCofheDecryptForViewList', () => {
     state.queries = [];
   });
 
-  it('runs one useCofheDecrypt-shaped query per input, in order, with per-entry meta', () => {
+  it('runs one useCofheDecryptForView-shaped query per input, in order, with per-entry meta', () => {
     renderToString(
       <Probe
         inputs={[{ ctHash: '42', utype: FheTypes.Uint64 } as const, { ctHash: '43', utype: FheTypes.Uint64 } as const]}
@@ -66,10 +66,14 @@ describe('useCofheDecryptForViewList', () => {
     );
 
     expect(state.queries).toHaveLength(2);
-    expect(state.queries[0].queryKey).toEqual(['decryptCiphertext', 11155111, '42', FheTypes.Uint64, '0x1']);
-    expect(state.queries[1].queryKey).toEqual(['decryptCiphertext', 11155111, '43', FheTypes.Uint64, '0x1']);
+    expect(state.queries[0].queryKey).toEqual(['decryptForView', 11155111, '42', FheTypes.Uint64, '0x1']);
+    expect(state.queries[1].queryKey).toEqual(['decryptForView', 11155111, '43', FheTypes.Uint64, '0x1']);
     expect(state.queries.map((q) => q.enabled)).toEqual([true, true]);
-    expect(state.queries[1].meta).toMatchObject({ kind: 'cofheDecrypt', persist: true, consumer: { label: 'Bid 43' } });
+    expect(state.queries[1].meta).toMatchObject({
+      kind: 'cofheDecryptForView',
+      persist: true,
+      consumer: { label: 'Bid 43' },
+    });
   });
 
   it('answers a zero handle without a request and leaves an undefined entry idle', () => {

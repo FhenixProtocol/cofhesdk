@@ -1,7 +1,7 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
 import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
-import { defaultDecryptRetry, useDropDecryptsOfInvalidACP, type CofheDecryptContext } from './useCofheDecrypt';
+import { defaultDecryptRetry, useDropDecryptsOfInvalidACP, type CofheDecryptContext } from './useCofheDecryptForView';
 import type { CofheClient, DecryptForTxResult, DecryptPollCallbackFunction } from '@cofhe/sdk';
 import type { ACP } from '@cofhe/sdk/acps';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
@@ -124,7 +124,7 @@ export type UseCofheDecryptForTxInput = {
  * mount it on the page that will send the transaction and the proof is ready before the click.
  *
  * A proof never changes, so the query is `staleTime: Infinity` by default and a handle proved
- * once (either way) is never requested again. Like `useCofheDecrypt` it waits for a valid ACP
+ * once (either way) is never requested again. Like `useCofheDecryptForView` it waits for a valid ACP
  * rather than prompting for one — unless `acp` is `null`, when no ACP is involved at all.
  */
 export function useCofheDecryptForTx<TSelectedData = DecryptForTxResult>(
@@ -136,7 +136,7 @@ export function useCofheDecryptForTx<TSelectedData = DecryptForTxResult>(
   const decryptChainId = chainId ?? connectedChainId;
   const withoutACP = acp === null;
   // With `acp: null` the ACP below is not used; the hook still runs (hooks are unconditional) and
-  // its drop effect is the same one `useCofheDecrypt` runs for that ACP.
+  // its drop effect is the same one `useCofheDecryptForView` runs for that ACP.
   const effectiveACP = useCofheEffectiveACP({ acp: acp ?? undefined, chainId });
   const scopedACP = effectiveACP.scoped ? effectiveACP.acp : undefined;
   useDropDecryptsOfInvalidACP(effectiveACP);
