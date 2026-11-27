@@ -160,7 +160,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * @param account - Account that will create the tx using the encrypted inputs.
    *
-   * If not provided, the account will be fetched from the connected walletClient.
+   * Overrides the account this builder was created with.
    *
    * Example:
    * ```typescript
@@ -185,7 +185,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * @param chainId - Chain that will consume the encrypted inputs.
    *
-   * If not provided, the chainId will be fetched from the connected publicClient.
+   * Overrides the chainId this builder was created with.
    *
    * Example:
    * ```typescript

@@ -69,7 +69,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct acp.
    *
-   * If not provided, the chainId will be fetched from the connected publicClient.
+   * Overrides the chainId this builder was created with.
    *
    * Example:
    * ```typescript
@@ -92,7 +92,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * @param account - Account to decrypt values from. Used to fetch the correct acp.
    *
-   * If not provided, the account will be fetched from the connected walletClient.
+   * Overrides the account this builder was created with.
    *
    * Example:
    * ```typescript
