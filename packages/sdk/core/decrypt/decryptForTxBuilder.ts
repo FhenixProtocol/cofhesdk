@@ -1,6 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
-import { type ACP, type ACPPublic, ACPUtils } from '@/acps';
+import { type ACP, ACPUtils } from '@/acps';
 
 import { getThresholdNetworkUrlOrThrow } from '../config';
 import { CofheError, CofheErrorCode } from '../error';

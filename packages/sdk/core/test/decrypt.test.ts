@@ -13,7 +13,7 @@ import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import type { Chain, PublicClient, WalletClient } from 'viem';
+import type { Chain, PublicClient } from 'viem';
 import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import type { WalletClientWithAccount } from '../utils';
 import { privateKeyToAccount } from 'viem/accounts';
