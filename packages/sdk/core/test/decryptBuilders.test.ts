@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { type PublicClient, type WalletClient, createPublicClient, createWalletClient, http, zeroAddress } from 'viem';
+import { zeroAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
 import { ACPUtils, acpStore, type ACP } from '@/acps';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
@@ -28,17 +27,6 @@ const TEST_CT_HASH = '0xabcdef1234567890';
 
 const MockCoFheUrl = 'http://localhost:3001';
 
-const publicClient: PublicClient = createPublicClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-});
-
-const walletClient: WalletClient = createWalletClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-  account,
-});
-
 const mockConfig: CofheConfig = createCofheConfigBase({
   supportedChains: [
     {
@@ -58,12 +46,10 @@ function createTxBuilder(
 ) {
   return new DecryptForTxBuilder({
     config: mockConfig,
-    publicClient,
-    walletClient,
     chainId: TEST_CHAIN_ID,
     account: account.address,
     ctHash: TEST_CT_HASH,
-    requireConnected: undefined,
+    _mocksRequestFn: undefined,
     ...overrides,
   });
 }
@@ -74,13 +60,11 @@ function createViewBuilder<U extends FheTypes>(
 ) {
   return new DecryptForViewBuilder<U>({
     config: mockConfig,
-    publicClient,
-    walletClient,
     chainId: TEST_CHAIN_ID,
     account: account.address,
     ctHash: TEST_CT_HASH,
     utype,
-    requireConnected: undefined,
+    _mocksRequestFn: undefined,
     ...overrides,
   });
 }
@@ -269,12 +253,10 @@ describe('DecryptForTxBuilder', () => {
         () =>
           new DecryptForTxBuilder({
             config: undefined,
-            publicClient,
-            walletClient,
             chainId: TEST_CHAIN_ID,
             account: account.address,
             ctHash: TEST_CT_HASH,
-            requireConnected: undefined,
+            _mocksRequestFn: undefined,
           })
       ).toThrow();
     });
@@ -405,13 +387,11 @@ describe('DecryptForViewBuilder', () => {
         () =>
           new DecryptForViewBuilder({
             config: undefined,
-            publicClient,
-            walletClient,
             chainId: TEST_CHAIN_ID,
             account: account.address,
             ctHash: TEST_CT_HASH,
             utype: FheTypes.Uint32,
-            requireConnected: undefined,
+            _mocksRequestFn: undefined,
           })
       ).toThrow();
     });
@@ -565,14 +545,14 @@ describe('execute – chainId mismatch', () => {
       expect(tnDecryptV2).toHaveBeenCalledOnce();
     });
 
-    it('proceeds using ACP signed chainId when builder chainId is unset', async () => {
-      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 99n, signature: '0x1234' });
+    it('throws ChainIdUninitialized and prevents dispatch when builder chainId is unset', async () => {
       const acp = createSignedACP(TEST_CHAIN_ID);
       const builder = createTxBuilder({ chainId: undefined });
 
-      const result = await builder.withACP(acp).execute();
-      expect(result.decryptedValue).toBe(99n);
-      expect(tnDecryptV2).toHaveBeenCalledOnce();
+      await expect(builder.withACP(acp).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ChainIdUninitialized,
+      });
+      expect(tnDecryptV2).not.toHaveBeenCalled();
     });
   });
 
@@ -607,13 +587,14 @@ describe('execute – chainId mismatch', () => {
       expect(tnSealOutputV2).toHaveBeenCalledOnce();
     });
 
-    it('proceeds using ACP signed chainId when builder chainId is unset', async () => {
-      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+    it('throws ChainIdUninitialized and prevents dispatch when builder chainId is unset', async () => {
       const acp = createSignedACP(TEST_CHAIN_ID);
       const builder = createViewBuilder(FheTypes.Uint32, { chainId: undefined });
 
-      await expect(builder.withACP(acp).execute()).rejects.toThrow('stubbed threshold network');
-      expect(tnSealOutputV2).toHaveBeenCalledOnce();
+      await expect(builder.withACP(acp).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ChainIdUninitialized,
+      });
+      expect(tnSealOutputV2).not.toHaveBeenCalled();
     });
   });
 });

@@ -20,6 +20,7 @@ import type {
 } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
 import type { CofheConfig } from './config.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 export const InitialConnectStore: CofheClientConnectionState = {
   connected: false,
@@ -154,6 +155,13 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // CLIENT OPERATIONS
 
+  /**
+   * The request function the builders reach the mock contracts through. Only used on a mocks chain.
+   * Falls back to the connected node, so a client connected to a local mocks chain needs no extra config.
+   */
+  const getMocksRequestFn = (): MocksRequestFn | undefined =>
+    opts.config._internal?.mocksRequestFn ?? connectStore.getState().publicClient?.request;
+
   function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]> {
     const state = connectStore.getState();
 
@@ -163,9 +171,6 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       chainId: state.chainId ?? undefined,
 
       config: opts.config,
-      publicClient: state.publicClient ?? undefined,
-      walletClient: state.walletClient ?? undefined,
-      zkvWalletClient: opts.config._internal?.zkvWalletClient,
 
       tfhePublicKeyDeserializer: opts.tfhePublicKeyDeserializer,
       compactPkeCrsDeserializer: opts.compactPkeCrsDeserializer,
@@ -176,7 +181,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
       keysStorage,
 
-      requireConnected: _requireConnected,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 
@@ -190,10 +195,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       account: state.account,
 
       config: opts.config,
-      publicClient: state.publicClient,
-      walletClient: state.walletClient,
 
-      requireConnected: _requireConnected,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 
@@ -206,10 +209,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       account: state.account,
 
       config: opts.config,
-      publicClient: state.publicClient,
-      walletClient: state.walletClient,
 
-      requireConnected: _requireConnected,
+      _mocksRequestFn: getMocksRequestFn(),
     });
   }
 

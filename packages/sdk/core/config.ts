@@ -1,9 +1,9 @@
 import { type CofheChain } from '@/chains';
 
 import { z } from 'zod';
-import { type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { type IStorage, type TfheThreadsSetting } from './types.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 export type CofheEnvironment = 'node' | 'hardhat' | 'web' | 'react';
 
@@ -101,7 +101,7 @@ export type CofheConfig = {
 };
 
 export type CofheInternalConfig = {
-  zkvWalletClient?: WalletClient;
+  mocksRequestFn?: MocksRequestFn;
 };
 
 /**
@@ -169,7 +169,7 @@ export const CofheConfigSchema = z.object({
   /** Internal configuration */
   _internal: z
     .object({
-      zkvWalletClient: z.any().optional(),
+      mocksRequestFn: z.any().optional(),
     })
     .optional(),
 });

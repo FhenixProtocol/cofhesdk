@@ -22,7 +22,7 @@ import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheM
 import { hardhat } from 'viem/chains';
 import { fetchKeys, type FheKeyDeserializer } from '../fetchKeys.js';
 import { getZkVerifierUrlOrThrow } from '../config.js';
-import { type WalletClient, isAddress } from 'viem';
+import { isAddress } from 'viem';
 import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { type KeysStorage } from '../keyStore.js';
@@ -30,8 +30,6 @@ import { type KeysStorage } from '../keyStore.js';
 type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams & {
   inputs: [...T];
   securityZone?: number;
-
-  zkvWalletClient?: WalletClient | undefined;
 
   tfhePublicKeyDeserializer: FheKeyDeserializer | undefined;
   compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
@@ -72,8 +70,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
 
-  private zkvWalletClient: WalletClient | undefined;
-
   private tfhePublicKeyDeserializer: FheKeyDeserializer;
   private compactPkeCrsDeserializer: FheKeyDeserializer;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
@@ -97,18 +93,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   constructor(params: EncryptInputsBuilderParams<T>) {
     super({
       config: params.config,
-      publicClient: params.publicClient,
-      walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
-      requireConnected: params.requireConnected,
+      _mocksRequestFn: params._mocksRequestFn,
     });
 
     this.inputItems = params.inputs;
     this.securityZone = params.securityZone ?? 0;
     this.securityZoneSet = params.securityZone != null;
-
-    this.zkvWalletClient = params.zkvWalletClient;
 
     // Check that tfhePublicKeyDeserializer is provided
     if (!params.tfhePublicKeyDeserializer) {
@@ -168,7 +160,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * @param account - Account that will create the tx using the encrypted inputs.
    *
-   * If not provided, the account will be fetched from the connected walletClient.
+   * Overrides the account this builder was created with.
    *
    * Example:
    * ```typescript
@@ -193,7 +185,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * @param chainId - Chain that will consume the encrypted inputs.
    *
-   * If not provided, the chainId will be fetched from the connected publicClient.
+   * Overrides the chainId this builder was created with.
    *
    * Example:
    * ```typescript
@@ -519,9 +511,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    */
   private async mocksExecute(): Promise<VerifyBatchResult> {
     this.assertAccount();
-    this.assertPublicClient();
-    this.assertWalletClient();
     this.assertConsumingContract();
+    this.assertMocksRequestFn();
 
     const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
 
@@ -558,9 +549,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       this.account,
       this.securityZone,
       this.consumingContract,
-      this.publicClient,
-      this.walletClient,
-      this.zkvWalletClient
+      this._mocksRequestFn
     );
     this.fireStepEnd(EncryptStep.Verify, { isMocks: true, mockSleep: verifyDelay });
 

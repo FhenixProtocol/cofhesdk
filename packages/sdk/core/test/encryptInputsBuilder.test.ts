@@ -11,30 +11,13 @@ import {
 } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
-import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient, isAddress } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
+import { isAddress } from 'viem';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from '../encrypt/zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
 import { type FheKeyDeserializer } from '../fetchKeys.js';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
-
-// Test private keys (well-known test keys from Anvil/Hardhat)
-const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
-
-// Create real viem clients for Arbitrum Sepolia
-const publicClient: PublicClient = createPublicClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-});
-
-const bobWalletClient: WalletClient = createWalletClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-  account: privateKeyToAccount(BOB_PRIVATE_KEY),
-});
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -250,8 +233,6 @@ describe('EncryptInputsBuilder', () => {
       chainId: defaultChainId,
 
       config: createMockCofheConfig(defaultChainId, MockZkVerifierUrl),
-      publicClient: publicClient,
-      walletClient: bobWalletClient,
 
       tfhePublicKeyDeserializer: mockTfhePublicKeyDeserializer,
       compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
@@ -259,7 +240,7 @@ describe('EncryptInputsBuilder', () => {
       initTfhe: mockInitTfhe,
       zkProveWorkerFn: undefined,
       keysStorage: keysStorage,
-      requireConnected: vi.fn(),
+      _mocksRequestFn: undefined,
     };
   };
 

@@ -2,7 +2,6 @@ import type { HardhatRuntimeEnvironmentHooks, NetworkHooks } from 'hardhat/types
 import type { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { FileBuildResultType } from 'hardhat/types/solidity';
 import { createPublicClient, createWalletClient, custom, type PublicClient, type WalletClient } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 
 import type { ArtifactManager } from 'hardhat/types/artifacts';
 import type { HardhatConfig } from 'hardhat/types/config';
@@ -14,7 +13,7 @@ import {
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
 } from '@cofhe/mock-contracts';
-import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, type CofheInputConfig } from '@cofhe/sdk';
+import { type CofheInputConfig, type MocksRequestFn } from '@cofhe/sdk';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node';
 import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
 
@@ -29,13 +28,12 @@ import type { CofheConnection } from '../type-extensions.js';
 function createCofheConnection(
   publicClient: PublicClient,
   walletClient: WalletClient,
-  /** Reusable transport factory derived from the walletClient's request method */
-  transport: ReturnType<typeof custom>,
   artifacts: ArtifactManager,
   deployedMockContracts: DeployedMockContracts,
   /** The resolved `cofhe` config, which `mocks.deployMocks` falls back to */
   pluginConfig: HardhatConfig['cofhe']
 ): CofheConnection {
+  const requestFn: MocksRequestFn = publicClient.request;
   const mockContracts = {
     MockCoFHEAddressBook: {
       address: deployedMockContracts.MockCoFHEAddressBook,
@@ -69,9 +67,6 @@ function createCofheConnection(
 
   return {
     async createConfig(config: Partial<CofheInputConfig> = {}) {
-      const zkvAccount = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
-      const zkvWalletClient = createWalletClient({ account: zkvAccount, transport });
-
       return createCofheConfig({
         environment: 'hardhat',
         supportedChains: [hardhatChain],
@@ -82,7 +77,7 @@ function createCofheConnection(
         },
         _internal: {
           ...config._internal,
-          zkvWalletClient,
+          mocksRequestFn: requestFn,
         },
       });
     },
@@ -107,7 +102,7 @@ function createCofheConnection(
         const [addr] = await walletClient.getAddresses();
         if (!addr) throw new Error('createClientWithBatteries: no accounts available on this connection');
         address = addr;
-        signerClient = createWalletClient({ account: address, transport });
+        signerClient = createWalletClient({ account: address, transport: custom({ request: requestFn }) });
       }
 
       const config = await this.createConfig();
@@ -206,9 +201,6 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         const transport = custom(conn.provider);
         const publicClient = createPublicClient({ transport });
         const walletClient = createWalletClient({ transport });
-        // Derive a reusable transport factory by wrapping the walletClient's
-        // request method — lets us create account-bound clients later.
-        const connTransport = custom({ request: (args: any) => (walletClient as any).request(args) });
 
         // An HTTP provider's self-reported RPC capabilities are not a trust signal.
         // HTTP connections can still opt in explicitly with cofhe.mocks.deployMocks().
@@ -241,7 +233,6 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         (conn as any).cofhe = createCofheConnection(
           publicClient,
           walletClient,
-          connTransport,
           hre.artifacts,
           deployedMockContracts,
           hre.config.cofhe

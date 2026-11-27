@@ -13,7 +13,7 @@ import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import type { Chain, PublicClient, WalletClient } from 'viem';
+import type { Chain, PublicClient } from 'viem';
 import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import type { WalletClientWithAccount } from '../utils';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -82,25 +82,21 @@ describe.skipIf(!LIVE_TESTS)('Core – Decrypt Tests', () => {
   function txBuilder(ctHash: `0x${string}`) {
     return new DecryptForTxBuilder({
       config,
-      publicClient,
-      walletClient,
       chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
-      requireConnected: undefined,
+      _mocksRequestFn: undefined,
     });
   }
 
   function viewBuilder(ctHash: `0x${string}`, utype: FheTypes) {
     return new DecryptForViewBuilder({
       config,
-      publicClient,
-      walletClient,
       chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       utype,
-      requireConnected: undefined,
+      _mocksRequestFn: undefined,
     });
   }
 

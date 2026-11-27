@@ -55,11 +55,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
       config: params.config,
-      publicClient: params.publicClient,
-      walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
-      requireConnected: params.requireConnected,
+      _mocksRequestFn: params._mocksRequestFn,
     });
 
     this.ctHash = params.ctHash;
@@ -71,7 +69,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct acp.
    *
-   * If not provided, the chainId will be fetched from the connected publicClient.
+   * Overrides the chainId this builder was created with.
    *
    * Example:
    * ```typescript
@@ -94,7 +92,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * @param account - Account to decrypt values from. Used to fetch the correct acp.
    *
-   * If not provided, the account will be fetched from the connected walletClient.
+   * Overrides the account this builder was created with.
    *
    * Example:
    * ```typescript
@@ -291,7 +289,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
   private async mocksSealOutput(acp: ACP): Promise<bigint> {
-    this.assertPublicClient();
+    this.assertMocksRequestFn();
 
     // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
     // Recommended 1000ms on web
@@ -299,7 +297,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const mocksDecryptDelay = this.config.mocks.decryptDelay;
     if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
 
-    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this.publicClient);
+    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this._mocksRequestFn);
   }
 
   /**
@@ -307,7 +305,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    */
   private async productionSealOutput(acp: ACP): Promise<bigint> {
     this.assertChainId();
-    this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const wireAcp = ACPUtils.getPublic(acp, true);
@@ -345,6 +342,8 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * @returns The unsealed item.
    */
   async execute(): Promise<UnsealedItem<U>> {
+    this.assertChainId();
+
     // Ensure utype is valid
     this.validateUtypeOrThrow();
 
@@ -354,7 +353,8 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     // Ensure acp validity
     ACPUtils.validate(acp);
 
-    if (this.chainId !== undefined && this.chainId !== acp._signedDomain?.chainId) {
+    // Ensure ACP signed domain matches chainId
+    if (this.chainId !== acp._signedDomain?.chainId) {
       throw new CofheError({
         code: CofheErrorCode.ChainIdMismatch,
         message: `decryptForView: builder chainId (${this.chainId}) does not match ACP signed chainId (${acp._signedDomain?.chainId})`,
@@ -365,19 +365,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       });
     }
 
-    // Extract chainId from signed acp
-    // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
-    const chainId = acp._signedDomain!.chainId;
-    if (this.chainId === undefined) {
-      this.chainId = chainId;
-    }
-
-    // Check acp validity on-chain
-    // TODO: ACPUtils.validateOnChain(acp, this.publicClient);
-
     let unsealed: bigint;
 
-    if (chainId === hardhat.id) {
+    if (this.chainId === hardhat.id) {
       unsealed = await this.mocksSealOutput(acp);
     } else {
       unsealed = await this.productionSealOutput(acp);

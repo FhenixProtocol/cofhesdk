@@ -3,16 +3,11 @@
 import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs';
-import { type PublicClient, type WalletClient } from 'viem';
+import { createPublicClient, custom, type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, subtask, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE, TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
-import {
-  type CofheClient,
-  type CofheConfig,
-  type CofheInputConfig,
-  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-} from '@cofhe/sdk';
+import { type CofheClient, type CofheConfig, type CofheInputConfig, type MocksRequestFn } from '@cofhe/sdk';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
@@ -489,24 +484,22 @@ export function buildHardhatPluginMocksConfig(
 extendEnvironment((hre) => {
   hre.cofhe = {
     createConfig: async (config: CofheInputConfig) => {
-      // Create zkv wallet client
-      // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
-      const zkvHhSigner = await hre.ethers.getImpersonatedSigner(MOCKS_ZK_VERIFIER_SIGNER_ADDRESS);
-      const { walletClient: zkvWalletClient } = await HardhatSignerAdapter(zkvHhSigner);
+      // The SDK reaches the mock contracts through the hardhat network's own provider
+      const mocksRequestFn: MocksRequestFn = createPublicClient({ transport: custom(hre.network.provider) }).request;
 
-      // Inject zkv wallet client into config
+      // Inject the mocks request function into config
       // Set encryptDelay to 0 on hardhat to avoid waiting for delays during tests
-      const configWithZkvWalletClient = {
+      const configWithMocksRequestFn = {
         environment: 'hardhat' as const,
         ...config,
         mocks: buildHardhatPluginMocksConfig(config.mocks),
         _internal: {
           ...config._internal,
-          zkvWalletClient,
+          mocksRequestFn,
         },
       };
 
-      return createCofheConfig(configWithZkvWalletClient);
+      return createCofheConfig(configWithMocksRequestFn);
     },
     createClient: (config: CofheConfig) => {
       return createCofheClient(config);

@@ -1,19 +1,17 @@
-import { type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { CofheError, CofheErrorCode } from './error.js';
+import { type MocksRequestFn } from './mockClients.js';
 
 /**
  * Base parameters that all builders need
  */
 export type BaseBuilderParams = {
   config: CofheConfig | undefined;
-  publicClient: PublicClient | undefined;
-  walletClient: WalletClient | undefined;
 
   chainId: number | undefined;
   account: string | undefined;
 
-  requireConnected: (() => void) | undefined;
+  _mocksRequestFn: MocksRequestFn | undefined; // Required only for mocks
 };
 
 /**
@@ -23,11 +21,10 @@ export type BaseBuilderParams = {
 export abstract class BaseBuilder {
   protected config: CofheConfig;
 
-  protected publicClient: PublicClient | undefined;
-  protected walletClient: WalletClient | undefined;
-
   protected chainId: number | undefined;
   protected account: string | undefined;
+
+  protected _mocksRequestFn: MocksRequestFn | undefined;
 
   constructor(params: BaseBuilderParams) {
     // Check that config is provided
@@ -43,14 +40,10 @@ export abstract class BaseBuilder {
     }
     this.config = params.config;
 
-    this.publicClient = params.publicClient;
-    this.walletClient = params.walletClient;
+    this._mocksRequestFn = params._mocksRequestFn;
 
     this.chainId = params.chainId;
     this.account = params.account;
-
-    // Require the client to be connected if passed as param
-    params.requireConnected?.();
   }
 
   /**
@@ -86,33 +79,17 @@ export abstract class BaseBuilder {
   }
 
   /**
-   * Asserts that this.publicClient is populated
-   * @throws {CofheError} If publicClient is not set
+   * Asserts that this._mocksRequestFn is populated
+   * @throws {CofheError} If _mocksRequestFn is not set
    */
-  protected assertPublicClient(): asserts this is this & { publicClient: PublicClient } {
-    if (this.publicClient) return;
+  protected assertMocksRequestFn(): asserts this is this & { _mocksRequestFn: MocksRequestFn } {
+    if (this._mocksRequestFn) return;
     throw new CofheError({
-      code: CofheErrorCode.MissingPublicClient,
-      message: 'Public client not found',
-      hint: 'Ensure client.connect() has been called with a publicClient.',
+      code: CofheErrorCode.MissingMocksRequestFn,
+      message: 'Mocks request function is not set',
+      hint: 'Ensure client.connect() has been called and awaited before using the mocks chain.',
       context: {
-        publicClient: this.publicClient,
-      },
-    });
-  }
-
-  /**
-   * Asserts that this.walletClient is populated
-   * @throws {CofheError} If walletClient is not set
-   */
-  protected assertWalletClient(): asserts this is this & { walletClient: WalletClient } {
-    if (this.walletClient) return;
-    throw new CofheError({
-      code: CofheErrorCode.MissingWalletClient,
-      message: 'Wallet client not found',
-      hint: 'Ensure client.connect() has been called with a walletClient.',
-      context: {
-        walletClient: this.walletClient,
+        _mocksRequestFn: this._mocksRequestFn,
       },
     });
   }

@@ -343,16 +343,13 @@ describe('createCofheClientBase', () => {
   });
 
   describe('encryptInputs', () => {
-    it('should throw if not connected', async () => {
-      try {
-        await client
-          .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
-          .setConsumingContract('0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef')
-          .execute();
-      } catch (error) {
-        expect(error).toBeInstanceOf(CofheError);
-        expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);
-      }
+    it('should reject on execute if not connected', async () => {
+      // The builder can be created before connecting; it has no account to encrypt for until then
+      const builder = client
+        .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
+        .setConsumingContract('0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef');
+
+      await expect(builder.execute()).rejects.toMatchObject({ code: CofheErrorCode.AccountUninitialized });
     });
 
     it('should create EncryptInputsBuilder when connected', async () => {
