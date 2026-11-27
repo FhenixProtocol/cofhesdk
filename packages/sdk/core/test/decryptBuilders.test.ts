@@ -587,13 +587,14 @@ describe('execute – chainId mismatch', () => {
       expect(tnSealOutputV2).toHaveBeenCalledOnce();
     });
 
-    it('proceeds using ACP signed chainId when builder chainId is unset', async () => {
-      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+    it('throws ChainIdUninitialized and prevents dispatch when builder chainId is unset', async () => {
       const acp = createSignedACP(TEST_CHAIN_ID);
       const builder = createViewBuilder(FheTypes.Uint32, { chainId: undefined });
 
-      await expect(builder.withACP(acp).execute()).rejects.toThrow('stubbed threshold network');
-      expect(tnSealOutputV2).toHaveBeenCalledOnce();
+      await expect(builder.withACP(acp).execute()).rejects.toMatchObject({
+        code: CofheErrorCode.ChainIdUninitialized,
+      });
+      expect(tnSealOutputV2).not.toHaveBeenCalled();
     });
   });
 });
