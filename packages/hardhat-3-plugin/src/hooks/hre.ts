@@ -201,9 +201,6 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         const transport = custom(conn.provider);
         const publicClient = createPublicClient({ transport });
         const walletClient = createWalletClient({ transport });
-        // Wrap the walletClient's request method, so the SDK's mocks and account-bound
-        // clients created later go through this connection.
-        const connRequest: MocksRequestFn = (args: any) => (walletClient as any).request(args);
 
         // An HTTP provider's self-reported RPC capabilities are not a trust signal.
         // HTTP connections can still opt in explicitly with cofhe.mocks.deployMocks().
@@ -236,7 +233,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         (conn as any).cofhe = createCofheConnection(
           publicClient,
           walletClient,
-          connRequest,
+          // The SDK's mocks and the account-bound clients created later go through this connection
+          publicClient.request,
           hre.artifacts,
           deployedMockContracts,
           hre.config.cofhe

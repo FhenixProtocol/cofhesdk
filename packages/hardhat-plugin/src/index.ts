@@ -3,7 +3,7 @@
 import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs';
-import { type PublicClient, type WalletClient } from 'viem';
+import { createPublicClient, custom, type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, subtask, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE, TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
@@ -485,7 +485,7 @@ extendEnvironment((hre) => {
   hre.cofhe = {
     createConfig: async (config: CofheInputConfig) => {
       // The SDK reaches the mock contracts through the hardhat network's own provider
-      const mocksRequestFn: MocksRequestFn = (args: any) => hre.network.provider.request(args) as any;
+      const mocksRequestFn: MocksRequestFn = createPublicClient({ transport: custom(hre.network.provider) }).request;
 
       // Inject the mocks request function into config
       // Set encryptDelay to 0 on hardhat to avoid waiting for delays during tests

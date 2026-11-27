@@ -60,7 +60,6 @@ export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve
 export async function getPublicClientChainID(publicClient: PublicClient) {
   let chainId: number | null = null;
   try {
-    // TODO: Don't use publicClient.chain?.id
     chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
   } catch (e) {
     throw new CofheError({

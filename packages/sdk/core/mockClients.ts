@@ -12,6 +12,7 @@ import { hardhat } from 'viem/chains';
 /**
  * The request function the SDK reaches the mock contracts through on a mocks chain: it reads from
  * them, and sends the zk verifier signer's transactions.
+ * @internal Used internally; not a supported API. Undocumented and may change in any release.
  */
 export type MocksRequestFn = EIP1193RequestFn<PublicRpcSchema>;
 
