@@ -117,7 +117,7 @@ const encrypted = await cofheClient
 
 ### `.setAccount(address)` — optional
 
-Override the address that "owns" the encrypted input. Only that address will be allowed to use the encrypted inputs on-chain. Defaults to the account from the connected `WalletClient`.
+Override the address that "owns" the encrypted input. Only that address will be allowed to use the encrypted inputs on-chain. Defaults to the account from `client.connect(...)`.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -141,7 +141,7 @@ const encrypted = await cofheClient
 
 ### `.setChainId(chainId)` — optional
 
-Override the chain the encrypted input will be used on. Defaults to the chain ID of the connected `PublicClient`.
+Override the chain the encrypted input will be used on. Defaults to the chain from `client.connect(...)`.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
