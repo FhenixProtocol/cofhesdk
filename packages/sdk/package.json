@@ -65,6 +65,7 @@
     "test": "vitest run",
     "test:live": "vitest run core/test/decrypt.test.ts acps/share-metadata/test/live.test.ts",
     "test:threadpool": "vitest run web/test/threadPoolOff.web.test.ts web/test/threadPoolOn.web.test.ts web/test/mainThreadPool.web.test.ts web/test/workerInitRace.web.test.ts --no-file-parallelism",
+    "bench:encrypt": "TEST_ENCRYPT_BENCH_ENABLED=true vitest run web/test/encryptMainThread.bench.web.test.ts --project web",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

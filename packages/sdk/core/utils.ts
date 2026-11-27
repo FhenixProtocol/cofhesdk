@@ -5,24 +5,42 @@ import { FheTypes } from './types.js';
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
 
-const HEX_BODY_REGEX = /^[0-9a-fA-F]*$/;
+// Char code -> hex digit value, 255 for anything that is not a hex digit.
+const HEX_DIGIT = new Uint8Array(128).fill(255);
+for (let digit = 0; digit < 16; digit++) {
+  HEX_DIGIT[digit.toString(16).charCodeAt(0)] = digit;
+  HEX_DIGIT[digit.toString(16).toUpperCase().charCodeAt(0)] = digit;
+}
 
+const hexDigitOrThrow = (hexString: string, index: number): number => {
+  const code = hexString.charCodeAt(index);
+  const digit = code < 128 ? HEX_DIGIT[code] : 255;
+  // Decoding a non-hex pair to 0 would silently turn a malformed string into zero bytes.
+  // The value is omitted on purpose: callers may pass private keys or sensitive payloads.
+  if (digit === 255) throw new Error('Invalid hex string: contains non-hexadecimal characters');
+  return digit;
+};
+
+/**
+ * Decodes a hex string, with or without a `0x` prefix, into bytes. An odd number of digits is
+ * read as if it had a leading zero.
+ *
+ * One pass straight into the result: the FHE key and the CRS are megabytes of hex, where
+ * building an intermediate array of digit pairs costs far more than the decoding itself.
+ */
 export const fromHexString = (hexString: string): Uint8Array => {
-  // Strip `0x` before padding: padding first turns `0x123` into `00x123`, which no
-  // longer matches the prefix and decodes to garbage bytes.
-  const body = hexString.replace(/^0x/, '');
+  const start = hexString.startsWith('0x') ? 2 : 0;
+  const digits = hexString.length - start;
+  const bytes = new Uint8Array((digits + 1) >> 1);
 
-  // `parseInt` maps a non-hex pair to NaN, which `Uint8Array` stores as 0. Without this check a
-  // malformed hex string silently becomes zero bytes instead of failing.
-  if (!HEX_BODY_REGEX.test(body)) {
-    // The value is omitted on purpose: callers may pass private keys or sensitive payloads.
-    throw new Error('Invalid hex string: contains non-hexadecimal characters');
+  let index = start;
+  let byte = 0;
+  // An odd length means the first byte has only its low digit.
+  if (digits % 2 === 1) bytes[byte++] = hexDigitOrThrow(hexString, index++);
+  for (; index < hexString.length; index += 2) {
+    bytes[byte++] = (hexDigitOrThrow(hexString, index) << 4) | hexDigitOrThrow(hexString, index + 1);
   }
-
-  const padded = body.length % 2 === 1 ? `0${body}` : body;
-  const arr = padded.match(/.{1,2}/g);
-  if (!arr) return new Uint8Array();
-  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
+  return bytes;
 };
 
 export const toBigIntOrThrow = (value: bigint | string): bigint => {

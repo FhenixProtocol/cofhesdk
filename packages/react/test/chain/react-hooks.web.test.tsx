@@ -38,7 +38,6 @@ import {
   type Hash,
   type Hex,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import {
   CofheProvider,
@@ -51,12 +50,12 @@ import {
   useInvalidationContextStore,
   type CofheWriteInvalidationTarget,
 } from '@cofhe/react';
+import { freshAccount } from './fixtures';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
+const ANVIL_RPC = inject('anvilRpc');
 const CHAIN_ID = 31337;
-// Anvil default account #2 — the matrix suites use #0 (deployer/bob) and #1 (alice),
-// so a dedicated account avoids nonce races when the files run in one session.
-const TEST_ACCOUNT = privateKeyToAccount('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a');
+// An account of this file's own.
+const TEST_ACCOUNT = await freshAccount();
 
 const anvilChain: Chain = defineChain({
   id: CHAIN_ID,

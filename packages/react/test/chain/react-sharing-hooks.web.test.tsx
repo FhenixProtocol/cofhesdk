@@ -22,7 +22,6 @@ import {
   type Chain,
   type Hex,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import { acpStore, type ACP, type IncomingShare, type ShareLabel } from '@cofhe/sdk/acps';
 import { createCofheClient } from '@cofhe/sdk/web';
@@ -37,11 +36,12 @@ import {
   useCofheShareLabels,
   useCofheShareOnChain,
 } from '@cofhe/react';
+import { freshAccount, deploySimpleTest } from './fixtures';
 
-const ANVIL_RPC = 'http://127.0.0.1:8546';
-// Anvil default accounts #8 (Bob, issuer) and #9 (Alice, recipient); the suites run one file at a time.
-const BOB = privateKeyToAccount('0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97');
-const ALICE = privateKeyToAccount('0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6');
+const ANVIL_RPC = inject('anvilRpc');
+// Bob is the issuer, Alice the recipient. Both accounts and the contract belong to this file.
+const BOB = await freshAccount();
+const ALICE = await freshAccount();
 
 const chain: Chain = defineChain({
   id: 31337,
@@ -49,7 +49,7 @@ const chain: Chain = defineChain({
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: [ANVIL_RPC] } },
 });
-const SIMPLE_TEST = inject('anvilSimpleTest') as Address;
+const SIMPLE_TEST = await deploySimpleTest(BOB);
 const SHARE_REGISTRY = inject('anvilAcpShareRegistry') as Address;
 
 /** A plain EIP-1193 transport over fetch. */

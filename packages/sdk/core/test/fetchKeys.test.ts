@@ -181,6 +181,35 @@ describe('fetchKeys', () => {
     expect(retrievedCrs).toEqual(mockCachedCrs);
   });
 
+  it('validates a cached key once, not on every call', async () => {
+    keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
+    keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
+    const fetchCached = () =>
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+
+    await fetchCached();
+    await fetchCached();
+    await fetchCached();
+
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(1);
+    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates again when the cached key changes', async () => {
+    keysStorage.setFheKey(sepolia.id, 0, '0x1234567890');
+    keysStorage.setCrs(sepolia.id, 0, '0x2345678901');
+    const fetchCached = () =>
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+
+    await fetchCached();
+    keysStorage.setFheKey(sepolia.id, 0, '0xabcdef');
+    await fetchCached();
+
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalledTimes(2);
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenLastCalledWith('0xabcdef');
+    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalledTimes(1);
+  });
+
   it('should throw error for unsupported chain ID', async () => {
     await expect(
       fetchKeys(

@@ -201,6 +201,29 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
   return builder;
 };
 
+// Accepts every push and keeps nothing: lets `zkPack` run for its checks alone.
+const checkOnlyBuilder: ZkCiphertextListBuilder = {
+  push_boolean: () => {},
+  push_u8: () => {},
+  push_u16: () => {},
+  push_u32: () => {},
+  push_u64: () => {},
+  push_u128: () => {},
+  push_u160: () => {},
+  build_with_proof_packed: () => {
+    throw new Error('checkOnlyBuilder cannot build a proof');
+  },
+};
+
+/**
+ * Runs the checks `zkPack` makes (at least one item, each value in its type's range, the total
+ * bit limit) without packing anything. A worker packs for itself and does not make these checks,
+ * so the caller makes them before handing the items over.
+ */
+export const assertZkPackable = (items: EncryptableItem[]): void => {
+  zkPack(items, checkOnlyBuilder);
+};
+
 /**
  * Generates ZK proof using Web Worker (offloads heavy WASM computation)
  * Serializes items and calls the platform-specific worker function
