@@ -34,6 +34,10 @@ export const InitialConnectStore: CofheClientConnectionState = {
 
 /**
  * Creates a CoFHE client instance (base implementation)
+ *
+ * @internal Used internally; not a supported API. Undocumented and may change in any release.
+ * Use `createCofheClient` from `@cofhe/sdk/node` (Node.js) or `@cofhe/sdk/web` (browser) instead.
+ *
  * @param {CofheClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofheClient} - The CoFHE client instance
  */
