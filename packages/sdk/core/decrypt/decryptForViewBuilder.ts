@@ -365,9 +365,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       });
     }
 
-    // Check acp validity on-chain
-    // TODO: ACPUtils.validateOnChain(acp, this.publicClient);
-
     let unsealed: bigint;
 
     if (this.chainId === hardhat.id) {
