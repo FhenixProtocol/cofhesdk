@@ -28,12 +28,12 @@ import type { CofheConnection } from '../type-extensions.js';
 function createCofheConnection(
   publicClient: PublicClient,
   walletClient: WalletClient,
-  requestFn: MocksRequestFn,
   artifacts: ArtifactManager,
   deployedMockContracts: DeployedMockContracts,
   /** The resolved `cofhe` config, which `mocks.deployMocks` falls back to */
   pluginConfig: HardhatConfig['cofhe']
 ): CofheConnection {
+  const requestFn: MocksRequestFn = publicClient.request;
   const mockContracts = {
     MockCoFHEAddressBook: {
       address: deployedMockContracts.MockCoFHEAddressBook,
@@ -233,8 +233,6 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         (conn as any).cofhe = createCofheConnection(
           publicClient,
           walletClient,
-          // The SDK's mocks and the account-bound clients created later go through this connection
-          publicClient.request,
           hre.artifacts,
           deployedMockContracts,
           hre.config.cofhe
