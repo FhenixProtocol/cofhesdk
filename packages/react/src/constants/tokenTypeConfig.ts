@@ -77,7 +77,8 @@ export const TOKEN_TYPE_CONFIG = {
     publicBalanceSource: 'erc20Pair',
     operations: WRAPPED_TOKEN_OPERATIONS,
     contracts: WRAPPED_TOKEN_CONTRACTS,
-    interfaceIds: ['0x4d52d826'], // IFHERC20ERC20Wrapper
+    // IFHERC20ERC20Wrapper: fhenix-confidential-contracts 1.0.0, then the wrappers deployed before it
+    interfaceIds: ['0x216f1651', '0x4d52d826'],
     pairResolution: 'contractGetter',
     pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token'],
     claimSubmission: 'batch',
@@ -89,7 +90,8 @@ export const TOKEN_TYPE_CONFIG = {
     publicBalanceSource: 'erc20Pair',
     operations: WRAPPED_TOKEN_OPERATIONS,
     contracts: WRAPPED_NATIVE_TOKEN_CONTRACTS,
-    interfaceIds: ['0xaefc9bc7'], // IFHERC20NativeWrapper
+    // IFHERC20NativeWrapper: fhenix-confidential-contracts 1.0.0, then the wrappers deployed before it
+    interfaceIds: ['0xff75cc20', '0xaefc9bc7'],
     pairResolution: 'native',
     claimSubmission: 'batch',
   },

@@ -107,6 +107,23 @@ describe('useResolvedCofheToken', () => {
     });
   });
 
+  describe('token type', () => {
+    // NOTE: literal ids, not the config's, so a stale config fails here. 0x216f1651 / 0xff75cc20 are
+    // type(I).interfaceId of the wrapper interfaces in fhenix-confidential-contracts 1.0.0;
+    // 0x4d52d826 / 0xaefc9bc7 are what the wrappers deployed before it report.
+    it.each([
+      ['0x216f1651', 'wrappedErc20'],
+      ['0x4d52d826', 'wrappedErc20'],
+      ['0xff75cc20', 'wrappedNative'],
+      ['0xaefc9bc7', 'wrappedNative'],
+      ['0xbe4d657f', 'dual'],
+    ])('resolves a token that reports interface %s as %s', async (interfaceId, confidentialityType) => {
+      const token = await resolve([interfaceId]);
+
+      expect(token?.extensions.fhenix.confidentialityType).toBe(confidentialityType);
+    });
+  });
+
   describe('decimals', () => {
     it('reads confidentialDecimals for dual tokens', async () => {
       const token = await resolve(TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS.dual!);
