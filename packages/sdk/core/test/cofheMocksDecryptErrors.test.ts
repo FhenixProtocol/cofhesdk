@@ -56,7 +56,7 @@ describe('mocks decryptForTx errors', () => {
   it.each(ACP_REJECTIONS)('with an ACP, maps $reason to $apiErrorCode', async ({ reason, code, apiErrorCode }) => {
     const requestFn = requestFnReturning([false, reason, 0n]);
 
-    await expect(cofheMocksDecryptForTx(1n, FheTypes.Uint32, await createMockACP(), requestFn)).rejects.toMatchObject({
+    await expect(cofheMocksDecryptForTx(1n, await createMockACP(), requestFn)).rejects.toMatchObject({
       code,
       apiErrorCode,
       message: expect.stringContaining(reason),
@@ -66,7 +66,7 @@ describe('mocks decryptForTx errors', () => {
   it('without an ACP, maps NotAllowed to not_publicly_allowed', async () => {
     const requestFn = requestFnReturning([false, 'NotAllowed', 0n]);
 
-    await expect(cofheMocksDecryptForTx(1n, FheTypes.Uint32, null, requestFn)).rejects.toMatchObject({
+    await expect(cofheMocksDecryptForTx(1n, null, requestFn)).rejects.toMatchObject({
       code: CofheErrorCode.NotPubliclyAllowed,
       apiErrorCode: 'not_publicly_allowed',
     });
@@ -75,7 +75,7 @@ describe('mocks decryptForTx errors', () => {
   it('keeps DecryptFailed for a reason the threshold network has no code for', async () => {
     const requestFn = requestFnReturning([false, 'Panic', 0n]);
 
-    await expect(cofheMocksDecryptForTx(1n, FheTypes.Uint32, null, requestFn)).rejects.toMatchObject({
+    await expect(cofheMocksDecryptForTx(1n, null, requestFn)).rejects.toMatchObject({
       code: CofheErrorCode.DecryptFailed,
       apiErrorCode: undefined,
     });

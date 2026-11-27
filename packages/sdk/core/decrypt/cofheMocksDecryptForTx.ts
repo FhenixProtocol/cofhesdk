@@ -3,7 +3,6 @@ import { type ACP, ACPUtils } from '@/acps';
 import { encodePacked, keccak256 } from 'viem';
 import { sign } from 'viem/accounts';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
-import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
@@ -24,7 +23,6 @@ export type DecryptForTxMocksResult = {
 
 export async function cofheMocksDecryptForTx(
   ctHash: bigint | string,
-  utype: FheTypes,
   acp: ACP | null,
   _mocksRequestFn: MocksRequestFn
 ): Promise<DecryptForTxMocksResult> {

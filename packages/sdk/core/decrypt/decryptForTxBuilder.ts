@@ -2,7 +2,6 @@
 import { hardhat } from '@/chains';
 import { type ACP, type ACPPublic, ACPUtils } from '@/acps';
 
-import { FheTypes } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';
 import { CofheError, CofheErrorCode } from '../error';
 import { acps } from '../acps';
@@ -335,7 +334,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const delay = this.config.mocks.decryptDelay;
     if (delay > 0) await sleep(delay);
 
-    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, acp, this._mocksRequestFn);
+    const result = await cofheMocksDecryptForTx(this.ctHash, acp, this._mocksRequestFn);
     return result;
   }
 
