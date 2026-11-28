@@ -297,7 +297,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const mocksDecryptDelay = this.config.mocks.decryptDelay;
     if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
 
-    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this._mocksRequestFn);
+    return cofheMocksDecryptForView(this.ctHash, acp, this._mocksRequestFn);
   }
 
   /**

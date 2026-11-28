@@ -32,42 +32,9 @@ export const MockThresholdNetworkAbi = [
   },
   {
     type: 'function',
-    name: 'queryDecrypt',
-    inputs: [
-      { name: 'ctHash', type: 'uint256', internalType: 'uint256' },
-      { name: '', type: 'uint256', internalType: 'uint256' },
-      {
-        name: 'permission',
-        type: 'tuple',
-        internalType: 'struct ACPermission',
-        components: [
-          { name: 'issuer', type: 'address', internalType: 'address' },
-          { name: 'expiration', type: 'uint64', internalType: 'uint64' },
-          { name: 'recipient', type: 'address', internalType: 'address' },
-          { name: 'revokerData', type: 'uint256', internalType: 'uint256' },
-          { name: 'revokerContract', type: 'address', internalType: 'address' },
-          { name: 'scope', type: 'uint8', internalType: 'uint8' },
-          { name: 'contracts', type: 'address[]', internalType: 'address[]' },
-          { name: 'handles', type: 'bytes32[]', internalType: 'bytes32[]' },
-          { name: 'sealingKey', type: 'bytes32', internalType: 'bytes32' },
-          { name: 'issuerSignature', type: 'bytes', internalType: 'bytes' },
-          { name: 'recipientSignature', type: 'bytes', internalType: 'bytes' },
-        ],
-      },
-    ],
-    outputs: [
-      { name: 'allowed', type: 'bool', internalType: 'bool' },
-      { name: 'error', type: 'string', internalType: 'string' },
-      { name: '', type: 'uint256', internalType: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'querySealOutput',
     inputs: [
       { name: 'ctHash', type: 'uint256', internalType: 'uint256' },
-      { name: '', type: 'uint256', internalType: 'uint256' },
       {
         name: 'permission',
         type: 'tuple',

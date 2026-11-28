@@ -1,7 +1,6 @@
 import { type ACP, ACPUtils } from '@/acps';
 
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
-import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 import { mapApiErrorCodeToCofheErrorCode, mockRejectionToApiErrorCode } from './apiError.js';
@@ -9,7 +8,6 @@ import { createMocksPublicClient, type MocksRequestFn } from '../mockClients.js'
 
 export async function cofheMocksDecryptForView(
   ctHash: bigint | string,
-  utype: FheTypes,
   acp: ACP,
   _mocksRequestFn: MocksRequestFn
 ): Promise<bigint> {
@@ -26,7 +24,7 @@ export async function cofheMocksDecryptForView(
     address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
     abi: MockThresholdNetworkAbi,
     functionName: 'querySealOutput',
-    args: [BigInt(ctHash), BigInt(utype), permissionWithBigInts],
+    args: [BigInt(ctHash), permissionWithBigInts],
   });
 
   if (error != '' || allowed == false) {
