@@ -1,4 +1,4 @@
-import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
+import type { ACP, CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
 import { decodeShareMetadata, shareAppKey, verifyShareLabels } from '@/acps';
 
 import { createStore } from 'zustand/vanilla';
@@ -94,6 +94,14 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       });
     }
     return { account, chainId, publicClient, walletClient };
+  };
+
+  /** The sharing writes the registry and the revoker take from the issuer only; say so before building one. */
+  const _requireIssuer = (acp: ACP, what: string) => {
+    const sender = connectStore.getState().walletClient?.account?.address;
+    if (sender == null || sender.toLowerCase() !== acp.issuer.toLowerCase()) {
+      throw new Error(`Only the acp issuer can ${what}`);
+    }
   };
 
   /** The clients a caller passed to override the connected ones (wallet client checked for an account), else the connected ones. */
@@ -352,6 +360,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.revokeACP(acp, walletClient);
     },
 
+    prepareRevokeACP: (acp) => {
+      _requireConnected();
+      _requireIssuer(acp, 'revoke it');
+      return acps.prepareRevokeACP(acp);
+    },
+
     revokeAllACPs: async (revokerContract?: `0x${string}`) => {
       const { publicClient, walletClient } = _requireConnected();
       return acps.revokeAllACPs(walletClient, publicClient, revokerContract);
@@ -373,6 +387,23 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const chainId = await publicClient.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient, chainId);
       return acps.shareOnChain(acp, walletClient, sharingRegistry, { ...withAppKey(), ...options });
+    },
+
+    prepareShareOnChain: async (acp, options) => {
+      _requireConnected();
+      _requireIssuer(acp, 'share it on-chain');
+      const { publicClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return acps.prepareShareOnChain(acp, sharingRegistry, { ...withAppKey(), ...options });
+    },
+
+    prepareRemoveShare: async (shareId) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return acps.prepareRemoveShare(shareId, sharingRegistry);
     },
 
     getIncomingShares: async () => {

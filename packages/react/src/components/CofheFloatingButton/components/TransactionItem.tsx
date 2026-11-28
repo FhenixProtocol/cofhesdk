@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { formatUnits } from 'viem';
 import { cn } from '../../../utils/cn.js';
 import { GoArrowUpRight } from 'react-icons/go';
-import { TbShieldPlus, TbShieldMinus, TbShieldCheck } from 'react-icons/tb';
+import { TbShieldPlus, TbShieldMinus, TbShieldCheck, TbShieldOff, TbShare, TbShareOff } from 'react-icons/tb';
 import {
   type Transaction,
   TransactionStatus,
@@ -36,6 +36,12 @@ const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionTyp
       return <TbShieldCheck className={iconClassName} />;
     case TransactionActionType.Approve:
       return <GoArrowUpRight className={iconClassName} />;
+    case TransactionActionType.ShareACP:
+      return <TbShare className={iconClassName} />;
+    case TransactionActionType.RemoveShare:
+      return <TbShareOff className={iconClassName} />;
+    case TransactionActionType.RevokeACP:
+      return <TbShieldOff className={iconClassName} />;
     default:
       return <GoArrowUpRight className={iconClassName} />;
   }

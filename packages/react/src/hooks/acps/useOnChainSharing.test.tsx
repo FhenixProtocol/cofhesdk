@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const TX_HASH = '0x2222222222222222222222222222222222222222222222222222222222222222';
 const SHARE_ID = '0x3333333333333333333333333333333333333333333333333333333333333333';
 const TEST_ACP = { hash: '0xacp' } as unknown as ACP;
+const WRITE = { address: '0x4444444444444444444444444444444444444444' };
 
 const mocks = vi.hoisted(() => ({
   mutations: [] as Array<{ mutationFn: (input: unknown) => Promise<unknown> }>,
@@ -27,12 +28,20 @@ vi.mock('../useCofheClient.js', () => ({
         waitForTransactionReceipt: async () => ({ status: mocks.receiptStatus, transactionHash: TX_HASH }),
       },
     }),
+    // The hooks build the write with the client and send it through useCofheWriteContract.
     acp: {
-      revokeACP: async () => TX_HASH,
-      shareOnChain: async () => ({ txHash: TX_HASH, shareId: SHARE_ID }),
-      dismissShare: async () => TX_HASH,
+      prepareRevokeACP: () => WRITE,
+      prepareShareOnChain: async () => ({ write: WRITE, shareId: SHARE_ID }),
+      prepareRemoveShare: async () => WRITE,
     },
   }),
+}));
+
+vi.mock('../useCofheWriteContract', () => ({
+  useCofheWriteContract: () => ({ writeContractAsync: async () => TX_HASH }),
+}));
+vi.mock('../useTransactionGlobalLifecycle', () => ({
+  useTransactionGlobalLifecycle: () => ({ onTransactionSubmitError: vi.fn() }),
 }));
 
 vi.mock('../useCofheACPs.js', () => ({ useCofheACPs: () => [] }));
