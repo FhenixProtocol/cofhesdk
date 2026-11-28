@@ -1,5 +1,32 @@
 # @cofhe/foundry-plugin
 
+## 1.1.0
+
+### Patch Changes
+
+- 26d8cd6: Restrict mock contract reinitialization to the configured owner while preserving repeated Hardhat and Foundry deployments.
+- 6b27a69: **@cofhe/mock-contracts**
+
+  Changes `MockThresholdNetwork.querySealOutput` to take `(ctHash, acp)`, without the second argument it never read, and marks `MockThresholdNetwork` as internal to the SDK and plugins. Removes `MockThresholdNetwork.queryDecrypt`, which nothing called. Upgrade all `@cofhe/*` packages together and restart any local node with mocks deployed: an older SDK fails against the new mock with "function selector was not recognized".
+
+  **@cofhe/sdk**
+
+  Changes `decryptForView` on the mocks chain to call `querySealOutput(ctHash, acp)`. Needs `@cofhe/mock-contracts` of the same version.
+
+  **@cofhe/foundry-plugin**
+
+  Changes `CofheClient.decryptForView` to call `querySealOutput(ctHash, acp)`. Needs `@cofhe/mock-contracts` of the same version.
+
+- Updated dependencies [26d8cd6]
+- Updated dependencies [c6732c4]
+- Updated dependencies [ecae431]
+- Updated dependencies [6b27a69]
+- Updated dependencies [5b3e61c]
+- Updated dependencies [8731a28]
+- Updated dependencies [afeb3c8]
+- Updated dependencies [0fed6d9]
+  - @cofhe/mock-contracts@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes
