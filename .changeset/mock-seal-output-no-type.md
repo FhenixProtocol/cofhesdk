@@ -1,7 +1,7 @@
 ---
-'@cofhe/mock-contracts': minor
-'@cofhe/sdk': minor
-'@cofhe/foundry-plugin': minor
+'@cofhe/mock-contracts': patch
+'@cofhe/sdk': patch
+'@cofhe/foundry-plugin': patch
 ---
 
 **@cofhe/mock-contracts**
