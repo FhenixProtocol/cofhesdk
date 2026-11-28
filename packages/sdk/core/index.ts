@@ -1,5 +1,7 @@
-// Client (base implementations)
-export { createCofheClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
+// Client
+// `createCofheClientBase` and `createCofheConfigBase` are not exported: `node` and `web` import them
+// from their source files and export `createCofheClient` and `createCofheConfig`.
+export { InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
 
 // Debug interceptors (neutral, opt-in network hooks for fault injection / logging)
 export { setCofheDebugInterceptors, getCofheDebugInterceptors, cofheFetch } from './debug.js';
@@ -12,7 +14,7 @@ export type {
 } from './debug.js';
 
 // Configuration (base implementations)
-export { createCofheConfigBase, getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
+export { getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
 export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
 export type { MocksRequestFn } from './mockClients.js';
 
