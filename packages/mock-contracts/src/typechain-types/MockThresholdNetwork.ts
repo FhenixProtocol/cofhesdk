@@ -72,7 +72,6 @@ export interface MockThresholdNetworkInterface extends Interface {
       | 'mockAcl'
       | 'mockQueryDecrypt'
       | 'mockTaskManager'
-      | 'queryDecrypt'
       | 'querySealOutput'
       | 'seal'
       | 'unseal'
@@ -86,8 +85,7 @@ export interface MockThresholdNetworkInterface extends Interface {
   encodeFunctionData(functionFragment: 'mockAcl', values?: undefined): string;
   encodeFunctionData(functionFragment: 'mockQueryDecrypt', values: [BigNumberish, BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'mockTaskManager', values?: undefined): string;
-  encodeFunctionData(functionFragment: 'queryDecrypt', values: [BigNumberish, BigNumberish, ACPStruct]): string;
-  encodeFunctionData(functionFragment: 'querySealOutput', values: [BigNumberish, BigNumberish, ACPStruct]): string;
+  encodeFunctionData(functionFragment: 'querySealOutput', values: [BigNumberish, ACPStruct]): string;
   encodeFunctionData(functionFragment: 'seal', values: [BigNumberish, BytesLike]): string;
   encodeFunctionData(functionFragment: 'unseal', values: [BytesLike, BytesLike]): string;
 
@@ -99,7 +97,6 @@ export interface MockThresholdNetworkInterface extends Interface {
   decodeFunctionResult(functionFragment: 'mockAcl', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'mockQueryDecrypt', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'mockTaskManager', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'queryDecrypt', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'querySealOutput', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'seal', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'unseal', data: BytesLike): Result;
@@ -178,14 +175,8 @@ export interface MockThresholdNetwork extends BaseContract {
 
   mockTaskManager: TypedContractMethod<[], [string], 'view'>;
 
-  queryDecrypt: TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, acp: ACPStruct],
-    [[boolean, string, bigint] & { allowed: boolean; error: string }],
-    'view'
-  >;
-
   querySealOutput: TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, acp: ACPStruct],
+    [ctHash: BigNumberish, acp: ACPStruct],
     [[boolean, string, string] & { allowed: boolean; error: string }],
     'view'
   >;
@@ -233,16 +224,9 @@ export interface MockThresholdNetwork extends BaseContract {
   >;
   getFunction(nameOrSignature: 'mockTaskManager'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
-    nameOrSignature: 'queryDecrypt'
-  ): TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, acp: ACPStruct],
-    [[boolean, string, bigint] & { allowed: boolean; error: string }],
-    'view'
-  >;
-  getFunction(
     nameOrSignature: 'querySealOutput'
   ): TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, acp: ACPStruct],
+    [ctHash: BigNumberish, acp: ACPStruct],
     [[boolean, string, string] & { allowed: boolean; error: string }],
     'view'
   >;

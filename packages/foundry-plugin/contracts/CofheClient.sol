@@ -304,7 +304,6 @@ contract CofheClient is Test {
 
     (bool allowed, string memory error, bytes32 sealedOutput) = mockThresholdNetwork.querySealOutput(
       ct,
-      block.chainid,
       acp
     );
     require(allowed, string.concat('CofheClient: decryptForView failed: ', error));

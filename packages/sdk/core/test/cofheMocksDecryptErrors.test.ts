@@ -4,7 +4,6 @@ import { createMockACP } from '../../acps/test-utils.js';
 import { cofheMocksDecryptForView } from '../decrypt/cofheMocksDecryptForView.js';
 import { cofheMocksDecryptForTx } from '../decrypt/cofheMocksDecryptForTx.js';
 import { CofheErrorCode } from '../error.js';
-import { FheTypes } from '../types.js';
 import { MockThresholdNetworkAbi } from '../decrypt/MockThresholdNetworkAbi.js';
 import { fakeMocksNode } from './fakeMocksNode.js';
 
@@ -31,24 +30,20 @@ describe('mocks decryptForView errors', () => {
   it.each(ACP_REJECTIONS)('maps $reason to $apiErrorCode', async ({ reason, code, apiErrorCode }) => {
     const requestFn = requestFnReturning([false, reason, EMPTY_SEALED]);
 
-    await expect(cofheMocksDecryptForView(1n, FheTypes.Uint32, await createMockACP(), requestFn)).rejects.toMatchObject(
-      {
-        code,
-        apiErrorCode,
-        message: expect.stringContaining(reason),
-      }
-    );
+    await expect(cofheMocksDecryptForView(1n, await createMockACP(), requestFn)).rejects.toMatchObject({
+      code,
+      apiErrorCode,
+      message: expect.stringContaining(reason),
+    });
   });
 
   it('keeps SealOutputFailed for a reason the threshold network has no code for', async () => {
     const requestFn = requestFnReturning([false, 'Low Level Error', EMPTY_SEALED]);
 
-    await expect(cofheMocksDecryptForView(1n, FheTypes.Uint32, await createMockACP(), requestFn)).rejects.toMatchObject(
-      {
-        code: CofheErrorCode.SealOutputFailed,
-        apiErrorCode: undefined,
-      }
-    );
+    await expect(cofheMocksDecryptForView(1n, await createMockACP(), requestFn)).rejects.toMatchObject({
+      code: CofheErrorCode.SealOutputFailed,
+      apiErrorCode: undefined,
+    });
   });
 });
 

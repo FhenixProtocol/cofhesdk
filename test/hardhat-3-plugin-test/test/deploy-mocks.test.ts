@@ -224,7 +224,6 @@ describe('Deploy Mocks', async () => {
           functionName: 'querySealOutput',
           args: [
             0n,
-            0n,
             {
               issuer: zeroAddress,
               expiration: 0n,

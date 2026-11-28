@@ -11,6 +11,8 @@ import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
 import { ACP, PermissionedUpgradeable } from './Permissioned.sol';
 
+/// @dev Used internally by @cofhe/sdk and the @cofhe plugins; not a supported API.
+/// Undocumented and may change in any release.
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
@@ -38,29 +40,6 @@ contract MockThresholdNetwork {
   }
 
   // BODY
-
-  function queryDecrypt(
-    uint256 ctHash,
-    uint256,
-    ACP memory acp
-  ) public view returns (bool allowed, string memory error, uint256) {
-    bool isAllowed;
-    try mockAcl.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
-      isAllowed = _isAllowed;
-    } catch Error(string memory reason) {
-      // Handle string error messages
-      return (false, reason, 0);
-    } catch Panic(uint /*errorCode*/) {
-      // Handle panic errors
-      return (false, 'Panic', 0);
-    } catch (bytes memory lowLevelData) {
-      return (false, decodeLowLevelReversion(lowLevelData), 0);
-    }
-
-    if (!isAllowed) return (false, 'NotAllowed', 0);
-
-    return (true, '', mockTaskManager.mockStorage(ctHash));
-  }
 
   function seal(uint256 input, bytes32 key) public pure returns (bytes32) {
     return bytes32(input) ^ key;
@@ -98,7 +77,6 @@ contract MockThresholdNetwork {
 
   function querySealOutput(
     uint256 ctHash,
-    uint256,
     ACP memory acp
   ) public view returns (bool allowed, string memory error, bytes32) {
     if (acp.sealingKey == bytes32(0)) revert SealingKeyMissing();
