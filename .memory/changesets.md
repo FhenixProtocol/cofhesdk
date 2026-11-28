@@ -17,7 +17,7 @@ Not the reader: the PR reviewer. Root cause, implementation, test files, lint ch
 | Change | Shape |
 |---|---|
 | Fix | `` <Verb> `<exportedName>` to <what it does now>. Previously <symptom a user saw, one concrete value>. `` Two sentences, about 40 words. |
-| Feature | `` Adds `<exportedName>` … `` — one sentence on what is possible now, then a short list of the new exports / options. `[Docs](…)` link if a page exists. |
+| Feature | `` Adds `<exportedName>` … `` — one sentence on what is possible now, then a short list of the new exports / options. No links: name the exports, so readers can search for them wherever the docs live. |
 | Breaking | Starts with `**Breaking:**`, then the same verb-first sentence, then what to do instead in one sentence. |
 | Several packages | One changeset, a bold heading per package (`**@cofhe/sdk**`, `**@cofhe/react**`), each followed by its own verb-first sentence, so each CHANGELOG reader finds their part. |
 | Major release | One extra changeset listing every breaking change since the last major, each pointing to its own entry (see `release-1-0.md` in #408). |
@@ -34,7 +34,7 @@ Not the reader: the PR reviewer. Root cause, implementation, test files, lint ch
 - Bump from the consumer's side: patch = fix, no API change; minor = new export, option or behaviour; major = removal or changed signature.
 - Adding members to an exported union type (an action type, an error code) can break a consumer's exhaustive `switch` or `Record<…>` at compile time. Say so in the entry.
 - No changeset for private packages (`@cofhe/site`, `@cofhe/eslint-config`, test setup). They are not published.
-- No AI-tool trailers, no links to internal tickets or chats.
+- No AI-tool trailers, no links: not to internal tickets or chats, and not to docs pages either (a changelog is permanent, pages move).
 
 ---
 

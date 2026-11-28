@@ -13,6 +13,8 @@ import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
+import { assertDecryptTimeoutMs } from './submitRetry.js';
+import type { DecryptLimiter } from './decryptLimiter.js';
 
 const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
 
@@ -42,6 +44,8 @@ type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   utype: U;
   acpHash?: string;
   acp?: ACP;
+  /** The client's decrypt cap; a builder made without one runs unlimited. */
+  limit?: DecryptLimiter;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
@@ -51,6 +55,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private acp?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
   private accessDeniedRetryTimeoutMs = DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS;
+  private timeoutMs?: number;
+  private signal?: AbortSignal;
+  private limit: DecryptLimiter;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -64,6 +71,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.utype = params.utype;
     this.acpHash = params.acpHash;
     this.acp = params.acp;
+    this.limit = params.limit ?? ((task) => task());
   }
 
   /**
@@ -152,6 +160,27 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     }
 
     this.accessDeniedRetryTimeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * The whole budget of this decrypt in milliseconds, every retry included
+   * (5 minutes by default). Past it, `execute()` rejects with `SealOutputFailed`; a request still
+   * processing on the threshold network is not cancelled.
+   */
+  setTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
+    assertDecryptTimeoutMs(timeoutMs, 'decryptForView');
+    this.timeoutMs = timeoutMs;
+    return this;
+  }
+
+  /**
+   * Stops the decrypt when `signal` fires: the pending request is aborted, no further attempt is
+   * sent, and `execute()` rejects with `Aborted`. A request already processing on the threshold
+   * network is not cancelled.
+   */
+  setSignal(signal: AbortSignal): DecryptForViewBuilder<U> {
+    this.signal = signal;
     return this;
   }
 
@@ -309,14 +338,21 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const wireAcp = ACPUtils.getPublic(acp, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
-    const sealed = await tnSealOutputV2({
-      ctHash: this.ctHash,
-      chainId: this.chainId,
-      acp: wireAcp,
-      thresholdNetworkUrl,
-      accessDeniedRetryTimeoutMs: this.accessDeniedRetryTimeoutMs,
-      onPoll: this.pollCallback,
-    });
+    const sealed = await this.limit(
+      () =>
+        tnSealOutputV2({
+          ctHash: this.ctHash,
+          chainId: this.chainId,
+          acp: wireAcp,
+          thresholdNetworkUrl,
+          accessDeniedRetryTimeoutMs: this.accessDeniedRetryTimeoutMs,
+          timeoutMs: this.timeoutMs,
+          onPoll: this.pollCallback,
+          signal: this.signal,
+        }),
+      'sealOutput',
+      this.signal
+    );
     return ACPUtils.unseal(acp, sealed);
   }
 

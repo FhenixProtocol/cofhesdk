@@ -5,13 +5,15 @@ import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 import {
+  DEFAULT_DECRYPT_TIMEOUT_MS,
   classifySubmitResponse,
   normalizeAccessDeniedRetryTimeoutMs,
   shouldRetryAccessDenied,
+  sleepUnlessAborted,
+  throwIfAborted,
   throwIfSubmitRetryTimedOut,
 } from './submitRetry.js';
 
-const DECRYPT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes total across submit retries
 const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 
 type DecryptSubmitResponseV2 = {
@@ -115,7 +117,9 @@ async function submitDecryptRequestV2(
   acp: ACPPublic | null,
   overallStartTime: number,
   accessDeniedRetryTimeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction
+  timeoutMs: number,
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
@@ -133,6 +137,7 @@ async function submitDecryptRequestV2(
   let attemptIndex = 0;
 
   for (;;) {
+    throwIfAborted(signal, 'decrypt');
     let response: Response;
     try {
       response = await cofheFetch(
@@ -143,9 +148,11 @@ async function submitDecryptRequestV2(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
+          signal,
         }
       );
     } catch (e) {
+      throwIfAborted(signal, 'decrypt');
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
         message: `decrypt request failed`,
@@ -170,7 +177,8 @@ async function submitDecryptRequestV2(
         shouldRetryAccessDenied({
           apiErrorCode: responseClassification.apiErrorCode,
           elapsedMs,
-          accessDeniedRetryTimeoutMs,
+          // The overall budget also ends a retry of denials.
+          accessDeniedRetryTimeoutMs: Math.min(accessDeniedRetryTimeoutMs, timeoutMs),
         })
       ) {
         onPoll?.({
@@ -179,9 +187,9 @@ async function submitDecryptRequestV2(
           attemptIndex,
           elapsedMs,
           intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-          timeoutMs: DECRYPT_TIMEOUT_MS,
+          timeoutMs,
         });
-        await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+        await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'decrypt');
         attemptIndex += 1;
         continue;
       }
@@ -236,7 +244,7 @@ async function submitDecryptRequestV2(
       errorCode: CofheErrorCode.DecryptFailed,
       status: responseClassification.status,
       elapsedMs,
-      overallTimeoutMs: DECRYPT_TIMEOUT_MS,
+      overallTimeoutMs: timeoutMs,
       thresholdNetworkUrl,
       body,
       attemptIndex,
@@ -248,10 +256,10 @@ async function submitDecryptRequestV2(
       attemptIndex,
       elapsedMs,
       intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-      timeoutMs: DECRYPT_TIMEOUT_MS,
+      timeoutMs,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+    await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'decrypt');
     attemptIndex += 1;
   }
 }
@@ -262,9 +270,14 @@ export async function tnDecryptV2(params: {
   acp: ACPPublic | null;
   thresholdNetworkUrl: string;
   accessDeniedRetryTimeoutMs?: number;
+  /** The whole budget of the call, every retry included; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
+  timeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
+  /** Stops the decrypt at its next await: the pending fetch is aborted, and `execute()` rejects with `Aborted`. */
+  signal?: AbortSignal;
 }): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll, signal } = params;
+  const timeoutMs = params.timeoutMs ?? DEFAULT_DECRYPT_TIMEOUT_MS;
   const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
     timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'decrypt',
@@ -277,6 +290,8 @@ export async function tnDecryptV2(params: {
     acp,
     Date.now(),
     normalizedAccessDeniedRetryTimeoutMs,
-    onPoll
+    timeoutMs,
+    onPoll,
+    signal
   );
 }

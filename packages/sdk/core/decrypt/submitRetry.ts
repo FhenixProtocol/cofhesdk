@@ -3,6 +3,22 @@ import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './ap
 
 /** No retry of an access-denied answer unless the caller asks for one. */
 export const DEFAULT_ACCESS_DENIED_RETRY_TIMEOUT_MS = 0;
+/** The default budget of one decrypt, every retry included. */
+export const DEFAULT_DECRYPT_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Validates a builder's `setTimeout(timeoutMs)` argument: the overall budget must be a positive,
+ * finite number of milliseconds (0 would time out before the first attempt).
+ */
+export function assertDecryptTimeoutMs(timeoutMs: number, operationLabel: string): void {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new CofheError({
+      code: CofheErrorCode.InternalError,
+      message: `${operationLabel}: setTimeout(timeoutMs) expects a finite number greater than 0.`,
+      context: { timeoutMs },
+    });
+  }
+}
 
 export type SubmitRetryableStatus = 204;
 
@@ -121,4 +137,34 @@ export function throwIfSubmitRetryTimedOut(params: {
       },
     });
   }
+}
+
+/** The error a decrypt rejects with once its `AbortSignal` has fired. */
+export function decryptAbortedError(operationLabel: string, signal: AbortSignal): CofheError {
+  return new CofheError({
+    code: CofheErrorCode.Aborted,
+    message: `${operationLabel} aborted by the caller`,
+    cause: signal.reason instanceof Error ? signal.reason : undefined,
+  });
+}
+
+/** Rejects at once when `signal` has already fired, so an aborted call sends nothing more. */
+export function throwIfAborted(signal: AbortSignal | undefined, operationLabel: string): void {
+  if (signal?.aborted) throw decryptAbortedError(operationLabel, signal);
+}
+
+/** Waits `ms`, or rejects the moment `signal` fires: the wait between two attempts honours an abort. */
+export function sleepUnlessAborted(ms: number, signal: AbortSignal | undefined, operationLabel: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(decryptAbortedError(operationLabel, signal));
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(decryptAbortedError(operationLabel, signal!));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }

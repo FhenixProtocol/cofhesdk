@@ -5,7 +5,7 @@ import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUty
 import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@cofhe/sdk';
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
-import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
+import { constructCofheDecryptForViewQueryKey, useCofheDecrypt } from './useCofheDecrypt';
 import { useCofheChainId } from './useCofheConnection';
 import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import {
@@ -158,7 +158,7 @@ export function useCofheReadContractAndDecrypt<
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
-      queryClient.removeQueries({ queryKey: constructCofheDecryptQueryKey(prev), exact: true });
+      queryClient.removeQueries({ queryKey: constructCofheDecryptForViewQueryKey(prev), exact: true });
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined

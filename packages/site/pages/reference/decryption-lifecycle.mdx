@@ -43,6 +43,8 @@ This means:
 - the result is on its way,
 - retrying the submit call makes sense.
 
+A client sends at most `decryptConcurrency` decrypts (8 by default, set on the config) to the threshold network at a time; further `execute()` calls wait their turn, so a page that decrypts a list of values at once never bursts the network. A call whose `AbortSignal` fires while it waits leaves the queue without starting.
+
 The SDK handles this automatically. For both `decryptForTx` and `decryptForView`, it will:
 
 - retry the submit call,
@@ -69,6 +71,8 @@ The SDK uses one timeout budget for the whole decrypt:
 - initial submit attempts,
 - repeated `204` submit retries,
 - access-denied submit retries within the window set by `.setAccessDeniedRetryTimeout(...)`.
+
+The budget is 5 minutes by default and is set per request with `.setTimeout(timeoutMs)` on either decrypt builder (or the `timeoutMs` option of the React hooks). When it runs out the SDK rejects with `SealOutputFailed` / `DecryptFailed`; the request itself is not cancelled on the threshold network.
 
 ## How `.onPoll(...)` fits in
 

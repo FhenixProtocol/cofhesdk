@@ -3,6 +3,7 @@ import { zeroAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { ACPUtils, acpStore, type ACP } from '@/acps';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
+import type { DecryptLimiter } from '../decrypt/decryptLimiter.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { tnDecryptV2 } from '../decrypt/tnDecryptV2';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2';
@@ -203,6 +204,30 @@ describe('DecryptForTxBuilder', () => {
       expect(builder.set404RetryTimeout(15_000)).toBe(builder);
       expect(builder.set404RetryTimeout(-1)).toBe(builder);
     });
+
+    it('should allow configuring the overall timeout', () => {
+      const builder = createTxBuilder();
+      const result = builder.setTimeout(20_000);
+
+      expect(result).toBe(builder);
+      expect((builder as any).timeoutMs).toBe(20_000);
+    });
+
+    it('should throw for an overall timeout that is not a positive number', () => {
+      const builder = createTxBuilder();
+
+      expect(() => builder.setTimeout(0)).toThrow('setTimeout(timeoutMs) expects');
+      expect(() => builder.setTimeout(Number.NaN)).toThrow('setTimeout(timeoutMs) expects');
+    });
+
+    it('should allow configuring an abort signal', () => {
+      const builder = createTxBuilder();
+      const { signal } = new AbortController();
+      const result = builder.setSignal(signal);
+
+      expect(result).toBe(builder);
+      expect((builder as any).signal).toBe(signal);
+    });
   });
 
   // --- execute error paths ---
@@ -336,6 +361,30 @@ describe('DecryptForViewBuilder', () => {
 
       expect(builder.set404RetryTimeout(12_000)).toBe(builder);
       expect(builder.set404RetryTimeout(-1)).toBe(builder);
+    });
+
+    it('should allow configuring the overall timeout', () => {
+      const builder = createViewBuilder(FheTypes.Uint32);
+      const result = builder.setTimeout(20_000);
+
+      expect(result).toBe(builder);
+      expect((builder as any).timeoutMs).toBe(20_000);
+    });
+
+    it('should throw for an overall timeout that is not a positive number', () => {
+      const builder = createViewBuilder(FheTypes.Uint32);
+
+      expect(() => builder.setTimeout(0)).toThrow('setTimeout(timeoutMs) expects');
+      expect(() => builder.setTimeout(-5)).toThrow('setTimeout(timeoutMs) expects');
+    });
+
+    it('should allow configuring an abort signal', () => {
+      const builder = createViewBuilder(FheTypes.Uint32);
+      const { signal } = new AbortController();
+      const result = builder.setSignal(signal);
+
+      expect(result).toBe(builder);
+      expect((builder as any).signal).toBe(signal);
     });
   });
 
@@ -471,6 +520,53 @@ describe('execute – expired acp (regression, issue #272)', () => {
       expect(result.decryptedValue).toBe(7n);
       expect(tnDecryptV2).toHaveBeenCalledOnce();
     });
+
+    it('passes the overall timeout to the threshold network call', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+
+      await selectTxACP('active acp', acp).setTimeout(20_000).execute();
+
+      expect(tnDecryptV2).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
+    });
+
+    it('runs the threshold network call through the client limiter it was given', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+      const labels: string[] = [];
+      const limit: DecryptLimiter = (task, label) => {
+        labels.push(label);
+        return task();
+      };
+      const builder = new DecryptForTxBuilder({
+        config: mockConfig,
+        publicClient,
+        walletClient,
+        chainId: TEST_CHAIN_ID,
+        account: account.address,
+        ctHash: TEST_CT_HASH,
+        requireConnected: undefined,
+        limit,
+      });
+
+      await builder.withACP(acp).execute();
+
+      expect(labels).toEqual(['decrypt']);
+      expect(tnDecryptV2).toHaveBeenCalledOnce();
+    });
+
+    it('passes the abort signal to the threshold network call', async () => {
+      vi.mocked(tnDecryptV2).mockResolvedValue({ decryptedValue: 7n, signature: '0x1234' });
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+      const { signal } = new AbortController();
+
+      await selectTxACP('active acp', acp).setSignal(signal).execute();
+
+      expect(tnDecryptV2).toHaveBeenCalledWith(expect.objectContaining({ signal }));
+    });
   });
 
   describe('decryptForView', () => {
@@ -489,6 +585,17 @@ describe('execute – expired acp (regression, issue #272)', () => {
 
       await expect(selectViewACP('active acp', acp).execute()).rejects.toThrow('stubbed threshold network');
       expect(tnSealOutputV2).toHaveBeenCalledOnce();
+    });
+
+    it('passes the overall timeout to the threshold network call', async () => {
+      vi.mocked(tnSealOutputV2).mockRejectedValue(new Error('stubbed threshold network'));
+      const acp = createSignedSelfACP(now() + 3600);
+      seedACP(acp);
+
+      await expect(selectViewACP('active acp', acp).setTimeout(20_000).execute()).rejects.toThrow(
+        'stubbed threshold network'
+      );
+      expect(tnSealOutputV2).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
     });
   });
 });

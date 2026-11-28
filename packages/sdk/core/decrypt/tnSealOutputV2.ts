@@ -4,13 +4,15 @@ import { cofheFetch } from '../debug.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import {
+  DEFAULT_DECRYPT_TIMEOUT_MS,
   classifySubmitResponse,
   normalizeAccessDeniedRetryTimeoutMs,
   shouldRetryAccessDenied,
+  sleepUnlessAborted,
+  throwIfAborted,
   throwIfSubmitRetryTimedOut,
 } from './submitRetry.js';
 
-const SEAL_OUTPUT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes total across submit retries
 const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 
 // V2 API response types
@@ -121,7 +123,9 @@ async function submitSealOutputRequest(
   acp: ACPPublic,
   overallStartTime: number,
   accessDeniedRetryTimeoutMs: number,
-  onPoll?: DecryptPollCallbackFunction
+  timeoutMs: number,
+  onPoll?: DecryptPollCallbackFunction,
+  signal?: AbortSignal
 ): Promise<EthEncryptedData> {
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
@@ -131,6 +135,7 @@ async function submitSealOutputRequest(
   let attemptIndex = 0;
 
   for (;;) {
+    throwIfAborted(signal, 'sealOutput');
     let response: Response;
     try {
       response = await cofheFetch(
@@ -141,9 +146,11 @@ async function submitSealOutputRequest(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
+          signal,
         }
       );
     } catch (e) {
+      throwIfAborted(signal, 'sealOutput');
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput request failed`,
@@ -168,7 +175,8 @@ async function submitSealOutputRequest(
         shouldRetryAccessDenied({
           apiErrorCode: responseClassification.apiErrorCode,
           elapsedMs,
-          accessDeniedRetryTimeoutMs,
+          // The overall budget also ends a retry of denials.
+          accessDeniedRetryTimeoutMs: Math.min(accessDeniedRetryTimeoutMs, timeoutMs),
         })
       ) {
         onPoll?.({
@@ -177,9 +185,9 @@ async function submitSealOutputRequest(
           attemptIndex,
           elapsedMs,
           intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-          timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+          timeoutMs,
         });
-        await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+        await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'sealOutput');
         attemptIndex += 1;
         continue;
       }
@@ -231,7 +239,7 @@ async function submitSealOutputRequest(
       errorCode: CofheErrorCode.SealOutputFailed,
       status: responseClassification.status,
       elapsedMs,
-      overallTimeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+      overallTimeoutMs: timeoutMs,
       thresholdNetworkUrl,
       body,
       attemptIndex,
@@ -243,10 +251,10 @@ async function submitSealOutputRequest(
       attemptIndex,
       elapsedMs,
       intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-      timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+      timeoutMs,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+    await sleepUnlessAborted(SUBMIT_RETRY_INTERVAL_MS, signal, 'sealOutput');
     attemptIndex += 1;
   }
 }
@@ -257,9 +265,14 @@ export async function tnSealOutputV2(params: {
   acp: ACPPublic;
   thresholdNetworkUrl: string;
   accessDeniedRetryTimeoutMs?: number;
+  /** The whole budget of the call, every retry included; `DEFAULT_DECRYPT_TIMEOUT_MS` by default. */
+  timeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
+  /** Stops the decrypt at its next await: the pending fetch is aborted, and `execute()` rejects with `Aborted`. */
+  signal?: AbortSignal;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, accessDeniedRetryTimeoutMs, onPoll, signal } = params;
+  const timeoutMs = params.timeoutMs ?? DEFAULT_DECRYPT_TIMEOUT_MS;
   const normalizedAccessDeniedRetryTimeoutMs = normalizeAccessDeniedRetryTimeoutMs({
     timeoutMs: accessDeniedRetryTimeoutMs,
     operationLabel: 'sealOutput',
@@ -272,6 +285,8 @@ export async function tnSealOutputV2(params: {
     acp,
     Date.now(),
     normalizedAccessDeniedRetryTimeoutMs,
-    onPoll
+    timeoutMs,
+    onPoll,
+    signal
   );
 }
