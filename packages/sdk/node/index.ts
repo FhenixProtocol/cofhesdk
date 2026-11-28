@@ -1,8 +1,8 @@
 // Node.js specific functionality only
 
+import { createCofheClientBase } from '../core/client.js';
+import { createCofheConfigBase } from '../core/config.js';
 import {
-  createCofheClientBase,
-  createCofheConfigBase,
   type CofheClient,
   type CofheConfig,
   type CofheInputConfig,

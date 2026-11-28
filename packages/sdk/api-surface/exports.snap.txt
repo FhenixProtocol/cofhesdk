@@ -19,8 +19,6 @@ type  CofheOnResponse
 type  CofheRequestContext
 type  CofheRequestOverride
 value CONNECT_STORE_DEFAULTS
-value createCofheClientBase
-value createCofheConfigBase
 value createKeysStore
 type  DecryptEndpoint
 value DecryptForTxBuilder

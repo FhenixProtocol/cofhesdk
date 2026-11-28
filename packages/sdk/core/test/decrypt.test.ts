@@ -1,5 +1,6 @@
 import { STAGING_TESTS, stagingViemChain } from './stagingRedirect';
-import { FheTypes, verifyDecryptResult, createCofheConfigBase, getTaskManagerAddress } from '@/core';
+import { FheTypes, verifyDecryptResult, getTaskManagerAddress } from '@/core';
+import { createCofheConfigBase } from '../config.js';
 import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,

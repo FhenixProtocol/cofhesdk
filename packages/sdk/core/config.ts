@@ -204,8 +204,8 @@ export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<st
 /**
  * Creates and validates a cofhe configuration (base implementation)
  *
- * @internal Used internally; not a supported API. Undocumented and may change in any release.
- * Use `createCofheConfig` from `@cofhe/sdk/node` (Node.js) or `@cofhe/sdk/web` (browser) instead.
+ * Not exported from the package. `@cofhe/sdk/node` and `@cofhe/sdk/web` wrap it as
+ * `createCofheConfig`.
  *
  * @param config - The configuration object to validate
  * @returns The validated configuration
